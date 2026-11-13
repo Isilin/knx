@@ -131,6 +131,13 @@
   opacity: 1;
 }
 
+.chart__line--projection {
+  stroke: var(--estime);
+  stroke-dasharray: 6 4;
+  stroke-width: 1.5;
+  opacity: 0.9;
+}
+
 .chart__line--estimate.is-faint {
   opacity: 0.45;
 }

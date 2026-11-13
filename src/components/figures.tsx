@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { formatImperialDate, formatPti } from "../domain/imperial.ts";
-import { formatInteger, formatPercent, formatSigned } from "../domain/numbers.ts";
+import { formatInteger, formatPercent, formatScore, formatSigned } from "../domain/numbers.ts";
 import type { IsoDate } from "../domain/types.ts";
 import "./figures.css";
 
@@ -38,11 +38,14 @@ export function Estimated({
   noise,
   unit = true,
   suffix,
+  signed = false,
 }: {
   value: number | null;
   noise?: number | null;
   unit?: boolean;
   suffix?: ReactNode;
+  /** Print `+` or `−` before the amount (flows). */
+  signed?: boolean;
 }) {
   if (value === null) return <span className="amount amount--none">—</span>;
   const lost = noise != null && Math.abs(value) < noise;
@@ -50,7 +53,7 @@ export function Estimated({
     noise != null ? `Estimation KNX, à ± ${formatInteger(noise)} ¢ près` : "Estimation KNX";
   return (
     <span className="estimated" title={title}>
-      {lost ? "≈ 0" : formatInteger(value)}
+      {lost ? "≈ 0" : signed ? formatSigned(Math.round(value)) : formatInteger(value)}
       {unit ? <span className="amount__unit"> ¢</span> : null}
       {suffix}
     </span>
@@ -87,6 +90,22 @@ export function Change({
     <span className={`change change--${direction}${estimated ? " change--estimated" : ""}`}>
       {direction !== "flat" ? <Trend up={direction === "up"} /> : null}
       {direction === "flat" ? "0,0 %" : formatPercent(ratio)}
+    </span>
+  );
+}
+
+/** A KNX score (−1…1) in points out of 100, with a direction mark: estimated, so dotted. */
+export function Score({ value }: { value: number | null }) {
+  if (value === null) return <span className="change change--none">—</span>;
+  const points = Math.round(value * 100);
+  const direction = points > 0 ? "up" : points < 0 ? "down" : "flat";
+  return (
+    <span
+      className={`change change--${direction} change--estimated`}
+      title="Indicateur estimé par KNX"
+    >
+      {direction !== "flat" ? <Trend up={direction === "up"} /> : null}
+      {formatScore(value)}
     </span>
   );
 }

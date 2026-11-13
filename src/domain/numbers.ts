@@ -69,8 +69,20 @@ export function formatDecimal(value: number): string {
   return visibleGrouping(decimalFormat.format(value));
 }
 
+/** A −1…1 score as signed points out of 100: `+62`, `−8`, `0`. */
+export function formatScore(value: number): string {
+  const points = Math.round(value * 100);
+  if (points === 0) return "0";
+  return points > 0 ? `+${points}` : `−${-points}`;
+}
+
 /** Signed integer with a true minus sign: `+3`, `−12`, `0`. */
 export function formatSigned(value: number): string {
   if (value === 0) return "0";
   return value > 0 ? `+${formatInteger(value)}` : `−${formatInteger(-value)}`;
+}
+
+/** A share of a whole, unsigned: `15,4 %`. */
+export function formatShare(ratio: number): string {
+  return formatPercent(ratio).replace("+", "");
 }

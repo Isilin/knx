@@ -1,5 +1,6 @@
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
+import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
 import type { CompanyMeta, Dataset, IsoDate, Snapshot } from "./types.ts";
 
 export interface CompanyPoint {
@@ -20,6 +21,14 @@ export interface CompanyPoint {
   realDailyNoise: number | null;
   /** realDaily ÷ previous chiffre − 1: how the period compares with the lifetime average. */
   performance: number | null;
+  /**
+   * Capital change since the previous report that revenue does not explain: Δcapital − revenue
+   * earned. Negative = money left (wages, withdrawals, purchases); positive = money came in.
+   * Estimated.
+   */
+  otherFlow: number | null;
+  /** ± rounding uncertainty on `otherFlow`, inherited from the revenue estimate. */
+  otherFlowNoise: number | null;
 }
 
 export type CompanyStatus = "active" | "idle" | "delisted";
@@ -49,6 +58,10 @@ export interface CompanySeries {
   /** Published chiffre change since the previous report, as a ratio. */
   chiffreChange: number | null;
   scores: CompanyScores;
+  /** Real revenue per day over the last 30 days. Estimated. */
+  recentRate: number | null;
+  /** Where the published chiffre heads if that rate holds; null when the estimate cannot say. */
+  projection: CompanyProjection | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -72,6 +85,8 @@ export interface Market {
   companies: CompanySeries[];
   facts: ReportFacts;
   bySlug: Map<string, CompanySeries>;
+  /** Horizon of the projections and the changes of order expected before it. */
+  projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -172,6 +187,19 @@ function buildPoints(
       realDailyNoise = ((days ?? 0) + (prev.days ?? 0)) / 2 / gap;
       performance = realDaily / prev.chiffre - 1;
     }
+    let otherFlow: number | null = null;
+    let otherFlowNoise: number | null = null;
+    if (prev && gap && row.capital !== null && prev.capital !== null) {
+      // A company published at 0 on both reports earned nothing in between.
+      const silent = prev.chiffre === 0 && row.chiffre === 0;
+      if (realDaily !== null && realDailyNoise !== null) {
+        otherFlow = row.capital - prev.capital - realDaily * gap;
+        otherFlowNoise = realDailyNoise * gap;
+      } else if (silent) {
+        otherFlow = row.capital - prev.capital;
+        otherFlowNoise = 0;
+      }
+    }
     points.push({
       date: snapshot.date,
       rank: ranks[index].get(name) ?? 0,
@@ -184,6 +212,8 @@ function buildPoints(
       realDaily,
       realDailyNoise,
       performance,
+      otherFlow,
+      otherFlowNoise,
     });
   });
   return points;
@@ -245,6 +275,8 @@ export function buildMarket(dataset: Dataset): Market {
         activity: recent !== null && last.chiffre > 0 ? Math.tanh(recent / last.chiffre - 1) : null,
         weight: recent,
       },
+      recentRate: recent === null ? null : Math.max(0, recent),
+      projection: null,
       bestRank,
       record,
     });
@@ -277,12 +309,16 @@ export function buildMarket(dataset: Dataset): Market {
     delisted: [...previousNames].filter((n) => !latestNames.has(n)),
   };
 
+  const { bySlug: projections, ...projection } = projectMarket(companies, latest.date);
+  for (const c of companies) c.projection = projections.get(c.slug) ?? null;
+
   return {
     dates: snapshots.map((s) => s.date),
     latestDate: latest.date,
     companies,
     facts,
     bySlug: new Map(companies.map((c) => [c.slug, c])),
+    projection,
   };
 }
 
