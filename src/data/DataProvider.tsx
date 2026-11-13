@@ -22,6 +22,8 @@ interface DataContextValue {
   session: Session | null;
   reload: () => void;
   publish: (request: PublishRequest) => Promise<void>;
+  /** Runs a write against the source, then reloads the data in the background. */
+  change: (write: (source: DataSource) => Promise<void>) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -69,17 +71,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setVersion((v) => v + 1);
   }, []);
 
-  const publish = useCallback(
-    async (request: PublishRequest) => {
-      await source.publish(request);
+  const change = useCallback(
+    async (write: (source: DataSource) => Promise<void>) => {
+      await write(source);
       setVersion((v) => v + 1);
     },
     [source],
   );
 
+  const publish = useCallback(
+    (request: PublishRequest) => change((s) => s.publish(request)),
+    [change],
+  );
+
   const value = useMemo(
-    () => ({ source, state, session, reload, publish }),
-    [source, state, session, reload, publish],
+    () => ({ source, state, session, reload, publish, change }),
+    [source, state, session, reload, publish, change],
   );
   return <DataContext value={value}>{children}</DataContext>;
 }

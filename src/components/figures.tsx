@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Consortium } from "../domain/types.ts";
 import { formatInteger, formatPercent, formatSigned } from "../domain/numbers.ts";
 import "./figures.css";
 
@@ -96,28 +97,17 @@ export function RankChange({ value }: { value: number | null }) {
   );
 }
 
-const GROUP_COLORS: Record<string, string> = {
-  Armacham: "var(--g-cyan)",
-  Sovereign: "var(--g-magenta)",
-  Donnellys: "var(--g-ambre)",
-};
-const SPARE = ["var(--g-bleu)"];
-
-/** Brand colour of a group: the three known houses are pinned, others take a stable spare. */
-export function groupColor(group: string | null): string {
-  if (!group) return "var(--ivoire)";
-  if (GROUP_COLORS[group]) return GROUP_COLORS[group];
-  let h = 0;
-  for (const char of group) h = (h * 31 + (char.codePointAt(0) ?? 0)) >>> 0;
-  return SPARE[h % SPARE.length];
+/** Brand colour of a consortium; ivory for independent corporations. */
+export function groupColor(consortium: Consortium | null): string {
+  return consortium ? `var(--g-${consortium.color})` : "var(--ivoire)";
 }
 
-export function GroupTag({ group }: { group: string | null }) {
-  if (!group) return <span className="group-tag group-tag--none">Indépendante</span>;
+export function GroupTag({ consortium }: { consortium: Consortium | null }) {
+  if (!consortium) return <span className="group-tag group-tag--none">Indépendante</span>;
   return (
     <span className="group-tag">
-      <i style={{ background: groupColor(group) }} aria-hidden="true" />
-      {group}
+      <i style={{ background: groupColor(consortium) }} aria-hidden="true" />
+      {consortium.name}
     </span>
   );
 }

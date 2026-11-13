@@ -112,12 +112,38 @@ export function MethodPage() {
               <strong>À l'arrêt</strong> : le jeu publie un chiffre de 0.
             </li>
             <li>
-              <strong>Radiée</strong> : l'entreprise n'apparaît plus dans le dernier relevé ; KNX
-              garde son historique.
+              <strong>Fermée</strong> : l'entreprise a disparu du rapport. La fermeture est
+              définitive ; KNX garde son historique.
             </li>
             <li>
-              <strong>Groupes</strong> : déduits d'un nom de marque partagé (Armacham, Sovereign,
-              Donnellys) jusqu'à ce que l'opérateur les renseigne.
+              <strong>Consortiums et secteurs</strong> : renseignés par l'opérateur de KNX, pas par
+              le jeu.
+            </li>
+          </ul>
+        </section>
+
+        <section>
+          <h2>Identité des corporations</h2>
+          <p>
+            KNX suit chaque corporation par un identifiant, pas par son nom. Avant chaque
+            publication, l'opérateur confirme ce que le rapport du jour ne dit pas :
+          </p>
+          <ul className="method__list">
+            <li>
+              <strong>Renommage</strong> : une corporation disparaît et une autre apparaît avec un
+              nom proche, ou avec les mêmes chiffres (CA publié, capital, effectif). L'historique
+              continue sous le nouveau nom ; l'ancien nom reste cherchable et ses liens mènent à la
+              fiche.
+            </li>
+            <li>
+              <strong>Refondation</strong> : le nom reste, mais le CA publié retombe à 0 ou le
+              capital revient à un montant de départ. Le CA publié étant une moyenne depuis la
+              création, il ne retombe jamais à 0 tant que l'entreprise vit : l'ancienne est fermée,
+              une nouvelle commence avec un historique vierge.
+            </li>
+            <li>
+              <strong>Homonyme</strong> : un nom déjà porté par une corporation fermée désigne une
+              nouvelle corporation. Les deux fiches se renvoient l'une à l'autre.
             </li>
           </ul>
           <p>

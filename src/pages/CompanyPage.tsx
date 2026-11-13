@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import {
   Amount,
   Change,
@@ -59,7 +59,7 @@ function milestones(company: CompanySeries): Milestone[] {
     text: `Record de CA publié : ${formatInteger(company.record.chiffre)} ¢`,
   });
   if (company.status === "delisted")
-    list.push({ date: company.latest.date, text: "Dernier relevé avant radiation" });
+    list.push({ date: company.latest.date, text: "Dernier relevé avant fermeture" });
   return list.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 }
 
@@ -162,6 +162,8 @@ export function CompanyPage() {
   const tweenedChange = useTween(periodChange);
 
   if (!company) {
+    const renamed = market.slugAliases.get(slug);
+    if (renamed) return <Navigate to={`/corporations/${renamed}`} replace />;
     return (
       <div className="state">
         <h1>Corporation introuvable</h1>
@@ -176,7 +178,7 @@ export function CompanyPage() {
   }
 
   const { latest, creation } = company;
-  const color = company.group ? groupColor(company.group) : "var(--ivoire)";
+  const color = groupColor(company.consortium);
   const rel = creation ? reliability(creation) : null;
   const age =
     creation && creation.method !== "first-seen"
@@ -217,14 +219,14 @@ export function CompanyPage() {
       </nav>
 
       <header className="company__head" style={{ "--brand": color } as React.CSSProperties}>
-        <Seal name={company.name} size={168} draw className="company__seal" />
+        <Seal seed={company.sealSeed} size={168} draw className="company__seal" />
         <div className="company__title">
           <h1>{company.name}</h1>
           <div className="company__meta">
-            <GroupTag group={company.group} />
+            <GroupTag consortium={company.consortium} />
             {company.status === "delisted" ? (
               <span className="company__status">
-                Radiée · dernier relevé le {formatShortDate(latest.date)}
+                Fermée · dernier relevé le {formatShortDate(latest.date)}
               </span>
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>

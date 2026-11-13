@@ -1,12 +1,7 @@
-import type { Dataset, IsoDate, SnapshotRow, SnapshotSource } from "../domain/types.ts";
+import type { CompanyPatch, ConsortiumDraft, EventDraft } from "../domain/mutations.ts";
+import type { Dataset, PublishRequest } from "../domain/types.ts";
 
-export interface PublishRequest {
-  date: IsoDate;
-  source: SnapshotSource;
-  rows: SnapshotRow[];
-  /** Replace an existing report for the same date. */
-  replace: boolean;
-}
+export type { CompanyPatch, ConsortiumDraft, EventDraft, PublishRequest };
 
 export type Session =
   | { state: "anonymous" }
@@ -16,6 +11,14 @@ export interface DataSource {
   readonly kind: "local" | "supabase";
   load(): Promise<Dataset>;
   publish(request: PublishRequest): Promise<void>;
+  /** Consortium, sector, typed creation date. */
+  updateCompany(id: string, patch: CompanyPatch): Promise<void>;
+  /** Sets (already reduced to a small WebP) or removes a corporation's logo. */
+  setLogo(id: string, logo: Blob | null): Promise<void>;
+  saveConsortium(draft: ConsortiumDraft): Promise<void>;
+  deleteConsortium(id: string): Promise<void>;
+  saveEvent(draft: EventDraft): Promise<void>;
+  deleteEvent(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;

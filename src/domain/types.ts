@@ -1,12 +1,12 @@
+import type { SectorId } from "./sectors.ts";
+
 /** ISO calendar date, `YYYY-MM-DD`, always interpreted in UTC. */
 export type IsoDate = string;
 
 export type SnapshotSource = "sheet" | "form" | "paste" | "userscript";
 
-/** One line of an in-game « Corporations » report, as published. */
-export interface SnapshotRow {
-  /** Exact company name as written in the game, character for character. */
-  name: string;
+/** Figures printed for one corporation in a report. */
+export interface RowFigures {
   /** Rank printed in the report, when known (the historical sheet has none). */
   rank: number | null;
   /** Published `Chiffre`: lifetime average daily revenue, in imperial credits. */
@@ -17,6 +17,17 @@ export interface SnapshotRow {
   employees: number | null;
 }
 
+/** One line of an in-game « Corporations » report as read: the company is known by its name. */
+export interface ReportRow extends RowFigures {
+  /** Exact company name as written in the game, character for character. */
+  name: string;
+}
+
+/** A published line, attached to a corporation of the registry. */
+export interface SnapshotRow extends RowFigures {
+  companyId: string;
+}
+
 /** A daily report as taken from the game on a given date. */
 export interface Snapshot {
   date: IsoDate;
@@ -24,18 +35,75 @@ export interface Snapshot {
   rows: SnapshotRow[];
 }
 
-export interface CompanyMeta {
+export const CONSORTIUM_COLORS = ["cyan", "magenta", "ambre", "bleu"] as const;
+export type ConsortiumColor = (typeof CONSORTIUM_COLORS)[number];
+
+/** A group of corporations managed by the operator (Armacham, Sovereign…). */
+export interface Consortium {
+  id: string;
   name: string;
-  /** Former names that must resolve to this company. */
-  aliases?: string[];
-  group?: string | null;
-  sector?: string | null;
+  color: ConsortiumColor;
+}
+
+/**
+ * A corporation of the registry. Its identity is `id`, never its name: a corporation can be
+ * renamed, and a closed one never reopens, so a later company may carry the same name.
+ */
+export interface CompanyMeta {
+  id: string;
+  name: string;
+  /** Former names, oldest first. */
+  formerNames: string[];
+  consortiumId: string | null;
+  sector: SectorId | null;
   /** Creation date typed by hand by the operator; wins over the estimate. */
-  creationOverride?: IsoDate | null;
+  creationOverride: IsoDate | null;
+  /** Date of the first report the corporation was missing from (closure is final). */
+  closedOn: IsoDate | null;
+  logoUrl: string | null;
+}
+
+export type EventKind = "renamed" | "ceo_change" | "closed" | "other";
+
+/** Kind-specific fields of an event. */
+export interface EventDetails {
+  /** `renamed`: former name. */
+  from?: string;
+  /** `renamed`: new name. */
+  to?: string;
+  /** `ceo_change`: the new chief executive. */
+  person?: string;
+  /** `other`: what happened, in a few words. */
+  title?: string;
+}
+
+/** A dated event of a corporation's history, recorded by KNX or typed by the operator. */
+export interface CompanyEvent {
+  id: string;
+  companyId: string;
+  date: IsoDate;
+  kind: EventKind;
+  details: EventDetails;
+  note: string | null;
+  origin: "manual" | "auto";
 }
 
 export interface Dataset {
   generatedAt: string;
   companies: CompanyMeta[];
+  consortiums: Consortium[];
+  events: CompanyEvent[];
   snapshots: Snapshot[];
+}
+
+/** A report ready to publish: each row resolved to a corporation, or to a new one. */
+export interface PublishRequest {
+  date: IsoDate;
+  source: SnapshotSource;
+  /** `companyId` null creates a corporation; a known id with another name renames it. */
+  rows: (ReportRow & { companyId: string | null })[];
+  /** Corporations closed on this date: missing from the report, or replaced by a namesake. */
+  closures: string[];
+  /** Replace an existing report for the same date. */
+  replace: boolean;
 }

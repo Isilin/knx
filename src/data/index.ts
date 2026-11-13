@@ -13,6 +13,12 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     kind: "supabase",
     load: async () => (await get()).load(),
     publish: async (request) => (await get()).publish(request),
+    updateCompany: async (id, patch) => (await get()).updateCompany(id, patch),
+    setLogo: async (id, logo) => (await get()).setLogo(id, logo),
+    saveConsortium: async (draft) => (await get()).saveConsortium(draft),
+    deleteConsortium: async (id) => (await get()).deleteConsortium(id),
+    saveEvent: async (draft) => (await get()).saveEvent(draft),
+    deleteEvent: async (id) => (await get()).deleteEvent(id),
     session: async () => (await get()).session(),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>
@@ -47,4 +53,11 @@ export function createDataSource(): DataSource {
   return url && key ? createLazySupabaseSource(url, key) : createLocalSource();
 }
 
-export type { DataSource, PublishRequest, Session } from "./source.ts";
+export type {
+  CompanyPatch,
+  ConsortiumDraft,
+  DataSource,
+  EventDraft,
+  PublishRequest,
+  Session,
+} from "./source.ts";

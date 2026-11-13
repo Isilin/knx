@@ -1,11 +1,19 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { Amount, Change } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
-import { daysBetween, formatLongDate } from "../domain/dates.ts";
-import { assignRanks, diffReport } from "../domain/diff.ts";
+import { daysBetween, formatLongDate, formatShortDate } from "../domain/dates.ts";
+import { assignRanks, diffReport, type DiffRow } from "../domain/diff.ts";
+import {
+  proposeIdentities,
+  resolveReport,
+  type Evidence,
+  type IdentityDecisions,
+  type RefoundingProposal,
+  type RenameProposal,
+} from "../domain/identity.ts";
 import { formatPercent, parseAmount } from "../domain/numbers.ts";
 import { parseReport } from "../domain/report.ts";
-import type { Dataset, SnapshotRow, SnapshotSource } from "../domain/types.ts";
+import type { Dataset, ReportRow, SnapshotSource } from "../domain/types.ts";
 import "./ReportsPage.css";
 
 function todayLocal(): string {
@@ -153,6 +161,25 @@ function list(names: readonly string[], limit = 8): string {
   return `${names.slice(0, limit).join(", ")} et ${names.length - limit} autres`;
 }
 
+const EVIDENCE: Record<Evidence, string> = {
+  name: "nom proche",
+  chiffre: "CA",
+  capital: "capital",
+  employees: "effectif",
+};
+
+/** `nom proche · mêmes CA, capital et effectif` */
+function evidenceText(evidence: readonly Evidence[]): string {
+  const parts: string[] = [];
+  if (evidence.includes("name")) parts.push(EVIDENCE.name);
+  const figures = evidence.filter((e) => e !== "name").map((e) => EVIDENCE[e]);
+  if (figures.length > 0)
+    parts.push(
+      `${figures.length > 1 ? "mêmes" : "même"} ${figures.length > 1 ? `${figures.slice(0, -1).join(", ")} et ${figures.at(-1)}` : figures[0]}`,
+    );
+  return parts.join(" · ");
+}
+
 function Editor({ dataset }: { dataset: Dataset | null }) {
   const { publish, source, state } = useData();
   const market = state.status === "ready" ? state.market : null;
@@ -160,8 +187,14 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
   const [mode, setMode] = useState<"paste" | "form">("paste");
   const [text, setText] = useState("");
   const [replace, setReplace] = useState(false);
+  const [choices, setChoices] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
+
+  const nameOf = useMemo(() => {
+    const names = new Map(dataset?.companies.map((c) => [c.id, c.name]) ?? []);
+    return (id: string) => names.get(id) ?? id;
+  }, [dataset]);
 
   const previous = useMemo(() => {
     if (!dataset) return null;
@@ -174,8 +207,8 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
 
   const [formRows, setFormRows] = useState<FormRow[]>(() =>
     (previous?.rows ?? []).map((r, i) => ({
-      key: `${i}-${r.name}`,
-      name: r.name,
+      key: `${i}-${r.companyId}`,
+      name: nameOf(r.companyId),
       chiffre: String(r.chiffre),
       capital: r.capital === null ? "" : String(r.capital),
       employees: r.employees === null ? "" : String(r.employees),
@@ -184,7 +217,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
 
   const exists = dataset?.snapshots.some((s) => s.date === date) ?? false;
 
-  const parsed = useMemo((): { rows: SnapshotRow[]; errors: string[] } => {
+  const parsed = useMemo((): { rows: ReportRow[]; errors: string[] } => {
     if (mode === "paste") {
       const result = parseReport(text);
       return {
@@ -193,7 +226,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
       };
     }
     const errors: string[] = [];
-    const rows: SnapshotRow[] = [];
+    const rows: ReportRow[] = [];
     const seen = new Set<string>();
     formRows.forEach((r, i) => {
       const name = r.name.trim();
@@ -217,34 +250,91 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
     return { rows: assignRanks(rows), errors };
   }, [mode, text, formRows]);
 
-  const diff = useMemo(() => {
-    if (!previous || parsed.rows.length === 0) return null;
-    const gap = daysBetween(previous.date, date);
+  /** Estimated days of activity on the report's date, by corporation. */
+  const ageOn = useMemo(() => {
     const creations = new Map(
       (market?.companies ?? []).map((c) => [
-        c.name,
+        c.id,
         c.creation && c.creation.method !== "first-seen" ? c.creation.creation : null,
       ]),
     );
-    return diffReport(previous.rows, parsed.rows, {
-      gap,
-      ageOn: (name) => {
-        const creation = creations.get(name);
-        return creation ? daysBetween(creation, date) : null;
-      },
+    return (id: string) => {
+      const creation = creations.get(id);
+      return creation ? daysBetween(creation, date) : null;
+    };
+  }, [market, date]);
+
+  const proposals = useMemo(() => {
+    if (!dataset || parsed.rows.length === 0) return null;
+    return proposeIdentities({
+      companies: dataset.companies,
+      snapshots: dataset.snapshots,
+      withEvents: new Set(dataset.events.map((e) => e.companyId)),
+      date,
+      rows: parsed.rows,
+      ageOn,
     });
-  }, [previous, parsed.rows, market, date]);
+  }, [dataset, parsed.rows, date, ageOn]);
+
+  const renameKey = (r: RenameProposal) => `rename:${r.companyId}:${r.to}`;
+  const refoundKey = (r: RefoundingProposal) => `refound:${r.companyId}`;
+  const resolved = useMemo(() => {
+    if (!proposals) return null;
+    const decisions: IdentityDecisions = {
+      renames: new Set(
+        proposals.renames
+          .filter((r) => choices[renameKey(r)] ?? r.suggested)
+          .map((r) => r.companyId),
+      ),
+      refoundings: new Set(
+        proposals.refoundings.filter((r) => choices[refoundKey(r)] ?? true).map((r) => r.companyId),
+      ),
+    };
+    return resolveReport(parsed.rows, proposals, decisions);
+  }, [proposals, parsed.rows, choices]);
+
+  const comparison = useMemo(() => {
+    if (!previous || !resolved) return null;
+    const before: DiffRow[] = previous.rows.map((r) => ({
+      ...r,
+      key: r.companyId,
+      name: nameOf(r.companyId),
+    }));
+    const after: DiffRow[] = resolved.rows.map((r) => ({
+      ...r,
+      key: r.companyId ?? `new:${r.name}`,
+    }));
+    return {
+      before,
+      after,
+      diff: diffReport(before, after, { gap: daysBetween(previous.date, date), ageOn }),
+    };
+  }, [previous, resolved, nameOf, date, ageOn]);
+  const diff = comparison?.diff ?? null;
+
+  const created = resolved?.rows.filter((r) => r.companyId === null).map((r) => r.name) ?? [];
+  const namesakes = new Map(proposals?.namesakes.map((n) => [n.name, n.closedOn]) ?? []);
+  const closures = resolved?.closures.map(nameOf) ?? [];
+  const toggle = (key: string, value: boolean) =>
+    setChoices((current) => ({ ...current, [key]: value }));
+
   const canPublish =
-    parsed.rows.length > 0 && parsed.errors.length === 0 && (!exists || replace) && !busy;
+    parsed.rows.length > 0 &&
+    parsed.errors.length === 0 &&
+    resolved !== null &&
+    (!exists || replace) &&
+    !busy;
 
   const submit = async () => {
+    if (!resolved) return;
     setBusy(true);
     setStatus(null);
     try {
       await publish({
         date,
         source: mode === "paste" ? "paste" : "form",
-        rows: parsed.rows,
+        rows: resolved.rows,
+        closures: resolved.closures,
         replace: exists && replace,
       });
       setStatus({
@@ -253,6 +343,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
       });
       setText("");
       setReplace(false);
+      setChoices({});
     } catch (error) {
       setStatus({
         tone: "error",
@@ -399,27 +490,91 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
                 </ul>
               </div>
             ) : null}
-            {diff ? (
+            {proposals && !proposals.latest ? (
+              <p className="note">
+                Ce relevé est antérieur au dernier publié : ses lignes sont rattachées aux
+                corporations ouvertes à cette date, sans fermeture ni renommage.
+              </p>
+            ) : null}
+            {proposals && (diff || created.length > 0) ? (
               <ul className="checks">
                 <li>
                   <span className="label">Nouvelles</span>
-                  <span>{list(diff.newcomers)}</span>
-                </li>
-                <li className={diff.missing.length > 5 ? "is-warn" : undefined}>
-                  <span className="label">Absentes</span>
                   <span>
-                    {diff.missing.length === 0
+                    {created.length === 0
                       ? "aucune"
-                      : `${diff.missing.length} : ${list(diff.missing)} (seront marquées radiées)`}
+                      : created
+                          .map((name) =>
+                            namesakes.has(name)
+                              ? `${name} (homonyme d'une corporation fermée le ${formatShortDate(namesakes.get(name) ?? "")} : nouvelle fiche)`
+                              : name,
+                          )
+                          .join(", ")}
                   </span>
                 </li>
-                {diff.renames.length > 0 ? (
+                <li className={closures.length > 0 ? "is-warn" : undefined}>
+                  <span className="label">Fermetures</span>
+                  <span>
+                    {closures.length === 0
+                      ? "aucune"
+                      : `${closures.length} : ${list(closures)}. Une fermeture est définitive.`}
+                  </span>
+                </li>
+                {proposals.renames.length > 0 ? (
                   <li className="is-warn">
-                    <span className="label">Renommages ?</span>
-                    <span>{diff.renames.map((r) => `${r.from} → ${r.to}`).join(" · ")}</span>
+                    <span className="label">Renommages</span>
+                    <span className="choices">
+                      {proposals.renames.map((r) => (
+                        <label key={renameKey(r)} className="choice">
+                          <input
+                            type="checkbox"
+                            checked={choices[renameKey(r)] ?? r.suggested}
+                            onChange={(e) => toggle(renameKey(r), e.target.checked)}
+                          />
+                          <span>
+                            <strong>{r.from}</strong> devient <strong>{r.to}</strong>
+                            <small>
+                              {evidenceText(r.evidence)} · décoché : {r.from} fermée, {r.to}{" "}
+                              nouvelle
+                            </small>
+                          </span>
+                        </label>
+                      ))}
+                    </span>
                   </li>
                 ) : null}
-                {diff.outliers.length > 0 ? (
+                {proposals.refoundings.length > 0 ? (
+                  <li className="is-warn">
+                    <span className="label">Refondations</span>
+                    <span className="choices">
+                      {proposals.refoundings.map((r) => (
+                        <label key={refoundKey(r)} className="choice">
+                          <input
+                            type="checkbox"
+                            checked={choices[refoundKey(r)] ?? true}
+                            onChange={(e) => toggle(refoundKey(r), e.target.checked)}
+                          />
+                          <span>
+                            <strong>{r.name}</strong> a fermé puis rouvert sous le même nom :
+                            nouvelle fiche, historique repris à zéro
+                            <small>
+                              CA <Amount value={r.before.chiffre} unit={false} /> →{" "}
+                              <Amount value={r.after.chiffre} unit={false} />
+                              {r.before.capital !== null && r.after.capital !== null ? (
+                                <>
+                                  {" "}
+                                  · capital <Amount value={r.before.capital} unit={false} /> →{" "}
+                                  <Amount value={r.after.capital} unit={false} />
+                                </>
+                              ) : null}
+                            </small>
+                          </span>
+                        </label>
+                      ))}
+                    </span>
+                  </li>
+                ) : null}
+                {diff && diff.outliers.length > 0 ? (
                   <li className="is-warn">
                     <span className="label">À vérifier</span>
                     <span>
@@ -435,7 +590,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
                     </span>
                   </li>
                 ) : null}
-                {diff.rankMismatches.length > 0 ? (
+                {diff && diff.rankMismatches.length > 0 ? (
                   <li className="is-warn">
                     <span className="label">Rangs</span>
                     <span>
@@ -447,12 +602,13 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
             ) : null}
             {parsed.rows.length > 0 &&
             parsed.errors.length === 0 &&
-            diff &&
-            diff.outliers.length === 0 &&
-            diff.renames.length === 0 ? (
+            comparison &&
+            comparison.diff.outliers.length === 0 &&
+            proposals?.renames.length === 0 &&
+            proposals.refoundings.length === 0 ? (
               <p className="note note--ok">
                 Aucune anomalie détectée. Variation moyenne du chiffre :{" "}
-                {formatPercent(average(previous?.rows ?? [], parsed.rows))}.
+                {formatPercent(average(comparison.before, comparison.after))}.
               </p>
             ) : null}
           </>
@@ -480,10 +636,10 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
   );
 }
 
-function average(previous: readonly SnapshotRow[], next: readonly SnapshotRow[]): number {
-  const before = new Map(previous.map((r) => [r.name, r.chiffre]));
+function average(previous: readonly DiffRow[], next: readonly DiffRow[]): number {
+  const before = new Map(previous.map((r) => [r.key, r.chiffre]));
   const ratios = next.flatMap((r) => {
-    const old = before.get(r.name);
+    const old = before.get(r.key);
     return old && old > 0 && r.chiffre > 0 ? [r.chiffre / old - 1] : [];
   });
   return ratios.length === 0 ? 0 : ratios.reduce((a, b) => a + b, 0) / ratios.length;

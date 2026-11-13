@@ -1,6 +1,7 @@
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
-import type { CompanyMeta, Dataset, IsoDate, Snapshot } from "./types.ts";
+import type { SectorId } from "./sectors.ts";
+import type { CompanyEvent, CompanyMeta, Consortium, Dataset, IsoDate, Snapshot } from "./types.ts";
 
 export interface CompanyPoint {
   date: IsoDate;
@@ -22,6 +23,7 @@ export interface CompanyPoint {
   performance: number | null;
 }
 
+/** `delisted`: closed, gone from the cote for good (a closed corporation never reopens). */
 export type CompanyStatus = "active" | "idle" | "delisted";
 
 export interface CompanyScores {
@@ -33,11 +35,28 @@ export interface CompanyScores {
   weight: number | null;
 }
 
+/** Another corporation that carried the same name, before or after this one. */
+export interface Namesake {
+  slug: string;
+  name: string;
+  firstSeen: IsoDate;
+  lastSeen: IsoDate;
+  closedOn: IsoDate | null;
+}
+
 export interface CompanySeries {
+  id: string;
   name: string;
   slug: string;
-  group: string | null;
-  sector: string | null;
+  /** Former names, oldest first. */
+  formerNames: string[];
+  consortium: Consortium | null;
+  sector: SectorId | null;
+  logoUrl: string | null;
+  closedOn: IsoDate | null;
+  /** Seed of the guilloché seal: stable across renames, distinct between namesakes. */
+  sealSeed: string;
+  namesakes: Namesake[];
   creation: CreationEstimate | null;
   points: CompanyPoint[];
   status: CompanyStatus;
@@ -70,8 +89,14 @@ export interface Market {
   dates: IsoDate[];
   latestDate: IsoDate;
   companies: CompanySeries[];
+  consortiums: Consortium[];
   facts: ReportFacts;
   bySlug: Map<string, CompanySeries>;
+  byId: Map<string, CompanySeries>;
+  /** Slug of a former name → current slug, to keep old links working. */
+  slugAliases: Map<string, string>;
+  /** Recorded events, by corporation id, oldest first. */
+  events: Map<string, CompanyEvent[]>;
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -86,7 +111,10 @@ export function slugify(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
-/** Groups inferred from a shared leading brand word (Armacham, Sovereign, Donnellys…). */
+/**
+ * Groups inferred from a shared leading brand word (Armacham, Sovereign, Donnellys…). Only used
+ * to seed the consortium list from the historical sheet; the operator manages it afterwards.
+ */
 export function inferGroups(names: readonly string[]): Map<string, string> {
   const byWord = new Map<string, string[]>();
   for (const name of names) {
@@ -101,14 +129,14 @@ export function inferGroups(names: readonly string[]): Map<string, string> {
   return groups;
 }
 
-function rankSnapshot(snapshot: Snapshot): Map<string, number> {
+function rankSnapshot(snapshot: Snapshot, nameOf: (id: string) => string): Map<string, number> {
   const sorted = [...snapshot.rows].sort(
     (a, b) =>
       (a.rank ?? Infinity) - (b.rank ?? Infinity) ||
       b.chiffre - a.chiffre ||
-      a.name.localeCompare(b.name, "fr"),
+      nameOf(a.companyId).localeCompare(nameOf(b.companyId), "fr"),
   );
-  return new Map(sorted.map((row, index) => [row.name, row.rank ?? index + 1]));
+  return new Map(sorted.map((row, index) => [row.companyId, row.rank ?? index + 1]));
 }
 
 /** Cumulative revenue at or before `day`, with the matching report day. */
@@ -145,12 +173,12 @@ function rateBetween(
 function buildPoints(
   snapshots: readonly Snapshot[],
   ranks: readonly Map<string, number>[],
-  name: string,
+  id: string,
   creation: CreationEstimate | null,
 ): CompanyPoint[] {
   const points: CompanyPoint[] = [];
   snapshots.forEach((snapshot, index) => {
-    const row = snapshot.rows.find((r) => r.name === name);
+    const row = snapshot.rows.find((r) => r.companyId === id);
     if (!row) return;
     const days = creation ? activityDays(creation.creation, snapshot.date) : null;
     const usable = days !== null && days > 0;
@@ -174,7 +202,7 @@ function buildPoints(
     }
     points.push({
       date: snapshot.date,
-      rank: ranks[index].get(name) ?? 0,
+      rank: ranks[index].get(id) ?? 0,
       chiffre: row.chiffre,
       capital: row.capital,
       employees: row.employees,
@@ -189,33 +217,77 @@ function buildPoints(
   return points;
 }
 
+function groupBy<T>(items: readonly T[], key: (item: T) => string): Map<string, T[]> {
+  const groups = new Map<string, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    groups.set(k, [...(groups.get(k) ?? []), item]);
+  }
+  return groups;
+}
+
+/**
+ * Gives every corporation a unique, readable address. Among namesakes, the open one (or the most
+ * recent) keeps the plain name; earlier ones take the year they were first seen.
+ */
+function assignSlugs(companies: CompanySeries[]): void {
+  const taken = new Set<string>();
+  const groups = groupBy(companies, (c) => slugify(c.name) || `corporation-${c.id}`);
+  for (const [base, members] of groups) {
+    members.sort(
+      (a, b) =>
+        Number(a.status === "delisted") - Number(b.status === "delisted") ||
+        b.firstSeen.localeCompare(a.firstSeen),
+    );
+    members.forEach((c, index) => {
+      let slug = index === 0 ? base : `${base}-${c.firstSeen.slice(0, 4)}`;
+      if (taken.has(slug)) slug = `${base}-${c.id}`;
+      taken.add(slug);
+      c.slug = slug;
+    });
+  }
+}
+
+/** Seals follow the first name a corporation carried; a later namesake gets its own. */
+function assignSealSeeds(companies: CompanySeries[]): void {
+  const groups = groupBy(companies, (c) => c.formerNames[0] ?? c.name);
+  for (const [original, members] of groups) {
+    members.sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
+    members.forEach((c, index) => {
+      c.sealSeed = index === 0 ? original : `${original}·${c.firstSeen}`;
+    });
+  }
+}
+
 /** Derives every series, fact and score the interface reads from the raw dataset. */
 export function buildMarket(dataset: Dataset): Market {
   const snapshots = [...dataset.snapshots].sort((a, b) => a.date.localeCompare(b.date));
   if (snapshots.length === 0) throw new Error("Aucun relevé.");
-  const ranks = snapshots.map(rankSnapshot);
+  const consortiums = new Map(dataset.consortiums.map((c) => [c.id, c]));
+  const metaById = new Map<string, CompanyMeta>(dataset.companies.map((c) => [c.id, c]));
+  const ranks = snapshots.map((s) => rankSnapshot(s, (id) => metaById.get(id)?.name ?? id));
   const latest = snapshots[snapshots.length - 1];
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const latestDay = toDayNumber(latest.date);
 
-  const metaByName = new Map<string, CompanyMeta>(dataset.companies.map((c) => [c.name, c]));
-  const names = new Set<string>();
-  for (const s of snapshots) for (const r of s.rows) names.add(r.name);
-  const inferred = inferGroups([...names]);
+  const ids = new Set<string>();
+  for (const s of snapshots) for (const r of s.rows) ids.add(r.companyId);
 
   const companies: CompanySeries[] = [];
-  for (const name of names) {
-    const meta = metaByName.get(name);
+  for (const id of ids) {
+    const meta = metaById.get(id);
+    if (!meta) continue;
     const chiffres = snapshots.flatMap((s) => {
-      const row = s.rows.find((r) => r.name === name);
+      const row = s.rows.find((r) => r.companyId === id);
       return row ? [{ date: s.date, chiffre: row.chiffre }] : [];
     });
-    const creation = estimateCreation(chiffres, meta?.creationOverride ?? null);
-    const points = buildPoints(snapshots, ranks, name, creation);
+    const creation = estimateCreation(chiffres, meta.creationOverride);
+    const points = buildPoints(snapshots, ranks, id, creation);
     const last = points[points.length - 1];
     const prev = points.length > 1 ? points[points.length - 2] : null;
     const inLatest = last.date === latest.date;
-    const status: CompanyStatus = !inLatest ? "delisted" : last.chiffre === 0 ? "idle" : "active";
+    const status: CompanyStatus =
+      meta.closedOn !== null || !inLatest ? "delisted" : last.chiffre === 0 ? "idle" : "active";
     const recent = rateBetween(points, latestDay - 30, latestDay);
     const before = rateBetween(points, latestDay - 120, latestDay - 30);
     let bestRank = { rank: points[0].rank, date: points[0].date };
@@ -225,10 +297,16 @@ export function buildMarket(dataset: Dataset): Market {
       if (p.chiffre > record.chiffre) record = { chiffre: p.chiffre, date: p.date };
     }
     companies.push({
-      name,
-      slug: slugify(name),
-      group: meta?.group ?? inferred.get(name) ?? null,
-      sector: meta?.sector ?? null,
+      id,
+      name: meta.name,
+      slug: "",
+      formerNames: meta.formerNames,
+      consortium: meta.consortiumId ? (consortiums.get(meta.consortiumId) ?? null) : null,
+      sector: meta.sector,
+      logoUrl: meta.logoUrl,
+      closedOn: meta.closedOn,
+      sealSeed: meta.name,
+      namesakes: [],
       creation,
       points,
       status,
@@ -259,13 +337,44 @@ export function buildMarket(dataset: Dataset): Market {
         : null;
   }
 
+  assignSlugs(companies);
+  assignSealSeeds(companies);
+  for (const members of groupBy(companies, (c) => c.name).values()) {
+    if (members.length < 2) continue;
+    for (const c of members)
+      c.namesakes = members
+        .filter((other) => other !== c)
+        .map((other) => ({
+          slug: other.slug,
+          name: other.name,
+          firstSeen: other.firstSeen,
+          lastSeen: other.latest.date,
+          closedOn: other.closedOn,
+        }))
+        .sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
+  }
+
   companies.sort((a, b) => {
     const order = { active: 0, idle: 1, delisted: 2 } as const;
     return order[a.status] - order[b.status] || a.latest.rank - b.latest.rank;
   });
 
-  const latestNames = new Set(latest.rows.map((r) => r.name));
-  const previousNames = new Set(previous?.rows.map((r) => r.name) ?? []);
+  const bySlug = new Map(companies.map((c) => [c.slug, c]));
+  const slugAliases = new Map<string, string>();
+  for (const c of companies)
+    for (const former of c.formerNames) {
+      const alias = slugify(former);
+      if (alias && !bySlug.has(alias) && !slugAliases.has(alias)) slugAliases.set(alias, c.slug);
+    }
+
+  const events = new Map<string, CompanyEvent[]>();
+  for (const event of [...dataset.events].sort((a, b) => a.date.localeCompare(b.date)))
+    events.set(event.companyId, [...(events.get(event.companyId) ?? []), event]);
+
+  const byId = new Map(companies.map((c) => [c.id, c]));
+  const nameOf = (id: string) => byId.get(id)?.name ?? id;
+  const latestIds = new Set(latest.rows.map((r) => r.companyId));
+  const previousIds = new Set(previous?.rows.map((r) => r.companyId) ?? []);
   const facts: ReportFacts = {
     date: latest.date,
     previousDate: previous?.date ?? null,
@@ -273,16 +382,20 @@ export function buildMarket(dataset: Dataset): Market {
     listed: latest.rows.length,
     active: latest.rows.filter((r) => r.chiffre > 0).length,
     idle: latest.rows.filter((r) => r.chiffre === 0).length,
-    newcomers: previous ? [...latestNames].filter((n) => !previousNames.has(n)) : [],
-    delisted: [...previousNames].filter((n) => !latestNames.has(n)),
+    newcomers: previous ? [...latestIds].filter((id) => !previousIds.has(id)).map(nameOf) : [],
+    delisted: [...previousIds].filter((id) => !latestIds.has(id)).map(nameOf),
   };
 
   return {
     dates: snapshots.map((s) => s.date),
     latestDate: latest.date,
     companies,
+    consortiums: [...dataset.consortiums].sort((a, b) => a.name.localeCompare(b.name, "fr")),
     facts,
-    bySlug: new Map(companies.map((c) => [c.slug, c])),
+    bySlug,
+    byId,
+    slugAliases,
+    events,
   };
 }
 

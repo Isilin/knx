@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
-import { assignRanks, diffReport } from "./diff.ts";
-import type { SnapshotRow } from "./types.ts";
+import { assignRanks, diffReport, type DiffRow } from "./diff.ts";
 
 const row = (
   name: string,
   chiffre: number,
   rank: number | null = null,
   capital: number | null = 100_000,
-): SnapshotRow => ({
+): DiffRow => ({
+  key: name,
   name,
   rank,
   chiffre,
@@ -16,16 +16,6 @@ const row = (
 });
 
 describe("diffReport", () => {
-  it("lists newcomers, missing companies and likely renames", () => {
-    const diff = diffReport(
-      [row("Kessler Industries", 194_000), row("Paradox", 0), row("Seven", 4_700)],
-      [row("Kessler Industries™", 194_100), row("Seven", 4_770), row("Advenio", 0)],
-    );
-    expect(diff.newcomers).toEqual(["Kessler Industries™", "Advenio"]);
-    expect(diff.missing).toEqual(["Kessler Industries", "Paradox"]);
-    expect(diff.renames).toEqual([{ from: "Kessler Industries", to: "Kessler Industries™" }]);
-  });
-
   it("flags implausible jumps and rank disorder", () => {
     const diff = diffReport(
       [row("Alpha", 100_000, 1, 1_000_000), row("Beta", 50_000, 2)],
@@ -36,6 +26,14 @@ describe("diffReport", () => {
       "Alpha:capital",
     ]);
     expect(diff.rankMismatches).toEqual(["Beta"]);
+  });
+
+  it("compares a renamed corporation with its former line", () => {
+    const diff = diffReport(
+      [{ ...row("Old Name", 100_000), key: "7" }],
+      [{ ...row("New Name", 10_000), key: "7" }],
+    );
+    expect(diff.outliers.map((o) => o.name)).toEqual(["New Name"]);
   });
 });
 

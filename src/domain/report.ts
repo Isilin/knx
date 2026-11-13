@@ -1,5 +1,5 @@
 import { parseAmount } from "./numbers.ts";
-import type { SnapshotRow } from "./types.ts";
+import type { ReportRow } from "./types.ts";
 
 export interface ReportLineError {
   line: number;
@@ -8,7 +8,7 @@ export interface ReportLineError {
 }
 
 export interface ParsedReport {
-  rows: SnapshotRow[];
+  rows: ReportRow[];
   errors: ReportLineError[];
 }
 
@@ -25,7 +25,7 @@ const SPACED = new RegExp(String.raw`^(\d+)\s+(.+?)\s+${AMOUNT}\s+${AMOUNT}\s+(\
  * reports pasted with spaces instead of tabs. Names are kept exactly, only trimmed.
  */
 export function parseReport(text: string): ParsedReport {
-  const rows: SnapshotRow[] = [];
+  const rows: ReportRow[] = [];
   const errors: ReportLineError[] = [];
   const seen = new Set<string>();
 
@@ -50,14 +50,14 @@ export function parseReport(text: string): ParsedReport {
   return { rows, errors };
 }
 
-function parseTabbed(raw: string): SnapshotRow | string {
+function parseTabbed(raw: string): ReportRow | string {
   const cells = raw.split("\t").map((cell) => cell.trim());
   while (cells.length > 0 && cells[cells.length - 1] === "") cells.pop();
   if (cells.length !== 5) return `5 colonnes attendues, ${cells.length} trouvées.`;
   return toRow(cells[0], cells[1], cells[2], cells[3], cells[4]);
 }
 
-function parseSpaced(trimmed: string): SnapshotRow | string {
+function parseSpaced(trimmed: string): ReportRow | string {
   const match = SPACED.exec(trimmed);
   if (!match) return "Ligne illisible : rang, nom, chiffre, capital et employés attendus.";
   return toRow(match[1], match[2], match[3], match[4], match[5]);
@@ -69,7 +69,7 @@ function toRow(
   chiffreText: string,
   capitalText: string,
   employeesText: string,
-): SnapshotRow | string {
+): ReportRow | string {
   const rank = parseAmount(rankText);
   const chiffre = parseAmount(chiffreText);
   const capital = parseAmount(capitalText);

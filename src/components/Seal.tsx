@@ -101,16 +101,17 @@ export function sealGeometry(name: string, detail: "small" | "large"): SealGeome
 }
 
 interface SealProps {
-  name: string;
+  /** Stable seed, normally `CompanySeries.sealSeed`. */
+  seed: string;
   size?: number;
   /** Trace the strokes once on mount (company page). */
   draw?: boolean;
   className?: string;
 }
 
-export const Seal = memo(function Seal({ name, size = 24, draw = false, className }: SealProps) {
+export const Seal = memo(function Seal({ seed, size = 24, draw = false, className }: SealProps) {
   const detail = size >= 64 ? "large" : "small";
-  const geometry = useMemo(() => sealGeometry(name, detail), [name, detail]);
+  const geometry = useMemo(() => sealGeometry(seed, detail), [seed, detail]);
   return (
     <svg
       className={`seal${draw ? " seal--draw" : ""}${className ? ` ${className}` : ""}`}

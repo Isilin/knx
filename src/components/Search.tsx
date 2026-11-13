@@ -4,7 +4,11 @@ import type { CompanySeries } from "../domain/market.ts";
 import { Seal } from "./Seal.tsx";
 import "./Search.css";
 
-const fold = (text: string) => text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+const fold = (text: string) =>
+  text
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
 
 export function Search({ companies }: { companies: CompanySeries[] }) {
   const navigate = useNavigate();
@@ -17,10 +21,18 @@ export function Search({ companies }: { companies: CompanySeries[] }) {
   const results = useMemo(() => {
     const q = fold(query.trim());
     if (q === "") return [];
+    // Former names count too: an old name still leads to the corporation.
+    const score = (c: CompanySeries) => {
+      if (fold(c.name).startsWith(q)) return 0;
+      if (fold(c.name).includes(q)) return 1;
+      return c.formerNames.some((n) => fold(n).includes(q)) ? 2 : -1;
+    };
     return companies
-      .filter((c) => fold(c.name).includes(q))
-      .sort((a, b) => Number(!fold(a.name).startsWith(q)) - Number(!fold(b.name).startsWith(q)))
-      .slice(0, 8);
+      .map((c) => ({ c, s: score(c) }))
+      .filter((x) => x.s >= 0)
+      .sort((a, b) => a.s - b.s)
+      .slice(0, 8)
+      .map((x) => x.c);
   }, [companies, query]);
 
   const go = (company: CompanySeries) => {
@@ -96,10 +108,18 @@ export function Search({ companies }: { companies: CompanySeries[] }) {
                 }}
                 onMouseEnter={() => setActive(index)}
               >
-                <Seal name={company.name} size={18} />
-                <span>{company.name}</span>
+                <Seal seed={company.sealSeed} size={18} />
+                <span>
+                  {company.name}
+                  {company.formerNames.length > 0 &&
+                  !fold(company.name).includes(fold(query.trim())) ? (
+                    <small> ex-{company.formerNames.at(-1)}</small>
+                  ) : null}
+                </span>
                 <small>
-                  {company.status === "delisted" ? "radiée" : `rang ${company.latest.rank}`}
+                  {company.status === "delisted"
+                    ? `fermée${company.namesakes.length > 0 ? ` · ${company.firstSeen.slice(0, 4)}` : ""}`
+                    : `rang ${company.latest.rank}`}
                 </small>
               </li>
             ))
