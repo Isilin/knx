@@ -45,6 +45,11 @@
   color-scheme: dark;
 }
 
+/* The picker speaks the real calendar; the imperial date beside the label is what players read. */
+.editor__ig .idate {
+  color: var(--ivoire);
+}
+
 .form-grid {
   display: grid;
   gap: var(--s-1);

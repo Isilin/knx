@@ -1,7 +1,7 @@
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router";
+import { ImperialDate } from "../components/figures.tsx";
 import { Search } from "../components/Search.tsx";
 import { useData } from "../data/DataProvider.tsx";
-import { formatLongDate } from "../domain/dates.ts";
 import { FocusProvider } from "../hooks/focus.tsx";
 import "./Layout.css";
 
@@ -9,11 +9,10 @@ const SECTIONS = [
   { to: "/", label: "Marché", end: true },
   { to: "/corporations", label: "Corporations", end: false },
   { to: "/releves", label: "Relevés", end: false },
-  { to: "/methodologie", label: "Méthodologie", end: false },
 ];
 
-/** Pages that work without a loaded market (publishing the very first report, reading the method). */
-const STANDALONE = ["/releves", "/methodologie"];
+/** Pages that work without a loaded market (publishing the very first report). */
+const STANDALONE = ["/releves"];
 
 export function Layout() {
   const { state, reload } = useData();
@@ -42,10 +41,7 @@ export function Layout() {
             {state.status === "ready" ? (
               <>
                 <p className="masthead__date">
-                  Relevé du{" "}
-                  <time dateTime={state.market.latestDate}>
-                    {formatLongDate(state.market.latestDate)}
-                  </time>
+                  Relevé du <ImperialDate date={state.market.latestDate} pti />
                 </p>
                 <Search companies={state.market.companies} />
               </>
@@ -85,7 +81,6 @@ export function Layout() {
             valeurs en <span className="estimated">violet pointillé</span> sont des estimations de
             KNX.
           </p>
-          <Link to="/methodologie">Comment KNX calcule ses estimations</Link>
         </div>
       </footer>
       <ScrollRestoration />

@@ -1,7 +1,8 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Amount, Change } from "../components/figures.tsx";
+import { Amount, Change, ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
-import { daysBetween, formatLongDate } from "../domain/dates.ts";
+import { daysBetween, isIsoDate } from "../domain/dates.ts";
+import { formatImperialDate } from "../domain/imperial.ts";
 import { assignRanks, diffReport } from "../domain/diff.ts";
 import { formatPercent, parseAmount } from "../domain/numbers.ts";
 import { parseReport } from "../domain/report.ts";
@@ -136,7 +137,7 @@ function Journal({ dataset }: { dataset: Dataset }) {
       <ol>
         {recent.map((s) => (
           <li key={s.date}>
-            <time dateTime={s.date}>{formatLongDate(s.date)}</time>
+            <ImperialDate date={s.date} pti />
             <span>{s.rows.length} corporations</span>
             <span className="journal__source">{labels[s.source]}</span>
           </li>
@@ -249,7 +250,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
       });
       setStatus({
         tone: "ok",
-        text: `Relevé du ${formatLongDate(date)} publié : ${parsed.rows.length} corporations.`,
+        text: `Relevé du ${formatImperialDate(date)} publié : ${parsed.rows.length} corporations.`,
       });
       setText("");
       setReplace(false);
@@ -275,7 +276,15 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
 
       <div className="editor__bar">
         <label className="field editor__date">
-          <span className="label">Date du relevé</span>
+          <span className="label">
+            Date du relevé
+            {isIsoDate(date) ? (
+              <span className="editor__ig">
+                {" · "}
+                <ImperialDate date={date} />
+              </span>
+            ) : null}
+          </span>
           <input
             type="date"
             value={date}
@@ -384,7 +393,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
             <p className="preview__summary">
               <strong>{parsed.rows.length}</strong> corporations lues
               {previous
-                ? ` · comparées au relevé du ${formatLongDate(previous.date)}`
+                ? ` · comparées au relevé du ${formatImperialDate(previous.date)}`
                 : " · premier relevé"}
             </p>
             {parsed.errors.length > 0 ? (
@@ -465,7 +474,7 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
               checked={replace}
               onChange={(e) => setReplace(e.target.checked)}
             />
-            Un relevé existe déjà pour le {formatLongDate(date)} : le remplacer.
+            Un relevé existe déjà pour le <ImperialDate date={date} /> : le remplacer.
           </label>
         ) : null}
 

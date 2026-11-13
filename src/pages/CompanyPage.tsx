@@ -6,6 +6,7 @@ import {
   Estimated,
   GroupTag,
   groupColor,
+  ImperialDate,
   RankChange,
 } from "../components/figures.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
@@ -14,11 +15,38 @@ import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
-import { daysBetween, formatDuration, formatLongDate, formatShortDate } from "../domain/dates.ts";
+import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
+
+/** Imperial age with small units, like the other figures: `91 ans 1 hept. 4 j`. */
+function AgeFigure({ age }: { age: ImperialAge }) {
+  const parts = [
+    { value: age.years, unit: age.years > 1 ? "ans" : "an" },
+    { value: age.heptades, unit: "hept." },
+    { value: age.days, unit: "j" },
+  ].filter((p) => p.value > 0);
+  const shown = parts.length > 0 ? parts : [{ value: 0, unit: "j" }];
+  const full = formatImperialAge(age);
+  return (
+    <span className="age" title={full}>
+      <span aria-hidden="true">
+        {shown.map((p, i) => (
+          <span key={p.unit}>
+            {i > 0 ? " " : null}
+            <span className="age__part">
+              {p.value}
+              <span className="amount__unit"> {p.unit}</span>
+            </span>
+          </span>
+        ))}
+      </span>
+      <span className="sr-only">{full}</span>
+    </span>
+  );
+}
 
 function reliability(creation: CreationEstimate): { label: string; tone: "high" | "mid" | "low" } {
   if (creation.method === "manual") return { label: "date saisie", tone: "high" };
@@ -114,7 +142,7 @@ export function CompanyPage() {
   const { slug = "" } = useParams();
   const market = useMarket();
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<PeriodId>("365");
+  const [period, setPeriod] = useState<PeriodId>("12");
   const company = market.bySlug.get(slug);
 
   const neighbours = useMemo(() => {
@@ -180,7 +208,7 @@ export function CompanyPage() {
   const rel = creation ? reliability(creation) : null;
   const age =
     creation && creation.method !== "first-seen"
-      ? daysBetween(creation.creation, market.latestDate)
+      ? imperialAge(creation.creation, market.latestDate)
       : null;
   const history = [...company.points].reverse().slice(0, 12);
   const hasCapital = company.points.some((p) => p.capital !== null);
@@ -224,13 +252,15 @@ export function CompanyPage() {
             <GroupTag group={company.group} />
             {company.status === "delisted" ? (
               <span className="company__status">
-                Radiée · dernier relevé le {formatShortDate(latest.date)}
+                Radiée · dernier relevé le <ImperialDate date={latest.date} />
               </span>
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
             ) : null}
             {company.sector ? <span>{company.sector}</span> : null}
-            <span>Suivie par KNX depuis le {formatLongDate(company.firstSeen)}</span>
+            <span>
+              Suivie par KNX depuis le <ImperialDate date={company.firstSeen} pti />
+            </span>
           </div>
         </div>
         <FollowButton slug={company.slug} name={company.name} />
@@ -282,15 +312,20 @@ export function CompanyPage() {
             {age === null ? (
               "—"
             ) : creation?.method === "manual" ? (
-              formatDuration(age)
+              <AgeFigure age={age} />
             ) : (
-              <span className="estimated">{formatDuration(age)}</span>
+              <span className="estimated">
+                <AgeFigure age={age} />
+              </span>
             )}
           </dd>
           <dd className="kpi__detail">
-            {creation && creation.method !== "first-seen"
-              ? `création ${creation.method === "manual" ? "le" : "vers le"} ${formatLongDate(creation.creation)} · `
-              : ""}
+            {creation && creation.method !== "first-seen" ? (
+              <span>
+                création {creation.method === "manual" ? "le" : "vers le"}{" "}
+                <ImperialDate date={creation.creation} pti /> ·
+              </span>
+            ) : null}
             {rel ? <span className={`rel rel--${rel.tone}`}>{rel.label}</span> : "jamais active"}
           </dd>
         </div>
@@ -338,7 +373,7 @@ export function CompanyPage() {
           </span>
           <span>
             Source : rapport « Corporations », {company.points.length} relevés depuis le{" "}
-            {formatLongDate(company.firstSeen)}.
+            <ImperialDate date={company.firstSeen} />.
           </span>
         </p>
       </section>
@@ -426,7 +461,7 @@ export function CompanyPage() {
           <ol className="milestones">
             {milestones(company).map((m) => (
               <li key={`${m.date}-${m.text}`}>
-                <time dateTime={m.date}>{formatLongDate(m.date)}</time>
+                <ImperialDate date={m.date} />
                 <span>{m.text}</span>
               </li>
             ))}
@@ -464,7 +499,9 @@ export function CompanyPage() {
             <tbody>
               {history.map((p) => (
                 <tr key={p.date}>
-                  <th scope="row">{formatLongDate(p.date)}</th>
+                  <th scope="row">
+                    <ImperialDate date={p.date} />
+                  </th>
                   <td className="num">{p.rank}</td>
                   <td className="num">
                     <Amount value={p.chiffre} unit={false} />

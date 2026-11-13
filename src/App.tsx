@@ -4,7 +4,6 @@ import { DataProvider } from "./data/DataProvider.tsx";
 import { CompaniesPage } from "./pages/CompaniesPage.tsx";
 import { CompanyPage } from "./pages/CompanyPage.tsx";
 import { MarketPage } from "./pages/MarketPage.tsx";
-import { MethodPage } from "./pages/MethodPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { ReportsPage } from "./pages/ReportsPage.tsx";
 
@@ -16,7 +15,6 @@ const router = createBrowserRouter([
       { path: "corporations", element: <CompaniesPage /> },
       { path: "corporations/:slug", element: <CompanyPage /> },
       { path: "releves", element: <ReportsPage /> },
-      { path: "methodologie", element: <MethodPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },

@@ -1,7 +1,7 @@
 import { scaleLinear, scaleTime } from "d3-scale";
 import { curveLinear, curveStepAfter, curveStepBefore, line } from "d3-shape";
 import { useMemo, useState, type PointerEvent } from "react";
-import { formatLongDate } from "../domain/dates.ts";
+import { formatImperialDate, formatPti, imperialTicks } from "../domain/imperial.ts";
 import type { IsoDate } from "../domain/types.ts";
 import { useElementWidth } from "../hooks/useElementWidth.ts";
 import "./TimeChart.css";
@@ -44,16 +44,6 @@ const LABELLED_MARGIN = { ...MARGIN, right: 184 };
 /** Narrow charts keep the plot wide: labels shrink to the rank. */
 const COMPACT_LABELLED_MARGIN = { ...MARGIN, right: 44 };
 const dateOf = (iso: IsoDate) => new Date(`${iso}T00:00:00Z`);
-const monthTicks = new Intl.DateTimeFormat("fr-FR", {
-  month: "short",
-  year: "2-digit",
-  timeZone: "UTC",
-});
-const dayTicks = new Intl.DateTimeFormat("fr-FR", {
-  day: "numeric",
-  month: "short",
-  timeZone: "UTC",
-});
 const compact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
 
 export function TimeChart({
@@ -103,8 +93,6 @@ export function TimeChart({
       .domain(invertY ? [hi, lo] : [lo, hi])
       .range([margin.top + innerHeight, margin.top]);
     if (zeroBased || invertY) y.nice(4);
-    const span =
-      (dateOf(dates[dates.length - 1]).getTime() - dateOf(dates[0]).getTime()) / 86_400_000;
     const paths = series.map((s) => {
       const curve =
         s.kind === "estimate" ? curveStepBefore : s.kind === "step" ? curveStepAfter : curveLinear;
@@ -123,7 +111,6 @@ export function TimeChart({
       paths,
       innerWidth,
       innerHeight,
-      tickFormat: span <= 150 ? dayTicks : monthTicks,
     };
   }, [series, width, height, invertY, zeroBased, margin]);
 
@@ -135,8 +122,12 @@ export function TimeChart({
     );
   }
 
-  const { dates, x, y, paths, tickFormat } = geometry;
-  const xTicks = x.ticks(Math.max(2, Math.floor(geometry.innerWidth / 130)));
+  const { dates, x, y, paths } = geometry;
+  const xTicks = imperialTicks(
+    dates[0],
+    dates[dates.length - 1],
+    Math.max(2, Math.floor(geometry.innerWidth / 130)),
+  );
   const yTicks = invertY ? y.ticks(4).filter((t) => Number.isInteger(t)) : y.ticks(4);
   const hasFocus = focusId !== null;
 
@@ -231,8 +222,8 @@ export function TimeChart({
         </g>
         <g className="chart__axis">
           {xTicks.map((t) => (
-            <text key={t.getTime()} x={x(t)} y={height - 8} textAnchor="middle">
-              {tickFormat.format(t)}
+            <text key={t.date} x={x(dateOf(t.date))} y={height - 8} textAnchor="middle">
+              {t.label}
             </text>
           ))}
         </g>
@@ -317,7 +308,9 @@ export function TimeChart({
           style={{ left: Math.min(hover.x + 14, width - 230), top: margin.top }}
           aria-hidden="true"
         >
-          <p className="chart__tip-date">{formatLongDate(hoverDate)}</p>
+          <p className="chart__tip-date">
+            {formatImperialDate(hoverDate)} · {formatPti(hoverDate)}
+          </p>
           {rows.map(({ s, value }) => (
             <p
               key={s.id}

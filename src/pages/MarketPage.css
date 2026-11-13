@@ -25,7 +25,6 @@
   letter-spacing: -0.01em;
 }
 
-.fact__year,
 .fact__unit {
   margin-left: var(--s-2);
   color: var(--gris);

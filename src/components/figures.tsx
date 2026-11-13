@@ -1,6 +1,22 @@
 import type { ReactNode } from "react";
+import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { formatInteger, formatPercent, formatSigned } from "../domain/numbers.ts";
+import type { IsoDate } from "../domain/types.ts";
 import "./figures.css";
+
+/**
+ * A date as the game writes it, `6/393.2`. Its PTI form (`PTI 13112026`) shows on hover, or after
+ * it with `pti`.
+ */
+export function ImperialDate({ date, pti = false }: { date: IsoDate; pti?: boolean }) {
+  const ptiText = formatPti(date);
+  return (
+    <time className="idate" dateTime={date} title={pti ? undefined : ptiText}>
+      {formatImperialDate(date)}
+      {pti ? <span className="idate__pti"> · {ptiText}</span> : null}
+    </time>
+  );
+}
 
 /** An amount in imperial credits. */
 export function Amount({ value, unit = true }: { value: number | null; unit?: boolean }) {

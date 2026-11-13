@@ -186,7 +186,7 @@ Une palette de laque et d'encres, où chaque teinte saturée porte un sens uniqu
 - **Display** (300, clamp 2–3rem, 1.05, -0.02em): titre de page et nom de l'entreprise sur sa fiche.
 - **Figure** (300, 1.875rem, 1.15, -0.01em): valeurs des faits du relevé et des KPI ; unités et années associées en 1rem gris.
 - **Headline** (500, 1.375rem, -0.01em): titres de section.
-- **Body** (400, 0.875rem, 1.5): texte et cellules de la cote ; noms d'entreprises en 500. La prose de la méthodologie passe à 1rem, interligne 1.7, 72ch au plus.
+- **Body** (400, 0.875rem, 1.5): texte et cellules de la cote ; noms d'entreprises en 500.
 - **Body small** (400, 0.8125rem): contrôles, notes, légendes, infobulles.
 - **Label** (500, 0.75rem, 0.12em, capitales): libellés de données (dt), en-têtes de colonnes (0.1em), libellés de champs et de listes.
 - **Marque** (600, 1rem, 0.34em, or): « KNX » seulement.

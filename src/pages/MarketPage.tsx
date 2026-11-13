@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { CoteTable } from "../components/CoteTable.tsx";
-import { Change, Estimated, groupColor, RankChange } from "../components/figures.tsx";
+import { Change, Estimated, groupColor, ImperialDate, RankChange } from "../components/figures.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart, type ChartSeries } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
-import { formatLongDate, formatShortDate } from "../domain/dates.ts";
+import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { computeMovers } from "../domain/movers.ts";
 import { formatInteger } from "../domain/numbers.ts";
@@ -74,7 +74,7 @@ export function MarketPage() {
   const market = useMarket();
   const { focused, setFocused } = useFocus();
   const { followed } = useFollowed();
-  const [period, setPeriod] = useState<PeriodId>("30");
+  const [period, setPeriod] = useState<PeriodId>("1");
   const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
   const { facts } = market;
@@ -103,21 +103,20 @@ export function MarketPage() {
 
   return (
     <div className="market">
-      <h1 className="sr-only">Marché du {formatLongDate(market.latestDate)}</h1>
+      <h1 className="sr-only">Marché du {formatImperialDate(market.latestDate)}</h1>
 
       <dl className="facts" aria-label="Faits du relevé">
         <Fact
           label="Relevé"
-          detail={`n° ${market.dates.length} depuis le ${formatShortDate(market.dates[0])}/${market.dates[0].slice(0, 4)}`}
+          detail={`${formatPti(facts.date)} · n° ${market.dates.length} depuis le ${formatImperialDate(market.dates[0])}`}
         >
-          {formatShortDate(facts.date)}
-          <span className="fact__year">{facts.date.slice(0, 4)}</span>
+          <ImperialDate date={facts.date} />
         </Fact>
         <Fact
           label="Écart"
           detail={
             facts.previousDate
-              ? `depuis le ${formatShortDate(facts.previousDate)}`
+              ? `depuis le ${formatImperialDate(facts.previousDate)}`
               : "premier relevé"
           }
         >
@@ -187,8 +186,7 @@ export function MarketPage() {
               : "Recette par jour estimée par KNX, lissée sur les 30 jours précédant chaque relevé."}{" "}
             <span className="chart-note__source">
               Source : rapport « Corporations », {market.dates.length} relevés du{" "}
-              {formatShortDate(market.dates[0])}/{market.dates[0].slice(0, 4)} au{" "}
-              {formatShortDate(market.latestDate)}/{market.latestDate.slice(0, 4)}.
+              <ImperialDate date={market.dates[0]} /> au <ImperialDate date={market.latestDate} />.
             </span>
           </p>
           <ol className="legend" aria-label="Légende">
@@ -258,7 +256,9 @@ export function MarketPage() {
       <section className="market__cote" aria-labelledby="cote">
         <div className="section-head">
           <h2 id="cote">La cote</h2>
-          <p>Relevé du {formatLongDate(facts.date)}</p>
+          <p>
+            Relevé du <ImperialDate date={facts.date} />
+          </p>
           <Link className="push backlink" to="/corporations">
             Vue analytique complète
           </Link>
@@ -266,7 +266,7 @@ export function MarketPage() {
         <CoteTable
           companies={market.companies}
           variant="compact"
-          caption={`La cote du ${formatLongDate(facts.date)}`}
+          caption={`La cote du ${formatImperialDate(facts.date)}`}
         />
       </section>
     </div>

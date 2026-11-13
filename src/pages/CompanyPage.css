@@ -81,6 +81,15 @@
   letter-spacing: -0.01em;
 }
 
+/* A long imperial age breaks between its parts, never inside one. */
+.age {
+  white-space: normal;
+}
+
+.age__part {
+  white-space: nowrap;
+}
+
 .kpi__detail {
   display: flex;
   flex-wrap: wrap;

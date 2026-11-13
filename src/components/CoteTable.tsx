@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
-import { formatShortDate } from "../domain/dates.ts";
+import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { formatPercent } from "../domain/numbers.ts";
 import { useFocus } from "../hooks/focus.tsx";
@@ -112,23 +112,23 @@ const COLUMNS: Record<SortKey, Column> = {
   creation: {
     key: "creation",
     label: "Création est.",
-    title: "Date de création estimée par KNX",
+    title: "Année impériale de création estimée par KNX",
     numeric: true,
     secondary: true,
     value: (c) => c.creation?.creation ?? null,
-    render: (c) =>
-      !c.creation || c.creation.method === "first-seen" ? (
-        <span className="amount--none">—</span>
-      ) : c.creation.method === "manual" ? (
-        <span title="Date saisie">{c.creation.creation.slice(0, 4)}</span>
+    render: (c) => {
+      if (!c.creation || c.creation.method === "first-seen")
+        return <span className="amount--none">—</span>;
+      const date = c.creation.creation;
+      const full = `${formatImperialDate(date)} · ${formatPti(date)}`;
+      return c.creation.method === "manual" ? (
+        <span title={`Date saisie : ${full}`}>{imperialYear(date)}</span>
       ) : (
-        <span
-          className="estimated"
-          title={`Estimation KNX : ${formatShortDate(c.creation.creation)}/${c.creation.creation.slice(0, 4)}`}
-        >
-          {c.creation.creation.slice(0, 4)}
+        <span className="estimated" title={`Estimation KNX : ${full}`}>
+          {imperialYear(date)}
         </span>
-      ),
+      );
+    },
   },
   dynamics: {
     key: "dynamics",
