@@ -146,6 +146,12 @@
   font-size: var(--fs-cap);
 }
 
+.movers__note {
+  margin-top: var(--s-1);
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
 .movers__empty,
 .movers__silent {
   margin-top: var(--s-2);

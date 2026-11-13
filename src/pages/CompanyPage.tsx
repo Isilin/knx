@@ -226,6 +226,10 @@ export function CompanyPage() {
   }
 
   const { latest, creation } = company;
+  const projection = company.status === "active" ? company.projection : null;
+  const crossings = market.projection.crossings.filter(
+    (x) => x.passer.slug === company.slug || x.passed.slug === company.slug,
+  );
   const color = company.group ? groupColor(company.group) : "var(--ivoire)";
   const rel = creation ? reliability(creation) : null;
   const age =
@@ -383,6 +387,17 @@ export function CompanyPage() {
               color: "var(--ivoire)",
               points: visible.map((p) => ({ date: p.date, value: p.chiffre })),
             },
+            ...(projection
+              ? [
+                  {
+                    id: "projection",
+                    label: "CA publié projeté",
+                    color: "var(--estime)",
+                    kind: "projection" as const,
+                    points: projection.path,
+                  },
+                ]
+              : []),
           ]}
         />
         <p className="company__legend">
@@ -393,12 +408,111 @@ export function CompanyPage() {
             <i className="swatch swatch--estimate" /> CA réel estimé : recette par jour, moyenne des
             30 jours précédant chaque relevé (le détail par relevé figure plus bas)
           </span>
+          {projection ? (
+            <span>
+              <i className="swatch swatch--projection" /> CA publié projeté si la recette des 30
+              derniers jours se maintient
+            </span>
+          ) : null}
           <span>
             Source : rapport « Corporations », {company.points.length} relevés depuis le{" "}
             <ImperialDate date={company.firstSeen} />.
           </span>
         </p>
       </section>
+
+      {company.status === "active" ? (
+        <section className="company__projection" aria-labelledby="projection">
+          <div className="section-head">
+            <h2 id="projection">Projection</h2>
+            <p>
+              si la recette des 30 derniers jours se maintient, jusqu'au{" "}
+              <ImperialDate date={market.projection.horizon} />
+            </p>
+          </div>
+          {projection ? (
+            <>
+              <dl className="kpis kpis--projection">
+                <div className="kpi">
+                  <dt className="label">CA d'équilibre</dt>
+                  <dd className="kpi__value">
+                    <Estimated value={projection.equilibrium} />
+                  </dd>
+                  <dd className="kpi__detail">valeur vers laquelle tend le CA publié</dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">Dérive du CA publié</dt>
+                  <dd className="kpi__value">
+                    <Estimated
+                      value={projection.drift}
+                      unit={false}
+                      signed
+                      suffix={<span className="amount__unit"> ¢/j</span>}
+                    />
+                  </dd>
+                  <dd className="kpi__detail">par jour, au dernier relevé</dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">CA publié projeté</dt>
+                  <dd className="kpi__value">
+                    <Estimated value={projection.chiffre} />
+                  </dd>
+                  <dd className="kpi__detail">
+                    <Change
+                      ratio={latest.chiffre > 0 ? projection.chiffre / latest.chiffre - 1 : null}
+                      estimated
+                    />{" "}
+                    d'ici l'horizon
+                  </dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">Rang projeté</dt>
+                  <dd className="kpi__value">
+                    <span className="estimated" title="Projection KNX">
+                      {projection.rank}
+                    </span>
+                  </dd>
+                  <dd className="kpi__detail">
+                    {projection.rankChange ? (
+                      <RankChange value={projection.rankChange} />
+                    ) : (
+                      "inchangé"
+                    )}{" "}
+                    face au rang actuel ({latest.rank})
+                  </dd>
+                </div>
+              </dl>
+              {crossings.length > 0 ? (
+                <ol className="crossings">
+                  {crossings.map((x) => {
+                    const ahead = x.passer.slug === company.slug;
+                    const other = ahead ? x.passed : x.passer;
+                    return (
+                      <li key={other.slug}>
+                        <span>
+                          {ahead ? "Passe devant " : "Dépassée par "}
+                          <Link to={`/corporations/${other.slug}`}>{other.name}</Link>
+                        </span>
+                        <span className="estimated" title="Projection KNX">
+                          dans ≈ {x.inDays} jour{x.inDays > 1 ? "s" : ""}
+                        </span>
+                        <ImperialDate date={x.date} />
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p className="company__empty">Aucun changement de rang attendu d'ici l'horizon.</p>
+              )}
+            </>
+          ) : (
+            <p className="company__empty">
+              Projection indisponible : âge estimé inconnu ou recette des 30 derniers jours non
+              mesurable.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       <div className="company__pair">
         <section aria-labelledby="rang">

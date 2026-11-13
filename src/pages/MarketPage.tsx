@@ -190,6 +190,10 @@ export function MarketPage() {
   const treasury = useMemo(() => marketTreasury(market), [market]);
   const map = useMemo(() => marketMap(market), [market]);
   const regimes = useMemo(() => groupByRegime(market), [market]);
+  // Changes of order near the top of the cote, soonest first.
+  const overtakes = market.projection.crossings
+    .filter((x) => x.passed.latest.rank <= 20)
+    .slice(0, 4);
   const { facts } = market;
 
   const top = useMemo(
@@ -354,6 +358,37 @@ export function MarketPage() {
               <ul className="mover-list">
                 {movers.climbers.map((c) => (
                   <MoverRow key={c.slug} company={c} kind="rank" />
+                ))}
+              </ul>
+            </>
+          ) : null}
+          {overtakes.length > 0 ? (
+            <>
+              <h3 className="label">Dépassements attendus</h3>
+              <p className="movers__note">
+                si la recette des 30 derniers jours se maintient, d'ici le{" "}
+                <ImperialDate date={market.projection.horizon} />
+              </p>
+              <ul className="mover-list">
+                {overtakes.map((x) => (
+                  <li
+                    key={`${x.passer.slug}-${x.passed.slug}`}
+                    className={focused === x.passer.slug ? "is-focused" : undefined}
+                    onMouseEnter={() => setFocused(x.passer.slug)}
+                    onMouseLeave={() => setFocused(null)}
+                  >
+                    <Seal name={x.passer.name} size={20} />
+                    <span className="mover__name">
+                      <Link to={`/corporations/${x.passer.slug}`}>{x.passer.name}</Link>
+                      <small>
+                        devant {x.passed.name} · rang {x.passer.latest.rank} →{" "}
+                        {x.passed.latest.rank}
+                      </small>
+                    </span>
+                    <span className="estimated" title="Projection KNX">
+                      ≈ {x.inDays} j
+                    </span>
+                  </li>
                 ))}
               </ul>
             </>

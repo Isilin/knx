@@ -140,6 +140,44 @@
   border-top: 2px dotted var(--estime);
 }
 
+.swatch--projection {
+  border-top: 2px dashed var(--estime);
+}
+
+.company__projection {
+  padding: var(--s-7) 0 var(--s-6);
+  border-bottom: 1px solid var(--filet);
+}
+
+.kpis--projection {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0 0 var(--s-5);
+  border-bottom: 0;
+}
+
+.crossings li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(6.5rem, auto);
+  align-items: baseline;
+  gap: var(--s-4);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.crossings li:first-child {
+  border-top: 1px solid var(--filet);
+}
+
+.crossings a {
+  font-weight: 500;
+}
+
+.crossings time {
+  color: var(--gris);
+  text-align: right;
+}
+
 .company__pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -311,6 +349,9 @@
   .kpis {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--s-5);
+  }
+  .kpis--projection {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .company__pair,
   .company__pair--treasury {

@@ -16,8 +16,11 @@ export interface ChartSeries {
   label: string;
   color: string;
   points: ChartPoint[];
-  /** `estimate`: dashed violet step (value held over each period); `step`: ranks. */
-  kind?: "line" | "estimate" | "trend" | "step";
+  /**
+   * `estimate`: dashed violet step (value held over each period); `trend`: dotted violet;
+   * `projection`: dashed violet line into the future; `step`: ranks.
+   */
+  kind?: "line" | "estimate" | "trend" | "projection" | "step";
 }
 
 interface TimeChartProps {
@@ -44,6 +47,9 @@ const LABELLED_MARGIN = { ...MARGIN, right: 184 };
 /** Narrow charts keep the plot wide: labels shrink to the rank. */
 const COMPACT_LABELLED_MARGIN = { ...MARGIN, right: 44 };
 const dateOf = (iso: IsoDate) => new Date(`${iso}T00:00:00Z`);
+/** Series KNX computes rather than reads: drawn and labelled in violet. */
+const isEstimate = (kind: ChartSeries["kind"]) =>
+  kind === "estimate" || kind === "trend" || kind === "projection";
 const compact = new Intl.NumberFormat("fr-FR", { notation: "compact", maximumFractionDigits: 1 });
 
 export function TimeChart({
@@ -236,7 +242,7 @@ export function TimeChart({
               key={p.id}
               d={p.d}
               className={`chart__line chart__line--${p.kind ?? "line"}${strong ? " is-strong" : ""}${dim ? " is-dim" : ""}`}
-              style={{ stroke: p.kind === "estimate" || p.kind === "trend" ? undefined : p.color }}
+              style={{ stroke: isEstimate(p.kind) ? undefined : p.color }}
             />
           );
         })}
@@ -286,7 +292,7 @@ export function TimeChart({
                 cy={y(value ?? 0)}
                 r={3.5}
                 style={{
-                  fill: s.kind === "estimate" || s.kind === "trend" ? "var(--estime)" : s.color,
+                  fill: isEstimate(s.kind) ? "var(--estime)" : s.color,
                 }}
               />
             ))}
@@ -312,14 +318,10 @@ export function TimeChart({
             {formatImperialDate(hoverDate)} · {formatPti(hoverDate)}
           </p>
           {rows.map(({ s, value }) => (
-            <p
-              key={s.id}
-              className={s.kind === "estimate" || s.kind === "trend" ? "is-estimate" : undefined}
-            >
+            <p key={s.id} className={isEstimate(s.kind) ? "is-estimate" : undefined}>
               <i
                 style={{
-                  background:
-                    s.kind === "estimate" || s.kind === "trend" ? "var(--estime)" : s.color,
+                  background: isEstimate(s.kind) ? "var(--estime)" : s.color,
                 }}
               />
               <span>{s.label}</span>

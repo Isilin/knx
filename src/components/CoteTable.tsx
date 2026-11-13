@@ -21,7 +21,8 @@ type SortKey =
   | "creation"
   | "dynamics"
   | "activity"
-  | "weight";
+  | "weight"
+  | "projection";
 
 interface Column {
   key: SortKey;
@@ -148,6 +149,23 @@ const COLUMNS: Record<SortKey, Column> = {
     value: (c) => c.scores.activity,
     render: (c) => score(c.scores.activity),
   },
+  projection: {
+    key: "projection",
+    label: "Proj.",
+    title:
+      "Places gagnées ou perdues d'ici trois ans impériaux si la recette des 30 derniers jours se maintient (projection KNX)",
+    numeric: true,
+    secondary: true,
+    value: (c) => (c.status === "active" ? (c.projection?.rankChange ?? null) : null),
+    render: (c) =>
+      c.status !== "active" || !c.projection ? (
+        <span className="amount--none">—</span>
+      ) : (
+        <span className="change--estimated" title="Projection KNX">
+          <RankChange value={c.projection.rankChange} />
+        </span>
+      ),
+  },
   weight: {
     key: "weight",
     label: "Poids",
@@ -178,6 +196,7 @@ const VARIANTS = {
     "dynamics",
     "activity",
     "weight",
+    "projection",
   ],
 } as const satisfies Record<string, readonly SortKey[]>;
 

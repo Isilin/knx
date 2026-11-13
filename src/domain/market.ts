@@ -1,5 +1,6 @@
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
+import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
 import type { CompanyMeta, Dataset, IsoDate, Snapshot } from "./types.ts";
 
 export interface CompanyPoint {
@@ -57,6 +58,10 @@ export interface CompanySeries {
   /** Published chiffre change since the previous report, as a ratio. */
   chiffreChange: number | null;
   scores: CompanyScores;
+  /** Real revenue per day over the last 30 days. Estimated. */
+  recentRate: number | null;
+  /** Where the published chiffre heads if that rate holds; null when the estimate cannot say. */
+  projection: CompanyProjection | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -80,6 +85,8 @@ export interface Market {
   companies: CompanySeries[];
   facts: ReportFacts;
   bySlug: Map<string, CompanySeries>;
+  /** Horizon of the projections and the changes of order expected before it. */
+  projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -268,6 +275,8 @@ export function buildMarket(dataset: Dataset): Market {
         activity: recent !== null && last.chiffre > 0 ? Math.tanh(recent / last.chiffre - 1) : null,
         weight: recent,
       },
+      recentRate: recent === null ? null : Math.max(0, recent),
+      projection: null,
       bestRank,
       record,
     });
@@ -300,12 +309,16 @@ export function buildMarket(dataset: Dataset): Market {
     delisted: [...previousNames].filter((n) => !latestNames.has(n)),
   };
 
+  const { bySlug: projections, ...projection } = projectMarket(companies, latest.date);
+  for (const c of companies) c.projection = projections.get(c.slug) ?? null;
+
   return {
     dates: snapshots.map((s) => s.date),
     latestDate: latest.date,
     companies,
     facts,
     bySlug: new Map(companies.map((c) => [c.slug, c])),
+    projection,
   };
 }
 
