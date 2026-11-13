@@ -20,6 +20,14 @@ export interface CompanyPoint {
   realDailyNoise: number | null;
   /** realDaily ÷ previous chiffre − 1: how the period compares with the lifetime average. */
   performance: number | null;
+  /**
+   * Capital change since the previous report that revenue does not explain: Δcapital − revenue
+   * earned. Negative = money left (wages, withdrawals, purchases); positive = money came in.
+   * Estimated.
+   */
+  otherFlow: number | null;
+  /** ± rounding uncertainty on `otherFlow`, inherited from the revenue estimate. */
+  otherFlowNoise: number | null;
 }
 
 export type CompanyStatus = "active" | "idle" | "delisted";
@@ -172,6 +180,19 @@ function buildPoints(
       realDailyNoise = ((days ?? 0) + (prev.days ?? 0)) / 2 / gap;
       performance = realDaily / prev.chiffre - 1;
     }
+    let otherFlow: number | null = null;
+    let otherFlowNoise: number | null = null;
+    if (prev && gap && row.capital !== null && prev.capital !== null) {
+      // A company published at 0 on both reports earned nothing in between.
+      const silent = prev.chiffre === 0 && row.chiffre === 0;
+      if (realDaily !== null && realDailyNoise !== null) {
+        otherFlow = row.capital - prev.capital - realDaily * gap;
+        otherFlowNoise = realDailyNoise * gap;
+      } else if (silent) {
+        otherFlow = row.capital - prev.capital;
+        otherFlowNoise = 0;
+      }
+    }
     points.push({
       date: snapshot.date,
       rank: ranks[index].get(name) ?? 0,
@@ -184,6 +205,8 @@ function buildPoints(
       realDaily,
       realDailyNoise,
       performance,
+      otherFlow,
+      otherFlowNoise,
     });
   });
   return points;

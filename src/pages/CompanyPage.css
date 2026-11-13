@@ -152,6 +152,49 @@
   min-width: 0;
 }
 
+/* The bridge needs room for its bars; the list of flows is narrow. */
+.company__pair--treasury {
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+}
+
+.company__note,
+.company__empty {
+  margin-top: var(--s-4);
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+.company__empty {
+  margin-top: 0;
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.flows li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(9.5rem, auto);
+  align-items: baseline;
+  gap: var(--s-4);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.flows__date {
+  display: grid;
+  font-size: var(--fs-sm);
+}
+
+.flows__date small {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.flows__share {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  text-align: right;
+}
+
 .gauges {
   display: grid;
   gap: var(--s-5);
@@ -269,7 +312,8 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--s-5);
   }
-  .company__pair {
+  .company__pair,
+  .company__pair--treasury {
     grid-template-columns: 1fr;
     gap: var(--s-6);
   }

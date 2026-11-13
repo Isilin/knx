@@ -1,7 +1,14 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { CoteTable } from "../components/CoteTable.tsx";
-import { Change, Estimated, groupColor, ImperialDate, RankChange } from "../components/figures.tsx";
+import {
+  Amount,
+  Change,
+  Estimated,
+  groupColor,
+  ImperialDate,
+  RankChange,
+} from "../components/figures.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart, type ChartSeries } from "../components/TimeChart.tsx";
@@ -9,7 +16,8 @@ import { useMarket } from "../data/DataProvider.tsx";
 import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { computeMovers } from "../domain/movers.ts";
-import { formatInteger } from "../domain/numbers.ts";
+import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
+import { marketTreasury, type MarketTreasuryPoint } from "../domain/treasury.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
 import "./MarketPage.css";
@@ -70,6 +78,104 @@ function MoverRow({ company, kind }: { company: CompanySeries; kind: "performanc
   );
 }
 
+/** Capital and headcount of the whole listing, on the reports that publish them. */
+function TreasurySection({ points }: { points: MarketTreasuryPoint[] }) {
+  const [period, setPeriod] = useState<PeriodId>("all");
+  if (points.length === 0) return null;
+  const start = periodStart(period, points[points.length - 1].date);
+  // The latest report is always inside the period, so `visible` is never empty.
+  const visible = points.filter((p) => !start || p.date >= start);
+  const first = visible[0];
+  const last = visible[visible.length - 1];
+  const ratio = (to: number, from: number) => (visible.length > 1 && from ? to / from - 1 : null);
+  let steepest: { drop: number; date: string } | null = null;
+  for (let k = 1; k < visible.length; k++) {
+    const drop = visible[k].capital - visible[k - 1].capital;
+    if (drop < 0 && (!steepest || drop < steepest.drop)) steepest = { drop, date: visible[k].date };
+  }
+
+  return (
+    <section className="market__treasury" aria-labelledby="tresorerie">
+      <div className="section-head">
+        <h2 id="tresorerie">Trésorerie de la cote</h2>
+        <p>capital et effectifs publiés, toutes corporations cotées</p>
+        <div className="push">
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
+      </div>
+      <div className="treasury-pair">
+        <div>
+          <dl className="treasury-figure">
+            <dt className="label">Capital total</dt>
+            <dd className="treasury-figure__value">
+              <Amount value={last.capital} />
+            </dd>
+            <dd className="treasury-figure__detail">
+              <Change ratio={ratio(last.capital, first.capital)} /> depuis le{" "}
+              <ImperialDate date={first.date} />
+              {steepest ? (
+                <>
+                  {" "}
+                  · plus forte baisse sur un relevé : −{formatCompact(-steepest.drop)} ¢ le{" "}
+                  <ImperialDate date={steepest.date} />
+                </>
+              ) : null}
+            </dd>
+          </dl>
+          <TimeChart
+            label={`Capital total des corporations cotées, ${period === "all" ? "depuis le premier relevé du capital" : `${period} derniers ans impériaux`}`}
+            formatValue={(v) => `${formatInteger(v)} ¢`}
+            height={220}
+            series={[
+              {
+                id: "capital",
+                label: "Capital total",
+                color: "var(--ivoire)",
+                points: visible.map((p) => ({ date: p.date, value: p.capital })),
+              },
+            ]}
+          />
+        </div>
+        <div>
+          <dl className="treasury-figure">
+            <dt className="label">Effectif total</dt>
+            <dd className="treasury-figure__value">
+              {formatInteger(last.employees)}
+              <span className="fact__unit">employés</span>
+            </dd>
+            <dd className="treasury-figure__detail">
+              <Change ratio={ratio(last.employees, first.employees)} /> · {last.companies}{" "}
+              corporations, {formatDecimal(last.employees / last.companies)} employés par
+              corporation
+            </dd>
+          </dl>
+          <TimeChart
+            label="Effectif total des corporations cotées"
+            formatValue={(v) => `${formatInteger(v)} employés`}
+            height={220}
+            series={[
+              {
+                id: "employees",
+                label: "Effectif total",
+                color: "var(--ivoire)",
+                points: visible.map((p) => ({ date: p.date, value: p.employees })),
+              },
+            ]}
+          />
+        </div>
+      </div>
+      <p className="chart-note">
+        Sommes des valeurs publiées par le jeu pour les corporations cotées ce jour-là : une entrée
+        ou une radiation déplace aussi le total.{" "}
+        <span className="chart-note__source">
+          Source : rapport « Corporations », capital et effectifs relevés depuis le{" "}
+          <ImperialDate date={points[0].date} /> ({points.length} relevés).
+        </span>
+      </p>
+    </section>
+  );
+}
+
 export function MarketPage() {
   const market = useMarket();
   const { focused, setFocused } = useFocus();
@@ -77,6 +183,7 @@ export function MarketPage() {
   const [period, setPeriod] = useState<PeriodId>("1");
   const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
+  const treasury = useMemo(() => marketTreasury(market), [market]);
   const { facts } = market;
 
   const top = useMemo(
@@ -252,6 +359,8 @@ export function MarketPage() {
           </p>
         </aside>
       </div>
+
+      <TreasurySection points={treasury} />
 
       <section className="market__cote" aria-labelledby="cote">
         <div className="section-head">

@@ -13,11 +13,14 @@ import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
+import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
+import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
-import { formatInteger, formatPercent } from "../domain/numbers.ts";
+import { formatCompact, formatInteger, formatPercent } from "../domain/numbers.ts";
+import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
 
@@ -86,6 +89,17 @@ function milestones(company: CompanySeries): Milestone[] {
     date: company.record.date,
     text: `Record de CA publié : ${formatInteger(company.record.chiffre)} ¢`,
   });
+  // The largest flows outside revenue, when they moved at least a quarter of the capital.
+  const flows = largestFlows(company.points, null, Infinity);
+  const outflow = flows.find((f) => f.flow < 0 && (f.share ?? 0) <= -0.25);
+  const inflow = flows.find((f) => f.flow > 0 && (f.share ?? 0) >= 0.25);
+  for (const f of [outflow, inflow]) {
+    if (!f) continue;
+    list.push({
+      date: f.date,
+      text: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
+    });
+  }
   if (company.status === "delisted")
     list.push({ date: company.latest.date, text: "Dernier relevé avant radiation" });
   return list.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
@@ -181,6 +195,14 @@ export function CompanyPage() {
   const trend = useMemo(
     () =>
       company ? smoothedRealDaily(company.points).filter((p) => !start || p.date >= start) : [],
+    [company, start],
+  );
+  const bridge = useMemo(
+    () => (company ? treasuryBridge(company.points, start) : null),
+    [company, start],
+  );
+  const flows = useMemo(
+    () => (company ? largestFlows(company.points, start) : []),
     [company, start],
   );
   const periodChange =
@@ -422,6 +444,76 @@ export function CompanyPage() {
         </section>
       </div>
 
+      <div className="company__pair company__pair--treasury">
+        <section aria-labelledby="tresorerie">
+          <div className="section-head">
+            <h2 id="tresorerie">Trésorerie</h2>
+            {bridge ? (
+              <p>
+                <Change
+                  ratio={
+                    bridge.start.capital > 0 ? bridge.end.capital / bridge.start.capital - 1 : null
+                  }
+                />{" "}
+                de capital sur la période
+              </p>
+            ) : null}
+          </div>
+          {bridge ? (
+            <>
+              <TreasuryBridge bridge={bridge} />
+              <p className="company__note">
+                Le capital est publié par le jeu ; le CA généré se déduit des chiffres publiés et de
+                l'âge estimé. Le reste, le flux hors CA, est ce que les recettes n'expliquent pas :
+                négatif quand de l'argent est sorti, positif quand il en est entré.
+              </p>
+            </>
+          ) : (
+            <p className="company__empty">
+              {hasCapital
+                ? "Trésorerie non ventilable sur la période : il faut deux relevés du capital avec un chiffre publié non nul."
+                : "Capital relevé depuis août 2025 seulement : aucun relevé pour cette corporation."}
+            </p>
+          )}
+        </section>
+        <section aria-labelledby="flux">
+          <div className="section-head">
+            <h2 id="flux">Principaux flux hors CA</h2>
+            <p>sur la période, entre deux relevés</p>
+          </div>
+          {flows.length > 0 ? (
+            <ol className="flows">
+              {flows.map((f) => (
+                <li key={f.date}>
+                  <span className="flows__date">
+                    <ImperialDate date={f.date} />
+                    <small>
+                      sur {daysBetween(f.previousDate, f.date)} jour
+                      {daysBetween(f.previousDate, f.date) > 1 ? "s" : ""}
+                    </small>
+                  </span>
+                  <Estimated value={f.flow} noise={f.noise} signed />
+                  <span
+                    className="flows__share"
+                    title="Part de l'argent disponible avant le flux : capital du relevé précédent plus CA généré entre les deux relevés"
+                  >
+                    {f.share === null ? (
+                      "—"
+                    ) : (
+                      <>
+                        <Change ratio={f.share} estimated /> du disponible
+                      </>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="company__empty">Aucun flux hors CA mesurable sur la période.</p>
+          )}
+        </section>
+      </div>
+
       <div className="company__pair">
         <section aria-labelledby="scores">
           <div className="section-head">
@@ -491,6 +583,13 @@ export function CompanyPage() {
                 <th scope="col" className="num secondary">
                   Capital
                 </th>
+                <th
+                  scope="col"
+                  className="num secondary"
+                  title="Variation du capital que les recettes n'expliquent pas, estimée par KNX"
+                >
+                  Hors CA est.
+                </th>
                 <th scope="col" className="num secondary">
                   Empl.
                 </th>
@@ -511,6 +610,9 @@ export function CompanyPage() {
                   </td>
                   <td className="num secondary">
                     <Amount value={p.capital} unit={false} />
+                  </td>
+                  <td className="num secondary">
+                    <Estimated value={p.otherFlow} noise={p.otherFlowNoise} unit={false} signed />
                   </td>
                   <td className="num secondary">{p.employees ?? "—"}</td>
                 </tr>

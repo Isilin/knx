@@ -38,11 +38,14 @@ export function Estimated({
   noise,
   unit = true,
   suffix,
+  signed = false,
 }: {
   value: number | null;
   noise?: number | null;
   unit?: boolean;
   suffix?: ReactNode;
+  /** Print `+` or `−` before the amount (flows). */
+  signed?: boolean;
 }) {
   if (value === null) return <span className="amount amount--none">—</span>;
   const lost = noise != null && Math.abs(value) < noise;
@@ -50,7 +53,7 @@ export function Estimated({
     noise != null ? `Estimation KNX, à ± ${formatInteger(noise)} ¢ près` : "Estimation KNX";
   return (
     <span className="estimated" title={title}>
-      {lost ? "≈ 0" : formatInteger(value)}
+      {lost ? "≈ 0" : signed ? formatSigned(Math.round(value)) : formatInteger(value)}
       {unit ? <span className="amount__unit"> ¢</span> : null}
       {suffix}
     </span>
