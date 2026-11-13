@@ -1,0 +1,226 @@
+/* Shared controls and page structure, in the annual-report grammar: hairlines, no radius, gold for selection. */
+
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--s-4);
+  padding: var(--s-7) 0 var(--s-5);
+}
+
+.page-head h1 {
+  font-size: var(--fs-h1);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.page-head p {
+  max-width: 64ch;
+  margin-top: var(--s-3);
+  color: var(--gris);
+}
+
+.section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-5);
+  margin-bottom: var(--s-4);
+}
+
+.section-head h2 {
+  font-size: var(--fs-h2);
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.section-head p {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.section-head .push {
+  flex: none;
+  margin-left: auto;
+}
+
+.label {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.segmented {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+}
+
+.segmented button {
+  padding: var(--s-1) 0;
+  background: none;
+  border: 0;
+  color: var(--gris);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+  box-shadow: inset 0 -1px 0 transparent;
+}
+
+.segmented button:hover {
+  color: var(--ivoire);
+}
+
+.segmented button[aria-pressed="true"] {
+  color: var(--ivoire);
+  box-shadow: inset 0 -1px 0 var(--or);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 32px;
+  padding: 0 var(--s-3);
+  background: none;
+  border: 1px solid var(--filet);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.chip:hover {
+  border-color: var(--filet-fort);
+  color: var(--ivoire);
+}
+
+.chip[aria-pressed="true"] {
+  border-color: var(--or);
+  color: var(--ivoire);
+}
+
+.chip i {
+  width: 12px;
+  height: 2px;
+}
+
+.chip small {
+  color: var(--gris-2);
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-2);
+  min-height: 38px;
+  padding: 0 var(--s-5);
+  background: var(--ivoire);
+  border: 1px solid var(--ivoire);
+  color: var(--laque);
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background 160ms var(--ease-out),
+    border-color 160ms var(--ease-out);
+}
+
+.button:hover {
+  background: color-mix(in oklab, var(--ivoire), white 45%);
+  border-color: color-mix(in oklab, var(--ivoire), white 45%);
+}
+
+.button:disabled {
+  background: var(--laque-3);
+  border-color: var(--filet);
+  color: var(--gris-2);
+  cursor: not-allowed;
+}
+
+.button--quiet {
+  background: none;
+  color: var(--ivoire);
+  border-color: var(--filet-fort);
+}
+
+.button--quiet:hover {
+  background: var(--laque-2);
+  border-color: var(--or);
+}
+
+.field {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.field input,
+.field textarea,
+.field select,
+.input {
+  min-height: 38px;
+  padding: var(--s-2) var(--s-3);
+  background: var(--laque-2);
+  border: 1px solid var(--filet);
+  border-radius: 0;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible,
+.input:focus-visible {
+  border-color: var(--or);
+  outline: none;
+}
+
+.field textarea {
+  resize: vertical;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.55;
+}
+
+.note {
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid var(--filet);
+  background: var(--laque-2);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.note strong {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.note--warn {
+  border-color: rgb(255 138 61 / 0.5);
+}
+
+.note--error {
+  border-color: rgb(255 107 116 / 0.55);
+}
+
+.note--ok {
+  border-color: rgb(61 220 132 / 0.45);
+}
+
+.backlink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+  text-decoration: none;
+}
+
+.backlink:hover {
+  color: var(--ivoire);
+}

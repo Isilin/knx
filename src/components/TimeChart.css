@@ -1,0 +1,166 @@
+.chart {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart--empty {
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--filet);
+  color: var(--gris);
+}
+
+.chart__grid line {
+  stroke: var(--filet);
+  shape-rendering: crispEdges;
+}
+
+.chart__grid text,
+.chart__axis text {
+  fill: var(--gris);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__line {
+  fill: none;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.38;
+  transition:
+    opacity 180ms var(--ease-out),
+    stroke-width 180ms var(--ease-out);
+}
+
+.chart__line.is-strong {
+  opacity: 1;
+  stroke-width: 2;
+}
+
+.chart__line.is-dim {
+  opacity: 0.16;
+}
+
+.chart__line--estimate {
+  stroke: var(--estime);
+  stroke-dasharray: 2 4;
+  stroke-width: 1.5;
+  opacity: 0.9;
+}
+
+.chart__line--estimate.is-strong {
+  stroke-width: 1.75;
+}
+
+.chart__hover line {
+  stroke: var(--or-sombre);
+  stroke-dasharray: 3 3;
+}
+
+.chart__hover circle {
+  stroke: var(--laque);
+  stroke-width: 2;
+}
+
+.chart__overlay {
+  fill: transparent;
+  cursor: crosshair;
+}
+
+.chart__tip {
+  position: absolute;
+  z-index: 3;
+  min-width: 210px;
+  max-width: 260px;
+  padding: var(--s-3) var(--s-4);
+  background: var(--laque-2);
+  border: 1px solid var(--filet-fort);
+  box-shadow: 0 10px 28px rgb(0 0 0 / 0.45);
+  pointer-events: none;
+  font-size: var(--fs-sm);
+}
+
+.chart__tip p {
+  display: grid;
+  grid-template-columns: 12px 1fr auto;
+  gap: var(--s-2);
+  align-items: center;
+  padding: 2px 0;
+}
+
+.chart__tip .chart__tip-date {
+  display: block;
+  margin-bottom: var(--s-1);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.chart__tip i {
+  width: 12px;
+  height: 2px;
+}
+
+.chart__tip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chart__tip b {
+  font-weight: 500;
+}
+
+.chart__tip .is-estimate b {
+  color: var(--estime);
+}
+
+.chart__line--trend {
+  stroke: var(--estime);
+  stroke-dasharray: 0.5 4.5;
+  stroke-linecap: round;
+  stroke-width: 2.25;
+  opacity: 1;
+}
+
+.chart__line--estimate.is-faint {
+  opacity: 0.45;
+}
+
+.chart__labels path {
+  fill: none;
+  stroke: var(--filet-fort);
+  stroke-width: 1;
+}
+
+.chart__labels text {
+  font-size: 11.5px;
+  cursor: default;
+}
+
+.chart__labels g {
+  transition: opacity 160ms var(--ease-out);
+}
+
+.chart__labels g.is-dim {
+  opacity: 0.3;
+}
+
+.chart__labels g.is-strong text {
+  font-weight: 600;
+}
+
+.chart__grid--over text {
+  paint-order: stroke;
+  stroke: var(--laque);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}

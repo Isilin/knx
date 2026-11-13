@@ -1,0 +1,44 @@
+.seal {
+  flex: none;
+  fill: none;
+  stroke: var(--or);
+  overflow: visible;
+}
+
+/* Table-size seals: one device pixel, whatever their size. */
+.seal circle,
+.seal path {
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+}
+
+/*
+ * Large drawn seals use user-space strokes: Chrome measures dashes in screen units when
+ * non-scaling-stroke is on, which would stop the trace short of a full turn.
+ */
+.seal--draw circle,
+.seal--draw path {
+  vector-effect: none;
+  stroke-width: 0.42;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: seal-trace 1500ms var(--ease-out) forwards;
+}
+
+.seal--draw circle {
+  stroke-width: 0.6;
+}
+
+@keyframes seal-trace {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seal--draw circle,
+  .seal--draw path {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}

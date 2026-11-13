@@ -1,0 +1,558 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-13T16:24:15.178Z",
+  "title": "Design System: KNX — Kessler & Nomura Exchange",
+  "extensions": {
+    "colorMeta": {
+      "laque": {
+        "role": "neutral",
+        "displayName": "Laque",
+        "canonical": "#0d0d10",
+        "oklch": "oklch(16.0% 0.006 285.7)",
+        "tonalRamp": [
+          "#0d0d10",
+          "#131317",
+          "#1a1a20",
+          "#26262c",
+          "#3a3a43",
+          "#8f8d86",
+          "#a5a39c",
+          "#ecebe6"
+        ],
+        "note": "The project's own neutral scale, laque to ivoire."
+      },
+      "laque-2": {
+        "role": "neutral",
+        "displayName": "Laque relevée",
+        "canonical": "#131317",
+        "oklch": "oklch(18.9% 0.008 285.6)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#424245",
+          "#616166",
+          "#828287",
+          "#a4a4a8",
+          "#c9c9cb",
+          "#eeeeef"
+        ]
+      },
+      "laque-3": {
+        "role": "neutral",
+        "displayName": "Laque haute",
+        "canonical": "#1a1a20",
+        "oklch": "oklch(22.0% 0.012 285.4)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#414146",
+          "#606068",
+          "#818189",
+          "#a4a4aa",
+          "#c9c9cc",
+          "#eeeeef"
+        ]
+      },
+      "filet": {
+        "role": "neutral",
+        "displayName": "Filet graphite",
+        "canonical": "#26262c",
+        "oklch": "oklch(27.1% 0.011 285.6)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252527",
+          "#414146",
+          "#606067",
+          "#818189",
+          "#a4a4aa",
+          "#c9c9cc",
+          "#eeeeef"
+        ]
+      },
+      "filet-fort": {
+        "role": "neutral",
+        "displayName": "Filet fort",
+        "canonical": "#3a3a43",
+        "oklch": "oklch(35.2% 0.015 285.6)",
+        "tonalRamp": [
+          "#0b0b0c",
+          "#252528",
+          "#414148",
+          "#60606a",
+          "#81818b",
+          "#a4a4ac",
+          "#c8c9cd",
+          "#eeeef0"
+        ]
+      },
+      "ivoire": {
+        "role": "neutral",
+        "displayName": "Ivoire",
+        "canonical": "#ecebe6",
+        "oklch": "oklch(93.9% 0.007 97.4)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252524",
+          "#43423f",
+          "#62615d",
+          "#83827e",
+          "#a6a5a2",
+          "#c9c9c7",
+          "#eeeeee"
+        ]
+      },
+      "gris": {
+        "role": "neutral",
+        "displayName": "Gris de texte",
+        "canonical": "#a5a39c",
+        "oklch": "oklch(71.5% 0.010 93.6)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262523",
+          "#43423e",
+          "#63615b",
+          "#84827c",
+          "#a6a5a0",
+          "#cac9c6",
+          "#efeeed"
+        ]
+      },
+      "gris-2": {
+        "role": "neutral",
+        "displayName": "Gris éteint",
+        "canonical": "#8f8d86",
+        "oklch": "oklch(64.3% 0.011 93.6)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#262523",
+          "#43423e",
+          "#63615b",
+          "#84827b",
+          "#a6a5a0",
+          "#cac9c6",
+          "#efeeed"
+        ]
+      },
+      "or": {
+        "role": "primary",
+        "displayName": "Dorure champagne",
+        "canonical": "#d6c29a",
+        "oklch": "oklch(82.1% 0.058 84.5)",
+        "tonalRamp": [
+          "#0d0b07",
+          "#2a2418",
+          "#4c4029",
+          "#705f3b",
+          "#92805b",
+          "#b1a489",
+          "#d0c8b8",
+          "#f1eee8"
+        ]
+      },
+      "or-clair": {
+        "role": "primary",
+        "displayName": "Dorure claire",
+        "canonical": "#ead9b4",
+        "oklch": "oklch(89.0% 0.052 86.2)",
+        "tonalRamp": [
+          "#0d0b08",
+          "#2a2419",
+          "#4b412b",
+          "#6e5f3f",
+          "#90815f",
+          "#afa48c",
+          "#cfc8ba",
+          "#f1eee9"
+        ]
+      },
+      "or-sombre": {
+        "role": "primary",
+        "displayName": "Dorure éteinte",
+        "canonical": "#6f6350",
+        "oklch": "oklch(50.6% 0.033 79.2)",
+        "tonalRamp": [
+          "#0c0b09",
+          "#29241e",
+          "#494135",
+          "#6b5f4d",
+          "#8d806d",
+          "#ada495",
+          "#cec8c0",
+          "#f0eeeb"
+        ]
+      },
+      "estime": {
+        "role": "secondary",
+        "displayName": "Violet d'estimation",
+        "canonical": "#b99cff",
+        "oklch": "oklch(75.7% 0.141 296.3)",
+        "tonalRamp": [
+          "#0c0913",
+          "#281e3e",
+          "#483570",
+          "#6a4ca6",
+          "#8b6ecb",
+          "#ab98dc",
+          "#ccc2eb",
+          "#efecfc"
+        ]
+      },
+      "hausse": {
+        "role": "tertiary",
+        "displayName": "Vert de hausse",
+        "canonical": "#3ddc84",
+        "oklch": "oklch(79.3% 0.180 154.0)",
+        "tonalRamp": [
+          "#030e06",
+          "#002f13",
+          "#00541f",
+          "#007b2b",
+          "#009f4d",
+          "#5ebc80",
+          "#a4d8b3",
+          "#e1f4e6"
+        ]
+      },
+      "baisse": {
+        "role": "tertiary",
+        "displayName": "Rouge de baisse",
+        "canonical": "#ff6b74",
+        "oklch": "oklch(71.3% 0.181 19.3)",
+        "tonalRamp": [
+          "#150707",
+          "#421216",
+          "#771a26",
+          "#af2036",
+          "#d84a56",
+          "#e98385",
+          "#f6b6b6",
+          "#ffe8e7"
+        ]
+      },
+      "alerte": {
+        "role": "tertiary",
+        "displayName": "Orange d'alerte",
+        "canonical": "#ff8a3d",
+        "oklch": "oklch(75.0% 0.167 50.5)",
+        "tonalRamp": [
+          "#140803",
+          "#3e1901",
+          "#702900",
+          "#a53a00",
+          "#cc5e00",
+          "#df8f5f",
+          "#efbda1",
+          "#fdeae0"
+        ]
+      },
+      "g-cyan": {
+        "role": "tertiary",
+        "displayName": "Néon Armacham",
+        "canonical": "#22e4ff",
+        "oklch": "oklch(84.4% 0.142 210.3)",
+        "tonalRamp": [
+          "#020e10",
+          "#002c35",
+          "#004f5f",
+          "#00748d",
+          "#0097b0",
+          "#4db6c7",
+          "#9dd4de",
+          "#dff3f6"
+        ]
+      },
+      "g-magenta": {
+        "role": "tertiary",
+        "displayName": "Néon Sovereign",
+        "canonical": "#ff3ccf",
+        "oklch": "oklch(69.7% 0.265 340.2)",
+        "tonalRamp": [
+          "#160510",
+          "#440335",
+          "#7a005f",
+          "#b4008d",
+          "#dd0ab1",
+          "#ee70c8",
+          "#f9addf",
+          "#ffe5f7"
+        ]
+      },
+      "g-ambre": {
+        "role": "tertiary",
+        "displayName": "Néon Donnellys",
+        "canonical": "#ffb21a",
+        "oklch": "oklch(81.7% 0.167 76.5)",
+        "tonalRamp": [
+          "#110a02",
+          "#371f00",
+          "#633600",
+          "#934e00",
+          "#b87000",
+          "#ce9b49",
+          "#e3c497",
+          "#f8eddc"
+        ]
+      },
+      "g-bleu": {
+        "role": "tertiary",
+        "displayName": "Néon de réserve",
+        "canonical": "#5b8cff",
+        "oklch": "oklch(66.2% 0.179 264.6)",
+        "tonalRamp": [
+          "#060b16",
+          "#132348",
+          "#203c83",
+          "#2d57c3",
+          "#4c7bea",
+          "#7ea3f3",
+          "#b2c9fa",
+          "#e6efff"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Titre de page et nom de l'entreprise sur sa fiche."
+      },
+      "figure": {
+        "displayName": "Figure",
+        "purpose": "Valeurs des faits du relevé et des KPI ; unités en 1rem gris."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Titres de section."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Texte et cellules de la cote ; noms d'entreprises en 500."
+      },
+      "body-small": {
+        "displayName": "Body small",
+        "purpose": "Contrôles, notes, légendes, infobulles."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Libellés de données, en-têtes de colonnes, libellés de champs ; capitales espacées.",
+        "textTransform": "uppercase"
+      },
+      "brand": {
+        "displayName": "Marque",
+        "purpose": "« KNX » seulement.",
+        "fontWeight": 600,
+        "fontSize": "1rem",
+        "letterSpacing": "0.34em",
+        "color": "or"
+      }
+    },
+    "shadows": [
+      {
+        "name": "tooltip",
+        "value": "0 10px 28px rgb(0 0 0 / 0.45)",
+        "purpose": "Infobulle du graphique."
+      },
+      {
+        "name": "popover",
+        "value": "0 14px 32px rgb(0 0 0 / 0.5)",
+        "purpose": "Liste de suggestions de la recherche."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Courbe unique des transitions d'état."
+      },
+      {
+        "name": "state-fast",
+        "value": "120ms",
+        "purpose": "Survol de ligne de la cote."
+      },
+      {
+        "name": "state",
+        "value": "160–180ms",
+        "purpose": "Couleur d'onglet, boutons, atténuation et épaississement des séries."
+      },
+      {
+        "name": "figure-tween",
+        "value": "520ms, exponential ease-out (1 − 2^(−10t))",
+        "purpose": "Interpolation des chiffres au changement de période ; instantané sous mouvement réduit."
+      },
+      {
+        "name": "seal-trace",
+        "value": "1500ms var(--ease-out), stroke-dashoffset 1 → 0, une seule fois",
+        "purpose": "Tracé du sceau à l'ouverture de la fiche ; affiché d'emblée sous mouvement réduit."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "chart-compact",
+        "value": "640px",
+        "purpose": "Étiquettes de fin de ligne réduites au rang ; faits sur 2 colonnes."
+      },
+      {
+        "name": "nav-wrap",
+        "value": "760px",
+        "purpose": "Onglets sur leur propre ligne défilante."
+      },
+      {
+        "name": "cote-compact",
+        "value": "860px",
+        "purpose": "Colonnes secondaires de la cote masquées."
+      },
+      {
+        "name": "masthead-trim",
+        "value": "1100px",
+        "purpose": "Nom complet et date retirés de l'en-tête."
+      },
+      {
+        "name": "market-stack",
+        "value": "1200px",
+        "purpose": "Graphique et mouvements empilés ; faits sur 3 colonnes."
+      }
+    ],
+    "focus": {
+      "value": "outline: 2px solid var(--or); outline-offset: 2px",
+      "fields": "border-color: var(--or); outline: none"
+    },
+    "chart": {
+      "grid": "1px filet, crispEdges",
+      "series": "1.25px at 38% opacity; strong 2px at 100%; dim 16%",
+      "estimate": "estime, dasharray 2 4, 1.5px",
+      "trend": "estime, dasharray 0.5 4.5, round caps, 2.25px",
+      "labels": "11.5px; collision-spaced end-of-line labels, rank + short name, rank only below 640px",
+      "hover": "or-sombre dashed 3 3 crosshair"
+    }
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Ivory action button; gold is never a button fill.",
+      "html": "<button class=\"ds-btn\">Publier le relevé</button>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-btn{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 24px;background:var(--ivoire);border:1px solid var(--ivoire);border-radius:0;color:var(--laque);font-size:0.875rem;font-weight:600;cursor:pointer;transition:background 160ms var(--ease-out),border-color 160ms var(--ease-out);} .ds-btn:hover{background:#fff;border-color:#fff;} .ds-btn:focus-visible{outline:2px solid var(--or);outline-offset:2px;} .ds-btn:disabled{background:var(--laque-3);border-color:var(--filet);color:var(--gris-2);cursor:not-allowed;}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary action: hairline outline, gold border on hover.",
+      "html": "<button class=\"ds-btn-quiet\">Annuler</button>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-btn-quiet{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;display:inline-flex;align-items:center;min-height:38px;padding:0 24px;background:none;border:1px solid var(--filet-fort);border-radius:0;color:var(--ivoire);font-size:0.875rem;font-weight:600;cursor:pointer;transition:background 160ms var(--ease-out),border-color 160ms var(--ease-out);} .ds-btn-quiet:hover{background:var(--laque-2);border-color:var(--or);} .ds-btn-quiet:focus-visible{outline:2px solid var(--or);outline-offset:2px;}"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Filter chip with an optional group band; gold border when selected.",
+      "html": "<div class=\"ds-chips\"><button class=\"ds-chip\" aria-pressed=\"true\"><i style=\"background:var(--g-cyan)\"></i>Armacham <small>6</small></button><button class=\"ds-chip\" aria-pressed=\"false\"><i style=\"background:var(--g-magenta)\"></i>Sovereign <small>4</small></button></div>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-chips{display:flex;gap:8px;} .ds-chip{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;display:inline-flex;align-items:center;gap:8px;min-height:32px;padding:0 12px;background:none;border:1px solid var(--filet);border-radius:0;color:var(--gris);font-size:0.8125rem;cursor:pointer;} .ds-chip i{width:12px;height:2px;} .ds-chip small{color:var(--gris-2);} .ds-chip:hover{border-color:var(--filet-fort);color:var(--ivoire);} .ds-chip[aria-pressed=\"true\"]{border-color:var(--or);color:var(--ivoire);} .ds-chip:focus-visible{outline:2px solid var(--or);outline-offset:2px;}"
+    },
+    {
+      "name": "Search Field",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Sharp lacquer field; the border turns gold on focus.",
+      "html": "<label class=\"ds-search\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"7\" cy=\"7\" r=\"5\"/><path d=\"m11 11 4 4\"/></svg><input type=\"search\" placeholder=\"Rechercher une corporation\"></label>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-search{position:relative;display:block;width:280px;} .ds-search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);fill:none;stroke:var(--gris);stroke-width:1.5;} .ds-search input{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;width:100%;height:36px;padding:0 12px 0 34px;background:var(--laque-2);border:1px solid var(--filet);border-radius:0;color:var(--ivoire);font-size:0.875rem;caret-color:var(--or);box-sizing:border-box;} .ds-search input::placeholder{color:var(--gris-2);} .ds-search input:hover{border-color:var(--filet-fort);} .ds-search input:focus-visible{border-color:var(--or);outline:none;}"
+    },
+    {
+      "name": "Masthead Navigation",
+      "kind": "nav",
+      "refersTo": "segmented-tab",
+      "description": "Gold KNX mark and text tabs; the active tab carries a 1px gold underline.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-brand\" href=\"#\">KNX</a><a href=\"#\" class=\"is-active\">Marché</a><a href=\"#\">Corporations</a><a href=\"#\">Relevés</a><a href=\"#\">Méthodologie</a></nav>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-nav{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;display:flex;align-items:stretch;gap:0;min-height:60px;background:var(--laque);border-bottom:1px solid var(--filet);font-size:0.875rem;} .ds-brand{align-self:center;margin-right:32px;color:var(--or) !important;font-weight:600;font-size:1rem;letter-spacing:0.34em;} .ds-nav a{display:flex;align-items:center;padding:0 16px;color:var(--gris);font-weight:500;text-decoration:none;box-shadow:inset 0 -1px 0 transparent;transition:color 160ms var(--ease-out);} .ds-nav a.ds-brand{padding:0;box-shadow:none;} .ds-nav a:hover{color:var(--ivoire);} .ds-nav a.is-active{color:var(--ivoire);box-shadow:inset 0 -1px 0 var(--or);} .ds-nav a:focus-visible{outline:2px solid var(--or);outline-offset:-2px;}"
+    },
+    {
+      "name": "Fact Row",
+      "kind": "card",
+      "refersTo": "",
+      "description": "Report facts as head-ruled columns: gold rule on the first, graphite on the rest; thin 300 figures.",
+      "html": "<dl class=\"ds-facts\"><div class=\"ds-fact\"><dt>Corporations cotées</dt><dd class=\"v\">52</dd><dd class=\"d\">2 nouvelles · 1 radiée</dd></div><div class=\"ds-fact\"><dt>CA publié cumulé</dt><dd class=\"v\">4&nbsp;812&nbsp;306<span> ¢</span></dd><dd class=\"d\"><span class=\"up\">▲ 1,8 %</span> sur la veille</dd></div><div class=\"ds-fact\"><dt>CA réel du jour</dt><dd class=\"v est\">312&nbsp;450<span> ¢</span></dd><dd class=\"d\">Estimation KNX</dd></div></dl>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-facts{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 32px;margin:0;color:var(--ivoire);} .ds-fact{display:grid;gap:4px;padding-top:12px;border-top:1px solid var(--filet-fort);} .ds-fact:first-child{border-top:2px solid var(--or);} .ds-fact dt{color:var(--gris);font-size:0.75rem;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;} .ds-fact dd{margin:0;} .ds-fact .v{font-size:1.875rem;font-weight:300;line-height:1.15;letter-spacing:-0.01em;} .ds-fact .v span{color:var(--gris);font-size:0.86em;} .ds-fact .v.est{color:var(--estime);text-decoration:underline dotted var(--estime);text-decoration-thickness:1px;text-underline-offset:0.28em;} .ds-fact .d{color:var(--gris);font-size:0.75rem;} .ds-fact .up{color:var(--hausse);font-weight:500;}"
+    },
+    {
+      "name": "Cote Row",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "Ranked listing row: thin rank, 26px gold seal, group band, published vs estimated values, change with drawn triangle.",
+      "html": "<table class=\"ds-cote\"><thead><tr><th>Rang</th><th>Corporation</th><th class=\"n\">CA publié</th><th class=\"n\">CA réel</th><th class=\"n\">Var.</th></tr></thead><tbody><tr><td class=\"r\">1</td><td><span class=\"nm\"><svg width=\"26\" height=\"26\" viewBox=\"-1 -1 2 2\"><circle r=\"0.95\"/><circle r=\"0.7\"/><path d=\"M0.6 0 L0 0.6 L-0.6 0 L0 -0.6 Z\"/></svg><span><b>Armacham Industries</b><small><i style=\"background:var(--g-cyan)\"></i>Armacham</small></span></span></td><td class=\"n\">677&nbsp;085 <span class=\"u\">¢</span></td><td class=\"n est\">702&nbsp;300 <span class=\"u\">¢</span></td><td class=\"n up\"><svg width=\"8\" height=\"8\" viewBox=\"0 0 8 8\"><path d=\"M4 1 7.5 7h-7z\"/></svg>2,4 %</td></tr><tr><td class=\"r\">2</td><td><span class=\"nm\"><svg width=\"26\" height=\"26\" viewBox=\"-1 -1 2 2\"><circle r=\"0.95\"/><circle r=\"0.62\"/><path d=\"M0.5 0.3 L-0.5 0.3 L0 -0.6 Z\"/></svg><span><b>Sovereign Bank</b><small><i style=\"background:var(--g-magenta)\"></i>Sovereign</small></span></span></td><td class=\"n\">512&nbsp;940 <span class=\"u\">¢</span></td><td class=\"n est\">498&nbsp;120 <span class=\"u\">¢</span></td><td class=\"n down\"><svg width=\"8\" height=\"8\" viewBox=\"0 0 8 8\"><path d=\"M4 7 .5 1h7z\"/></svg>1,1 %</td></tr></tbody></table>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-cote{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;width:100%;border-collapse:collapse;border-top:1px solid var(--or);color:var(--ivoire);font-size:0.875rem;} .ds-cote th{padding:12px;border-bottom:1px solid var(--filet-fort);color:var(--gris);font-size:0.75rem;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;text-align:left;} .ds-cote td{padding:8px 12px;border-bottom:1px solid var(--filet);vertical-align:middle;} .ds-cote tbody tr{transition:background 120ms var(--ease-out);cursor:pointer;} .ds-cote tbody tr:hover{background:var(--laque-2);} .ds-cote .n{text-align:right;white-space:nowrap;} .ds-cote .r{font-size:1rem;font-weight:300;} .ds-cote .nm{display:flex;align-items:center;gap:12px;} .ds-cote .nm svg{fill:none;stroke:var(--or);} .ds-cote .nm svg *{stroke-width:1;vector-effect:non-scaling-stroke;} .ds-cote .nm>span{display:grid;gap:1px;} .ds-cote b{font-weight:500;} .ds-cote small{display:inline-flex;align-items:center;gap:8px;color:var(--gris);font-size:0.75rem;} .ds-cote small i{width:14px;height:2px;} .ds-cote .u{color:var(--gris);font-size:0.86em;} .ds-cote .est{color:var(--estime);text-decoration:underline dotted var(--estime);text-decoration-thickness:1px;text-underline-offset:0.28em;} .ds-cote .est .u{color:inherit;} .ds-cote .up{color:var(--hausse);font-weight:500;} .ds-cote .down{color:var(--baisse);font-weight:500;} .ds-cote .up svg,.ds-cote .down svg{fill:currentColor;margin-right:5px;}"
+    },
+    {
+      "name": "Chart Tooltip",
+      "kind": "custom",
+      "refersTo": "tooltip",
+      "description": "One of only two elevated surfaces: lacquer tooltip with hairline border and ambient shadow.",
+      "html": "<div class=\"ds-tip\"><span class=\"dt\">13 nov. 2026</span><p><i style=\"background:var(--g-cyan)\"></i><span>Armacham Industries</span><b>677&nbsp;085 ¢</b></p><p class=\"e\"><i style=\"background:var(--estime)\"></i><span>CA réel</span><b>702&nbsp;300 ¢</b></p></div>",
+      "css": ":host{color-scheme:dark;--laque:#0d0d10;--laque-2:#131317;--laque-3:#1a1a20;--filet:#26262c;--filet-fort:#3a3a43;--ivoire:#ecebe6;--gris:#a5a39c;--gris-2:#8f8d86;--or:#d6c29a;--or-clair:#ead9b4;--or-sombre:#6f6350;--hausse:#3ddc84;--baisse:#ff6b74;--estime:#b99cff;--alerte:#ff8a3d;--g-cyan:#22e4ff;--g-magenta:#ff3ccf;--g-ambre:#ffb21a;--g-bleu:#5b8cff;--font:\"Hanken Grotesk Variable\",\"Hanken Grotesk\",ui-sans-serif,system-ui,sans-serif;--ease-out:cubic-bezier(0.16,1,0.3,1);} .ds-tip{font-family:var(--font);font-variant-numeric:tabular-nums lining-nums;width:240px;padding:12px 16px;background:var(--laque-2);border:1px solid var(--filet-fort);box-shadow:0 10px 28px rgb(0 0 0 / 0.45);color:var(--ivoire);font-size:0.8125rem;} .ds-tip .dt{display:block;margin-bottom:4px;color:var(--gris);font-size:0.75rem;letter-spacing:0.08em;text-transform:uppercase;} .ds-tip p{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;margin:0;padding:2px 0;} .ds-tip i{width:12px;height:2px;} .ds-tip b{font-weight:500;} .ds-tip .e b{color:var(--estime);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Le Rapport annuel de la mégacorpo",
+    "overview": "KNX se lit comme le rapport annuel imprimé d'un conglomérat : une laque noire légèrement froide, des filets graphite d'un pixel, de grands chiffres fins en Hanken Grotesk 300, une grille suisse stricte. La rigueur vient de l'alignement et de la retenue, pas de la décoration. La dorure champagne ne marque que l'identité et la sélection ; tout le reste est ivoire sur laque.\n\nLa densité est celle d'une place boursière de référence : faits du relevé en colonnes à filet de tête, graphique multi-séries, cote tabulaire complète. L'univers passe par la matière (laque, dorure, sceaux guillochés générés depuis le nom de chaque corporation, bandes néon des groupes), jamais par une structure exotique. Le système refuse explicitement le tableau de bord sombre générique à cartes KPI arrondies et le costume de terminal néon.\n\nLe système est sombre uniquement : la laque est le seul fond livré (`color-scheme: dark`). Un thème clair est différé et n'a aucun token.",
+    "keyCharacteristics": [
+      "Laque noire, filets d'un pixel, aucun arrondi, aucune ombre décorative.",
+      "Dorure réservée à l'identité et à la sélection ; boutons primaires ivoire.",
+      "Grands chiffres en graisse 300, chiffres tabulaires et alignés partout.",
+      "Trois codes sémantiques stricts : variation (vert/rouge + triangle), estimation (violet pointillé), alerte (orange).",
+      "Une fine bande néon par groupe de corporations.",
+      "Sceau guilloché unique par entreprise, tracé une fois à l'ouverture de sa fiche."
+    ],
+    "rules": [
+      {
+        "name": "The Gold Is Identity Rule",
+        "body": "La dorure marque qui parle (KNX, le sceau) et ce qui est choisi (onglet, tri, puce, focus). Si un élément doré n'est ni l'un ni l'autre, il est faux.",
+        "section": "colors"
+      },
+      {
+        "name": "The Violet Means Estimated Rule",
+        "body": "Toute valeur estimée est violette et pointillée ; aucune valeur publiée par le jeu ne l'est jamais. Le lecteur doit pouvoir séparer publié et estimé sans lire une légende.",
+        "section": "colors"
+      },
+      {
+        "name": "The Colour Never Alone Rule",
+        "body": "Vert et rouge n'apparaissent que sur une variation, et toujours avec un triangle dessiné, un signe ou un `=`.",
+        "section": "colors"
+      },
+      {
+        "name": "The Thin Figures Rule",
+        "body": "Plus un chiffre est grand, plus il est fin : faits, KPI et rangs de la cote sont en 300.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "Tout le corps est en chiffres tabulaires et alignés (`tabular-nums lining-nums`), pour que les colonnes s'alignent sans effort.",
+        "section": "typography"
+      },
+      {
+        "name": "The Readable Thousands Rule",
+        "body": "Les milliers sont groupés par une espace insécable ordinaire (U+00A0), car l'espace fine U+202F d'Intl fait moins de 2 px dans Hanken Grotesk. Les petits pourcentages reçoivent des décimales supplémentaires plutôt que de s'afficher à 0,0 %. Le signe moins est le vrai `−`.",
+        "section": "typography"
+      },
+      {
+        "name": "The Only Floaters Cast Shadows Rule",
+        "body": "Une ombre signifie « posé au-dessus du contenu » : infobulle et popover uniquement. Aucune carte, aucun bouton, aucune section n'en porte.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** séparer par des filets d'1 px (filet, filet fort) et coiffer les rangées de chiffres d'une règle de tête.",
+      "**Do** réserver l'or à la marque, aux sceaux, aux règles de tête et à la sélection (onglet, tri, puce, focus).",
+      "**Do** marquer chaque valeur estimée en violet avec soulignement ou trait pointillé, et expliquer l'incertitude au survol.",
+      "**Do** doubler chaque variation colorée d'un triangle dessiné ou d'un signe.",
+      "**Do** composer les grands chiffres en 300, en chiffres tabulaires, milliers séparés par U+00A0.",
+      "**Do** limiter le mouvement au tracé unique du sceau, à l'interpolation des chiffres et aux transitions d'état courtes (120–180 ms, ease-out), toujours neutralisés sous mouvement réduit."
+    ],
+    "donts": [
+      "**Don't** arrondir un angle ni poser une ombre sur une carte, un bouton ou une section.",
+      "**Don't** faire des boutons primaires dorés : ils sont ivoire.",
+      "**Don't** utiliser le violet ou le pointillé pour une valeur publiée par le jeu.",
+      "**Don't** utiliser vert ou rouge hors variation, ni l'orange hors alerte et statut.",
+      "**Don't** construire le tableau de bord sombre générique à cartes KPI arrondies, ni un costume de terminal néon.",
+      "**Don't** utiliser l'or comme couleur de série de données."
+    ]
+  }
+}

@@ -1,0 +1,195 @@
+.cote__filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-5);
+  margin-bottom: var(--s-4);
+}
+
+.cote__query {
+  margin-left: auto;
+}
+
+.cote__query .input {
+  width: 220px;
+}
+
+.cote__scroll {
+  overflow-x: auto;
+  border-top: 1px solid var(--or);
+}
+
+.cote__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-body);
+}
+
+.cote__table thead th {
+  position: sticky;
+  top: 0;
+  padding: 0;
+  background: var(--laque);
+  border-bottom: 1px solid var(--filet-fort);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.cote__table thead th button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: var(--s-3) var(--s-3);
+  background: none;
+  border: 0;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.cote__table thead th.num button {
+  justify-content: flex-end;
+}
+
+.cote__table thead th button:hover,
+.cote__table thead th[aria-sort] button {
+  color: var(--ivoire);
+}
+
+.cote__table thead svg {
+  fill: var(--filet-fort);
+}
+
+.cote__table thead svg.is-on {
+  fill: var(--or);
+}
+
+.cote__table tbody tr {
+  border-bottom: 1px solid var(--filet);
+  cursor: pointer;
+  transition: background 120ms var(--ease-out);
+}
+
+.cote__table tbody tr:hover,
+.cote__table tbody tr.is-focused {
+  background: var(--laque-2);
+}
+
+.cote__table tbody td,
+.cote__table tbody th {
+  padding: var(--s-2) var(--s-3);
+  font-weight: 400;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.cote__table .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cote__table .col-rank {
+  width: 84px;
+  white-space: nowrap;
+}
+
+.cote__rank {
+  display: inline-block;
+  min-width: 2ch;
+  margin-right: var(--s-2);
+  font-weight: 300;
+  font-size: var(--fs-md);
+}
+
+.cote__rank--off {
+  color: var(--gris-2);
+}
+
+.cote__name {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.cote__name-text {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.cote__name-text a {
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cote__name-text a:hover {
+  text-decoration: underline;
+}
+
+.cote__sub {
+  display: flex;
+  gap: var(--s-3);
+  font-size: var(--fs-cap);
+}
+
+.tag {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.cote__table tr.is-followed .cote__name-text a {
+  color: var(--or-clair);
+}
+
+.cote__table tr.is-idle td,
+.cote__table tr.is-delisted td {
+  color: var(--gris);
+}
+
+.cote__empty {
+  padding: var(--s-6) var(--s-3) !important;
+  color: var(--gris);
+  text-align: center !important;
+  cursor: default;
+}
+
+.cote__count {
+  margin-top: var(--s-3);
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+.score {
+  color: var(--gris);
+  text-decoration: underline dotted var(--estime);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.28em;
+  cursor: help;
+}
+
+.score--up {
+  color: var(--hausse);
+}
+
+.score--down {
+  color: var(--baisse);
+}
+
+@media (max-width: 860px) {
+  .cote__table .secondary {
+    display: none;
+  }
+  .cote__query {
+    margin-left: 0;
+    width: 100%;
+  }
+  .cote__query .input {
+    width: 100%;
+  }
+}

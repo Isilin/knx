@@ -1,0 +1,422 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T14:42:15.897Z",
+        "reason": "Claude: canon card deliberately depicts the generic category standard (decision sketch only)"
+      },
+      {
+        "rule": "flat-type-hierarchy",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T14:42:16.002Z",
+        "reason": "Claude: canon card deliberately depicts the generic category standard (decision sketch only)"
+      },
+      {
+        "rule": "tight-leading",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T14:42:16.094Z",
+        "reason": "Claude: single-line stencil display numerals and headings, no multi-line body text (decision sketch)"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-mur.html"
+        ],
+        "createdAt": "2026-11-13T14:59:46.304Z",
+        "reason": "Claude: literal LED-digit halo of the LED-wall direction; user steer asked for a neon cyberpunk ambiance (decision sketch)"
+      },
+      {
+        "rule": "low-contrast",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.135Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.256Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.377Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.497Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/assigned.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.617Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.738Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.858Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-radius",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T16:26:05.977Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/canon.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.098Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-datafield.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.218Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-datafield.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.339Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-datafield.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.464Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "codex-grid-background",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-datafield.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.584Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-gateboard.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.708Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-gateboard.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.827Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-gateboard.html"
+        ],
+        "createdAt": "2026-11-13T16:26:06.947Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-gateboard.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.068Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-mosaic.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.196Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-mosaic.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.326Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-mosaic.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.455Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-mosaic.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.590Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-mosaic.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.714Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-rack.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.839Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/challenger-rack.html"
+        ],
+        "createdAt": "2026-11-13T16:26:07.969Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-mur.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.105Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-mur.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.239Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-mur.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.383Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-mur.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.512Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-nuit.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.649Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-nuit.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.780Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-nuit.html"
+        ],
+        "createdAt": "2026-11-13T16:26:08.906Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-nuit.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.026Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-rapport.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.149Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/grounded-rapport.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.282Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "hard-offset-shadow",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lead-acetate.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.409Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lead-acetate.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.550Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lead-acetate.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.709Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lead-acetate.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.853Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/lead-acetate.html"
+        ],
+        "createdAt": "2026-11-13T16:26:09.995Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-color",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-13T16:26:10.137Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-13T16:26:10.282Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          ".impeccable/mocks/decision/model-pick.html"
+        ],
+        "createdAt": "2026-11-13T16:26:51.417Z",
+        "reason": "Claude: archived decision-round sketch of an unchosen/alternate visual world, never shipped; it intentionally departs from DESIGN.md"
+      }
+    ]
+  }
+}

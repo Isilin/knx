@@ -1,0 +1,48 @@
+.follow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-height: 36px;
+  padding: 0 var(--s-4);
+  background: none;
+  border: 1px solid var(--filet-fort);
+  color: var(--ivoire);
+  cursor: pointer;
+}
+
+.follow svg {
+  fill: none;
+  stroke: var(--or);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+
+.follow:hover {
+  border-color: var(--or);
+}
+
+.follow[aria-pressed="true"] svg {
+  fill: var(--or);
+}
+
+.follow--compact {
+  min-height: 0;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent;
+  opacity: 0;
+}
+
+.follow--compact[aria-pressed="true"],
+tr:hover .follow--compact,
+.follow--compact:focus-visible {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .follow--compact {
+    opacity: 1;
+  }
+}
