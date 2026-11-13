@@ -135,20 +135,32 @@ async function main(): Promise<void> {
     if (iso) overrides.set(name, iso);
   }
 
-  // A company only enters the history once it has published a non-zero figure.
-  const firstSeen = new Map<string, string>();
+  // The sheet writes 0 both for a company listed at 0 and for one that does not exist yet
+  // (Metropolis before its creation). A row counts as present when the company published a
+  // figure, when its capital or staff were recorded that day, when it never published anything
+  // but 0 (Advenio: listed at 0 throughout), or when the zero comes after its first positive
+  // figure or its hand-typed creation date. Only leading zeros of a company that appears later
+  // are left out.
+  const firstPositive = new Map<string, string>();
   const dates = [...chiffre.keys()].sort();
   for (const date of dates) {
     for (const [name, value] of chiffre.get(date) ?? []) {
-      if (value > 0 && !firstSeen.has(name)) firstSeen.set(name, date);
+      if (value > 0 && !firstPositive.has(name)) firstPositive.set(name, date);
     }
   }
+  const isPresent = (name: string, date: string, value: number): boolean => {
+    if (value > 0) return true;
+    if (capital.get(date)?.has(name) || employees.get(date)?.has(name)) return true;
+    const since = firstPositive.get(name);
+    if (since === undefined) return true;
+    const created = overrides.get(name);
+    return date >= since || (created !== undefined && date >= created);
+  };
 
   const snapshots: Snapshot[] = dates.map((date) => {
     const rows: SnapshotRow[] = [];
     for (const [name, value] of chiffre.get(date) ?? []) {
-      const since = firstSeen.get(name);
-      if (!since || date < since) continue;
+      if (!isPresent(name, date, value)) continue;
       rows.push({
         name,
         rank: null,

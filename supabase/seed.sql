@@ -58,7 +58,7 @@ insert into public.companies (name, creation_override) values
 
 insert into public.snapshots (taken_on, source) values ('2024-03-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 749640, null, null),
   ('Revestio', null, 419823, null, null),
   ('La Tech''', null, 267809, null, null),
@@ -93,13 +93,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12778, null, null),
   ('Apothéca', null, 1662, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100604, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-04';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-05', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 749337, null, null),
   ('Revestio', null, 419968, null, null),
   ('La Tech''', null, 267486, null, null),
@@ -134,13 +135,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12774, null, null),
   ('Apothéca', null, 1661, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100505, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-05';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-06', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 749034, null, null),
   ('Revestio', null, 418754, null, null),
   ('La Tech''', null, 267386, null, null),
@@ -175,13 +177,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12771, null, null),
   ('Apothéca', null, 1660, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100397, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-06';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 748731, null, null),
   ('Revestio', null, 421611, null, null),
   ('La Tech''', null, 267064, null, null),
@@ -216,13 +219,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12767, null, null),
   ('Apothéca', null, 1661, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100288, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-07';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-08', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 748429, null, null),
   ('Revestio', null, 420399, null, null),
   ('La Tech''', null, 266742, null, null),
@@ -257,13 +261,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12764, null, null),
   ('Apothéca', null, 1663, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100185, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-08';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 748127, null, null),
   ('Revestio', null, 422479, null, null),
   ('La Tech''', null, 266422, null, null),
@@ -298,13 +303,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12760, null, null),
   ('Apothéca', null, 1669, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 100091, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-09';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 747825, null, null),
   ('Revestio', null, 425131, null, null),
   ('La Tech''', null, 266102, null, null),
@@ -339,13 +345,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12756, null, null),
   ('Apothéca', null, 1672, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99983, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-10';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 747714, null, null),
   ('Revestio', null, 425459, null, null),
   ('La Tech''', null, 265783, null, null),
@@ -380,13 +387,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12757, null, null),
   ('Apothéca', null, 1673, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99875, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-11';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 747693, null, null),
   ('Revestio', null, 424250, null, null),
   ('La Tech''', null, 265465, null, null),
@@ -421,13 +429,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12754, null, null),
   ('Apothéca', null, 1674, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99768, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-12';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 747091, null, null),
   ('Revestio', null, 424444, null, null),
   ('La Tech''', null, 265002, null, null),
@@ -462,13 +471,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12747, null, null),
   ('Apothéca', null, 1672, null, null),
   ('MJ Immo', null, 9, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99554, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-14';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-15', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 746790, null, null),
   ('Revestio', null, 423823, null, null),
   ('La Tech''', null, 264686, null, null),
@@ -503,13 +513,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12744, null, null),
   ('Apothéca', null, 1672, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99448, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-15';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 746489, null, null),
   ('Revestio', null, 424084, null, null),
   ('La Tech''', null, 264371, null, null),
@@ -544,13 +555,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12740, null, null),
   ('Apothéca', null, 1680, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99341, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-16';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 746393, null, null),
   ('Revestio', null, 425389, null, null),
   ('La Tech''', null, 264106, null, null),
@@ -585,13 +597,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12736, null, null),
   ('Apothéca', null, 1687, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99235, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-17';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 746111, null, null),
   ('Revestio', null, 424763, null, null),
   ('La Tech''', null, 264354, null, null),
@@ -626,13 +639,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12733, null, null),
   ('Apothéca', null, 1688, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99215, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-18';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 745811, null, null),
   ('Revestio', null, 425072, null, null),
   ('La Tech''', null, 264212, null, null),
@@ -667,13 +681,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12729, null, null),
   ('Apothéca', null, 1688, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99109, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-19';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 745512, null, null),
   ('Revestio', null, 425131, null, null),
   ('La Tech''', null, 263898, null, null),
@@ -708,13 +723,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12741, null, null),
   ('Apothéca', null, 1703, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 99037, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-20';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 745264, null, null),
   ('Revestio', null, 427235, null, null),
   ('La Tech''', null, 263941, null, null),
@@ -749,13 +765,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12737, null, null),
   ('Apothéca', null, 1717, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98948, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-21';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 744964, null, null),
   ('Revestio', null, 427298, null, null),
   ('La Tech''', null, 263629, null, null),
@@ -790,13 +807,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12734, null, null),
   ('Apothéca', null, 1716, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98843, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-22';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-23', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 744665, null, null),
   ('Revestio', null, 426121, null, null),
   ('La Tech''', null, 263317, null, null),
@@ -831,13 +849,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12735, null, null),
   ('Apothéca', null, 1721, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98740, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-23';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 744367, null, null),
   ('Revestio', null, 425923, null, null),
   ('La Tech''', null, 263006, null, null),
@@ -872,13 +891,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12734, null, null),
   ('Apothéca', null, 1738, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98638, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-24';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 744068, null, null),
   ('Revestio', null, 424756, null, null),
   ('La Tech''', null, 262696, null, null),
@@ -913,13 +933,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12733, null, null),
   ('Apothéca', null, 1741, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98534, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-25';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 744183, null, null),
   ('Revestio', null, 424464, null, null),
   ('La Tech''', null, 263845, null, null),
@@ -954,13 +975,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12729, null, null),
   ('Apothéca', null, 1748, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98432, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-26';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-27', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 743885, null, null),
   ('Revestio', null, 424294, null, null),
   ('La Tech''', null, 263535, null, null),
@@ -995,13 +1017,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12726, null, null),
   ('Apothéca', null, 1745, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98328, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-27';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-28', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 743587, null, null),
   ('Revestio', null, 424011, null, null),
   ('La Tech''', null, 263225, null, null),
@@ -1036,13 +1059,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12722, null, null),
   ('Apothéca', null, 1745, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98224, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-28';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-29', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 743289, null, null),
   ('Revestio', null, 425360, null, null),
   ('La Tech''', null, 263085, null, null),
@@ -1077,13 +1101,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12720, null, null),
   ('Apothéca', null, 1742, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98132, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-29';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742992, null, null),
   ('Revestio', null, 424643, null, null),
   ('La Tech''', null, 262826, null, null),
@@ -1118,13 +1143,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12717, null, null),
   ('Apothéca', null, 1746, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 98029, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-30';
 
 insert into public.snapshots (taken_on, source) values ('2024-03-31', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742694, null, null),
   ('Revestio', null, 423499, null, null),
   ('La Tech''', null, 262518, null, null),
@@ -1159,13 +1185,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12713, null, null),
   ('Apothéca', null, 1749, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97935, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-03-31';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742397, null, null),
   ('Revestio', null, 425226, null, null),
   ('La Tech''', null, 262211, null, null),
@@ -1200,13 +1227,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12710, null, null),
   ('Apothéca', null, 1747, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97832, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-01';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-02', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742217, null, null),
   ('Revestio', null, 424515, null, null),
   ('La Tech''', null, 261905, null, null),
@@ -1241,13 +1269,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12707, null, null),
   ('Apothéca', null, 1746, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97729, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-02';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-03', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742181, null, null),
   ('Revestio', null, 424342, null, null),
   ('La Tech''', null, 261599, null, null),
@@ -1282,13 +1311,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12703, null, null),
   ('Apothéca', null, 1747, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97632, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-03';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741885, null, null),
   ('Revestio', null, 426304, null, null),
   ('La Tech''', null, 262313, null, null),
@@ -1323,13 +1353,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12699, null, null),
   ('Apothéca', null, 1749, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97530, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-04';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-05', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742693, null, null),
   ('Revestio', null, 426468, null, null),
   ('La Tech''', null, 262008, null, null),
@@ -1364,13 +1395,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12695, null, null),
   ('Apothéca', null, 1757, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97427, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-05';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-06', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742454, null, null),
   ('Revestio', null, 426610, null, null),
   ('La Tech''', null, 262580, null, null),
@@ -1405,13 +1437,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12696, null, null),
   ('Apothéca', null, 1761, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97325, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-06';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-08', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742376, null, null),
   ('Revestio', null, 426662, null, null),
   ('La Tech''', null, 270854, null, null),
@@ -1446,13 +1479,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12691, null, null),
   ('Apothéca', null, 1774, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97127, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-08';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742337, null, null),
   ('Revestio', null, 425539, null, null),
   ('La Tech''', null, 270707, null, null),
@@ -1487,13 +1521,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12695, null, null),
   ('Apothéca', null, 1778, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 97028, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-09';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742399, null, null),
   ('Revestio', null, 424423, null, null),
   ('La Tech''', null, 270393, null, null),
@@ -1528,13 +1563,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12691, null, null),
   ('Apothéca', null, 1775, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96927, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-10';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 742104, null, null),
   ('Revestio', null, 427846, null, null),
   ('La Tech''', null, 273424, null, null),
@@ -1569,13 +1605,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12687, null, null),
   ('Apothéca', null, 1772, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96826, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-11';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741808, null, null),
   ('Revestio', null, 426728, null, null),
   ('La Tech''', null, 273455, null, null),
@@ -1610,13 +1647,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12693, null, null),
   ('Apothéca', null, 1776, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96804, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-12';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741513, null, null),
   ('Revestio', null, 425682, null, null),
   ('La Tech''', null, 274031, null, null),
@@ -1651,13 +1689,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12688, null, null),
   ('Apothéca', null, 1778, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96717, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-13';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741583, null, null),
   ('Revestio', null, 425668, null, null),
   ('La Tech''', null, 274658, null, null),
@@ -1692,13 +1731,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12684, null, null),
   ('Apothéca', null, 1787, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96627, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-14';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-15', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741371, null, null),
   ('Revestio', null, 424565, null, null),
   ('La Tech''', null, 274342, null, null),
@@ -1733,13 +1773,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12682, null, null),
   ('Apothéca', null, 1797, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96540, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-15';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741076, null, null),
   ('Revestio', null, 425690, null, null),
   ('La Tech''', null, 275171, null, null),
@@ -1774,13 +1815,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12693, null, null),
   ('Apothéca', null, 1805, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96523, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-16';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741221, null, null),
   ('Revestio', null, 425655, null, null),
   ('La Tech''', null, 275153, null, null),
@@ -1815,13 +1857,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12689, null, null),
   ('Apothéca', null, 1805, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96443, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-17';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741161, null, null),
   ('Revestio', null, 426771, null, null),
   ('La Tech''', null, 275058, null, null),
@@ -1856,13 +1899,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12693, null, null),
   ('Apothéca', null, 1808, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96345, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-18';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741893, null, null),
   ('Revestio', null, 425547, null, null),
   ('La Tech''', null, 275296, null, null),
@@ -1897,13 +1941,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12686, null, null),
   ('Apothéca', null, 1807, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96154, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-20';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741614, null, null),
   ('Revestio', null, 424462, null, null),
   ('La Tech''', null, 275132, null, null),
@@ -1938,13 +1983,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12683, null, null),
   ('Apothéca', null, 1806, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 96055, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-21';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741604, null, null),
   ('Revestio', null, 424081, null, null),
   ('La Tech''', null, 275092, null, null),
@@ -1979,13 +2025,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12681, null, null),
   ('Apothéca', null, 1803, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95961, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-22';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 741078, null, null),
   ('Revestio', null, 423137, null, null),
   ('La Tech''', null, 274613, null, null),
@@ -2020,13 +2067,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12674, null, null),
   ('Apothéca', null, 1797, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95767, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-24';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 740785, null, null),
   ('Revestio', null, 423763, null, null),
   ('La Tech''', null, 274574, null, null),
@@ -2061,13 +2109,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12670, null, null),
   ('Apothéca', null, 1794, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95668, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-25';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 740492, null, null),
   ('Revestio', null, 425433, null, null),
   ('La Tech''', null, 274262, null, null),
@@ -2102,13 +2151,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12666, null, null),
   ('Apothéca', null, 1799, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95570, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-26';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-27', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 740310, null, null),
   ('Revestio', null, 424791, null, null),
   ('La Tech''', null, 274114, null, null),
@@ -2143,13 +2193,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12662, null, null),
   ('Apothéca', null, 1798, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95478, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-27';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-28', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 740017, null, null),
   ('Revestio', null, 426754, null, null),
   ('La Tech''', null, 274663, null, null),
@@ -2184,13 +2235,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12658, null, null),
   ('Apothéca', null, 1804, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95383, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-28';
 
 insert into public.snapshots (taken_on, source) values ('2024-04-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 739432, null, null),
   ('Revestio', null, 424865, null, null),
   ('La Tech''', null, 274859, null, null),
@@ -2225,13 +2277,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12658, null, null),
   ('Apothéca', null, 1805, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95193, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-04-30';
 
 insert into public.snapshots (taken_on, source) values ('2024-05-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 739789, null, null),
   ('Revestio', null, 425301, null, null),
   ('La Tech''', null, 276880, null, null),
@@ -2266,13 +2319,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12654, null, null),
   ('Apothéca', null, 1806, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 95101, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-05-01';
 
 insert into public.snapshots (taken_on, source) values ('2024-05-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 736642, null, null),
   ('Revestio', null, 429713, null, null),
   ('La Tech''', null, 278331, null, null),
@@ -2307,13 +2361,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12650, null, null),
   ('Apothéca', null, 1815, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 93935, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-05-14';
 
 insert into public.snapshots (taken_on, source) values ('2024-05-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 736685, null, null),
   ('Revestio', null, 428279, null, null),
   ('La Tech''', null, 277594, null, null),
@@ -2348,13 +2403,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12635, null, null),
   ('Apothéca', null, 1808, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 93591, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-05-18';
 
 insert into public.snapshots (taken_on, source) values ('2024-05-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 735064, null, null),
   ('Revestio', null, 427322, null, null),
   ('La Tech''', null, 277377, null, null),
@@ -2390,13 +2446,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12615, null, null),
   ('Apothéca', null, 1814, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 92981, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-05-25';
 
 insert into public.snapshots (taken_on, source) values ('2024-07-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 724378, null, null),
   ('Revestio', null, 424908, null, null),
   ('La Tech''', null, 283532, null, null),
@@ -2432,13 +2489,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12551, null, null),
   ('Apothéca', null, 1816, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 88691, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-07-14';
 
 insert into public.snapshots (taken_on, source) values ('2024-07-31', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 720921, null, null),
   ('Revestio', null, 425367, null, null),
   ('La Tech''', null, 279331, null, null),
@@ -2474,13 +2532,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12503, null, null),
   ('Apothéca', null, 1821, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 87284, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-07-31';
 
 insert into public.snapshots (taken_on, source) values ('2024-08-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 721654, null, null),
   ('Revestio', null, 428829, null, null),
   ('La Tech''', null, 280995, null, null),
@@ -2516,13 +2575,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12495, null, null),
   ('Apothéca', null, 1827, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 86960, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-08-04';
 
 insert into public.snapshots (taken_on, source) values ('2024-08-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 719475, null, null),
   ('Revestio', null, 445265, null, null),
   ('La Tech''', null, 281194, null, null),
@@ -2558,13 +2618,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12479, null, null),
   ('Apothéca', null, 1832, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 85922, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-08-17';
 
 insert into public.snapshots (taken_on, source) values ('2024-08-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 718828, null, null),
   ('Revestio', null, 450955, null, null),
   ('La Tech''', null, 280772, null, null),
@@ -2600,13 +2661,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12475, null, null),
   ('Apothéca', null, 1838, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 85686, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-08-20';
 
 insert into public.snapshots (taken_on, source) values ('2024-08-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 718284, null, null),
   ('Revestio', null, 454249, null, null),
   ('La Tech''', null, 280209, null, null),
@@ -2642,13 +2704,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12469, null, null),
   ('Apothéca', null, 1839, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 85529, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-08-22';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 715931, null, null),
   ('Revestio', null, 465203, null, null),
   ('La Tech''', null, 278664, null, null),
@@ -2684,13 +2747,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12443, null, null),
   ('Apothéca', null, 1849, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 84525, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-04';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 714742, null, null),
   ('Revestio', null, 476917, null, null),
   ('La Tech''', null, 277434, null, null),
@@ -2726,13 +2790,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12434, null, null),
   ('Apothéca', null, 1847, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 84144, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-09';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 713938, null, null),
   ('Revestio', null, 476457, null, null),
   ('La Tech''', null, 276618, null, null),
@@ -2768,13 +2833,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12423, null, null),
   ('Apothéca', null, 1857, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83918, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-12';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 713670, null, null),
   ('Revestio', null, 481570, null, null),
   ('La Tech''', null, 276629, null, null),
@@ -2810,13 +2876,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12421, null, null),
   ('Apothéca', null, 1856, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83843, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-13';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 712868, null, null),
   ('Revestio', null, 483183, null, null),
   ('La Tech''', null, 275817, null, null),
@@ -2852,13 +2919,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12411, null, null),
   ('Apothéca', null, 1856, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83618, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-16';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 712334, null, null),
   ('Revestio', null, 483729, null, null),
   ('La Tech''', null, 275445, null, null),
@@ -2894,13 +2962,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12405, null, null),
   ('Apothéca', null, 1859, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83469, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-18';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 712223, null, null),
   ('Revestio', null, 483648, null, null),
   ('La Tech''', null, 275928, null, null),
@@ -2936,13 +3005,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12402, null, null),
   ('Apothéca', null, 1859, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83395, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-19';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 711957, null, null),
   ('Revestio', null, 483494, null, null),
   ('La Tech''', null, 275659, null, null),
@@ -2978,13 +3048,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12398, null, null),
   ('Apothéca', null, 1858, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83320, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-20';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-23', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 711329, null, null),
   ('Revestio', null, 489358, null, null),
   ('La Tech''', null, 275199, null, null),
@@ -3020,13 +3091,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12389, null, null),
   ('Apothéca', null, 1870, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 83098, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-23';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 710582, null, null),
   ('Revestio', null, 491453, null, null),
   ('La Tech''', null, 274497, null, null),
@@ -3063,13 +3135,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('L''Impasse', null, 12379, null, null),
   ('Apothéca', null, 1872, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 82957, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-26';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-28', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 710140, null, null),
   ('Revestio', null, 492154, null, null),
   ('La Tech''', null, 273966, null, null),
@@ -3107,13 +3180,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1879, null, null),
   ('Seven', null, 5, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 82810, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-28';
 
 insert into public.snapshots (taken_on, source) values ('2024-09-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 709714, null, null),
   ('Revestio', null, 495310, null, null),
   ('La Tech''', null, 273438, null, null),
@@ -3151,13 +3225,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1884, null, null),
   ('Seven', null, 45, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 82664, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-09-30';
 
 insert into public.snapshots (taken_on, source) values ('2024-10-02', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 709302, null, null),
   ('Revestio', null, 497655, null, null),
   ('La Tech''', null, 273478, null, null),
@@ -3195,13 +3270,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1880, null, null),
   ('Seven', null, 152, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 82519, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-10-02';
 
 insert into public.snapshots (taken_on, source) values ('2024-10-05', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 708564, null, null),
   ('Revestio', null, 498422, null, null),
   ('La Tech''', null, 273359, null, null),
@@ -3239,13 +3315,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1878, null, null),
   ('Seven', null, 125, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 82301, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-10-05';
 
 insert into public.snapshots (taken_on, source) values ('2024-10-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 706449, null, null),
   ('Revestio', null, 507222, null, null),
   ('La Tech''', null, 272047, null, null),
@@ -3284,13 +3361,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1903, null, null),
   ('Seven', null, 543, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 81428, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-10-18';
 
 insert into public.snapshots (taken_on, source) values ('2024-10-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 705578, null, null),
   ('Revestio', null, 512073, null, null),
   ('La Tech''', null, 271458, null, null),
@@ -3329,13 +3407,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1898, null, null),
   ('Seven', null, 665, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 81146, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-10-22';
 
 insert into public.snapshots (taken_on, source) values ('2024-10-27', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 705236, null, null),
   ('Revestio', null, 518804, null, null),
   ('La Tech''', null, 270924, null, null),
@@ -3374,13 +3453,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1897, null, null),
   ('Seven', null, 787, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 80797, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-10-27';
 
 insert into public.snapshots (taken_on, source) values ('2024-11-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 704368, null, null),
   ('Revestio', null, 532433, null, null),
   ('La Tech''', null, 269358, null, null),
@@ -3419,13 +3499,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1934, null, null),
   ('Seven', null, 1343, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 79698, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-11-16';
 
 insert into public.snapshots (taken_on, source) values ('2024-12-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703258, null, null),
   ('Revestio', null, 530511, null, null),
   ('La Tech''', null, 272426, null, null),
@@ -3464,13 +3545,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1972, null, null),
   ('Seven', null, 1625, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 78182, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-12-09';
 
 insert into public.snapshots (taken_on, source) values ('2024-12-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703251, null, null),
   ('Revestio', null, 530462, null, null),
   ('La Tech''', null, 272180, null, null),
@@ -3509,13 +3591,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1972, null, null),
   ('Seven', null, 1666, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 78117, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-12-10';
 
 insert into public.snapshots (taken_on, source) values ('2024-12-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703905, null, null),
   ('Revestio', null, 524958, null, null),
   ('La Tech''', null, 270962, null, null),
@@ -3554,13 +3637,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1985, null, null),
   ('Seven', null, 1733, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 77776, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-12-19';
 
 insert into public.snapshots (taken_on, source) values ('2024-12-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703331, null, null),
   ('Revestio', null, 528115, null, null),
   ('La Tech''', null, 271415, null, null),
@@ -3599,13 +3683,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 1995, null, null),
   ('Seven', null, 1907, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 77735, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2024-12-22';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-03', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703356, null, null),
   ('Revestio', null, 538107, null, null),
   ('La Tech''', null, 270956, null, null),
@@ -3645,13 +3730,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2015, null, null),
   ('Seven', null, 2285, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 77120, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-03';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-05', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703404, null, null),
   ('Revestio', null, 537337, null, null),
   ('La Tech''', null, 270478, null, null),
@@ -3670,6 +3756,7 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Axiome', null, 107690, null, null),
   ('Sovereign Factory', null, 75788, null, null),
   ('Armacham Store', null, 101017, null, null),
+  ('NeuroCore Systems', null, 0, null, null),
   ('Marran Nids', null, 108654, null, null),
   ('Orbital Bank', null, 81848, null, null),
   ('Aequilibrium Financial', null, 30163, null, null),
@@ -3691,13 +3778,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2015, null, null),
   ('Seven', null, 2336, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76995, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-05';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-06', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 703241, null, null),
   ('Revestio', null, 537232, null, null),
   ('La Tech''', null, 270240, null, null),
@@ -3716,6 +3804,7 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Axiome', null, 107429, null, null),
   ('Sovereign Factory', null, 67989, null, null),
   ('Armacham Store', null, 100999, null, null),
+  ('NeuroCore Systems', null, 0, null, null),
   ('Marran Nids', null, 110041, null, null),
   ('Orbital Bank', null, 81830, null, null),
   ('Aequilibrium Financial', null, 30125, null, null),
@@ -3737,13 +3826,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2020, null, null),
   ('Seven', null, 2369, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76937, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-06';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 702896, null, null),
   ('Revestio', null, 541694, null, null),
   ('La Tech''', null, 273685, null, null),
@@ -3751,6 +3841,7 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Nomura Systems', null, 225430, null, null),
   ('La Trame Fukyû', null, 307874, null, null),
   ('Black Cadastre', null, 255860, null, null),
+  ('Kessler Industries™', null, 0, null, null),
   ('First Gobelin Bank', null, 130860, null, null),
   ('Novitium', null, 254442, null, null),
   ('Street', null, 167963, null, null),
@@ -3762,6 +3853,7 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Axiome', null, 107431, null, null),
   ('Sovereign Factory', null, 130858, null, null),
   ('Armacham Store', null, 100986, null, null),
+  ('NeuroCore Systems', null, 0, null, null),
   ('Marran Nids', null, 110589, null, null),
   ('Orbital Bank', null, 81778, null, null),
   ('Aequilibrium Financial', null, 31413, null, null),
@@ -3783,13 +3875,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2025, null, null),
   ('Seven', null, 2411, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76750, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-09';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 702496, null, null),
   ('Revestio', null, 542900, null, null),
   ('La Tech''', null, 274444, null, null),
@@ -3832,13 +3925,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2027, null, null),
   ('Seven', null, 2457, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76626, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-11';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 701992, null, null),
   ('Revestio', null, 544377, null, null),
   ('La Tech''', null, 278134, null, null),
@@ -3881,15 +3975,17 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2036, null, null),
   ('Seven', null, 2511, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76704, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-13';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-15', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 701489, null, null),
   ('Revestio', null, 543918, null, null),
+  ('Metropolis', null, 0, null, null),
   ('La Tech''', null, 278569, null, null),
   ('Donnellys Cybertech', null, 372892, null, null),
   ('Nomura Systems', null, 223053, null, null),
@@ -3930,13 +4026,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2038, null, null),
   ('Seven', null, 2580, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76581, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-15';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 701335, null, null),
   ('Revestio', null, 544838, null, null),
   ('Metropolis', null, 2160, null, null),
@@ -3980,13 +4077,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2041, null, null),
   ('Seven', null, 2604, null, null),
   ('MJ Immo', null, 8, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 76457, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-17';
 
 insert into public.snapshots (taken_on, source) values ('2025-01-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 700766, null, null),
   ('Revestio', null, 547769, null, null),
   ('Metropolis', null, 948666, null, null),
@@ -4031,13 +4129,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2066, null, null),
   ('Seven', null, 2715, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 75912, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-01-26';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 700169, null, null),
   ('Revestio', null, 552584, null, null),
   ('Metropolis', null, 1039093, null, null),
@@ -4083,13 +4182,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2095, null, null),
   ('Seven', null, 2863, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 75204, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-07';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 700741, null, null),
   ('Revestio', null, 556648, null, null),
   ('Metropolis', null, 997166, null, null),
@@ -4135,13 +4235,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2104, null, null),
   ('Seven', null, 2836, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 75118, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-09';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 700493, null, null),
   ('Revestio', null, 558126, null, null),
   ('Metropolis', null, 1062798, null, null),
@@ -4187,13 +4288,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Apothéca', null, 2105, null, null),
   ('Seven', null, 2824, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 75059, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-10';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 699995, null, null),
   ('Revestio', null, 556920, null, null),
   ('Metropolis', null, 1010227, null, null),
@@ -4240,13 +4342,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 550, null, null),
   ('Seven', null, 2843, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74951, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-12';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 699970, null, null),
   ('Revestio', null, 558427, null, null),
   ('Metropolis', null, 940198, null, null),
@@ -4294,13 +4397,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 508, null, null),
   ('Seven', null, 2861, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74747, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-16';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 699663, null, null),
   ('Revestio', null, 557715, null, null),
   ('Metropolis', null, 893716, null, null),
@@ -4348,13 +4452,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 489, null, null),
   ('Seven', null, 2897, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74629, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-18';
 
 insert into public.snapshots (taken_on, source) values ('2025-02-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 698714, null, null),
   ('Revestio', null, 558589, null, null),
   ('Metropolis', null, 794909, null, null),
@@ -4402,13 +4507,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 440, null, null),
   ('Seven', null, 2940, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74280, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-02-24';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 699236, null, null),
   ('Revestio', null, 560477, null, null),
   ('Metropolis', null, 680656, null, null),
@@ -4456,13 +4562,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 372, null, null),
   ('Seven', null, 2966, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 73647, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-07';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 698862, null, null),
   ('Revestio', null, 560465, null, null),
   ('Metropolis', null, 735845, null, null),
@@ -4510,13 +4617,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 352, null, null),
   ('Seven', null, 2965, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 73419, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-11';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 698318, null, null),
   ('Revestio', null, 559518, null, null),
   ('Metropolis', null, 790056, null, null),
@@ -4565,13 +4673,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 338, null, null),
   ('Seven', null, 2998, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 73250, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-14';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-15', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 698073, null, null),
   ('Revestio', null, 561068, null, null),
   ('Metropolis', null, 783445, null, null),
@@ -4620,13 +4729,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 334, null, null),
   ('Seven', null, 3002, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 73193, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-15';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 698179, null, null),
   ('Revestio', null, 562510, null, null),
   ('Metropolis', null, 803176, null, null),
@@ -4675,13 +4785,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 314, null, null),
   ('Seven', null, 3009, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 72912, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-20';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 697176, null, null),
   ('Revestio', null, 560477, null, null),
   ('Metropolis', null, 797404, null, null),
@@ -4730,13 +4841,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 17293, null, null),
   ('Seven', null, 3066, null, null),
   ('MJ Immo', null, 7, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 72579, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-26';
 
 insert into public.snapshots (taken_on, source) values ('2025-03-29', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 697101, null, null),
   ('Revestio', null, 559153, null, null),
   ('Metropolis', null, 790045, null, null),
@@ -4785,13 +4897,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 16735, null, null),
   ('Seven', null, 3047, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 72413, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-03-29';
 
 insert into public.snapshots (taken_on, source) values ('2025-04-03', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 697785, null, null),
   ('Revestio', null, 558489, null, null),
   ('Metropolis', null, 783584, null, null),
@@ -4840,13 +4953,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 21882, null, null),
   ('Seven', null, 3088, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 72138, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-04-03';
 
 insert into public.snapshots (taken_on, source) values ('2025-04-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 697672, null, null),
   ('Revestio', null, 558694, null, null),
   ('Metropolis', null, 782779, null, null),
@@ -4895,13 +5009,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 22570, null, null),
   ('Seven', null, 3088, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 72083, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-04-04';
 
 insert into public.snapshots (taken_on, source) values ('2025-04-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 697057, null, null),
   ('Revestio', null, 566083, null, null),
   ('Metropolis', null, 767067, null, null),
@@ -4951,13 +5066,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 21906, null, null),
   ('Seven', null, 3109, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 71920, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-04-07';
 
 insert into public.snapshots (taken_on, source) values ('2025-04-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 696720, null, null),
   ('Revestio', null, 562869, null, null),
   ('Metropolis', null, 828096, null, null),
@@ -5007,13 +5123,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 20157, null, null),
   ('Seven', null, 3460, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 71433, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-04-16';
 
 insert into public.snapshots (taken_on, source) values ('2025-04-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 696433, null, null),
   ('Revestio', null, 561125, null, null),
   ('Metropolis', null, 840133, null, null),
@@ -5063,13 +5180,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19314, null, null),
   ('Seven', null, 3488, null, null),
   ('MJ Immo', null, 44, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 71166, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-04-21';
 
 insert into public.snapshots (taken_on, source) values ('2025-05-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 694175, null, null),
   ('Revestio', null, 566455, null, null),
   ('Metropolis', null, 791275, null, null),
@@ -5119,13 +5237,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19568, null, null),
   ('Seven', null, 3516, null, null),
   ('MJ Immo', null, 43, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 75024, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-05-13';
 
 insert into public.snapshots (taken_on, source) values ('2025-05-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 694013, null, null),
   ('Revestio', null, 566173, null, null),
   ('Metropolis', null, 773706, null, null),
@@ -5175,13 +5294,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19017, null, null),
   ('Seven', null, 3545, null, null),
   ('MJ Immo', null, 43, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74804, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-05-17';
 
 insert into public.snapshots (taken_on, source) values ('2025-05-28', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 694165, null, null),
   ('Revestio', null, 567439, null, null),
   ('Metropolis', null, 746817, null, null),
@@ -5231,13 +5351,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19872, null, null),
   ('Seven', null, 3554, null, null),
   ('MJ Immo', null, 43, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74795, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-05-28';
 
 insert into public.snapshots (taken_on, source) values ('2025-05-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 694845, null, null),
   ('Revestio', null, 567232, null, null),
   ('Metropolis', null, 741167, null, null),
@@ -5287,13 +5408,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19615, null, null),
   ('Seven', null, 3591, null, null),
   ('MJ Immo', null, 43, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74686, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-05-30';
 
 insert into public.snapshots (taken_on, source) values ('2025-06-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 694395, null, null),
   ('Revestio', null, 567314, null, null),
   ('Metropolis', null, 744653, null, null),
@@ -5343,13 +5465,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 19366, null, null),
   ('Seven', null, 3590, null, null),
   ('MJ Immo', null, 43, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 74685, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-06-01';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 693417, null, null),
   ('Revestio', null, 575674, null, null),
   ('Metropolis', null, 688431, null, null),
@@ -5399,13 +5522,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 16278, null, null),
   ('Seven', null, 3698, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68927, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-10';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 693183, null, null),
   ('Revestio', null, 574987, null, null),
   ('Metropolis', null, 684542, null, null),
@@ -5455,13 +5579,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 16195, null, null),
   ('Seven', null, 3700, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68878, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-11';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 692950, null, null),
   ('Revestio', null, 574517, null, null),
   ('Metropolis', null, 681072, null, null),
@@ -5511,13 +5636,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 16113, null, null),
   ('Seven', null, 3695, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68943, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-12';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-23', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 692234, null, null),
   ('Revestio', null, 578761, null, null),
   ('Metropolis', null, 657317, null, null),
@@ -5567,13 +5693,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 15265, null, null),
   ('Seven', null, 3719, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68403, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-23';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 692007, null, null),
   ('Revestio', null, 579771, null, null),
   ('Metropolis', null, 650434, null, null),
@@ -5623,13 +5750,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 15120, null, null),
   ('Seven', null, 3737, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68306, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-25';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-29', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691849, null, null),
   ('Revestio', null, 581951, null, null),
   ('Metropolis', null, 638663, null, null),
@@ -5679,13 +5807,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14839, null, null),
   ('Seven', null, 3744, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68125, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-29';
 
 insert into public.snapshots (taken_on, source) values ('2025-07-31', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691432, null, null),
   ('Revestio', null, 583243, null, null),
   ('Metropolis', null, 632185, null, null),
@@ -5735,13 +5864,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14702, null, null),
   ('Seven', null, 3793, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 68029, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-07-31';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-02', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691158, null, null),
   ('Revestio', null, 587827, null, null),
   ('Metropolis', null, 637041, null, null),
@@ -5791,13 +5921,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14568, null, null),
   ('Seven', null, 3804, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67933, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-02';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-03', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691163, null, null),
   ('Revestio', null, 587905, null, null),
   ('Metropolis', null, 639106, null, null),
@@ -5847,13 +5978,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14502, null, null),
   ('Seven', null, 3810, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67885, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-03';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691215, null, null),
   ('Revestio', null, 589346, null, null),
   ('Metropolis', null, 635926, null, null),
@@ -5903,13 +6035,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14436, null, null),
   ('Seven', null, 3817, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67837, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-04';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-06', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690778, null, null),
   ('Revestio', null, 587982, null, null),
   ('Metropolis', null, 636410, null, null),
@@ -5959,13 +6092,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14307, null, null),
   ('Seven', null, 3809, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67751, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-06';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690594, null, null),
   ('Revestio', null, 587909, null, null),
   ('Metropolis', null, 636039, null, null),
@@ -6015,13 +6149,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14243, null, null),
   ('Seven', null, 3809, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67703, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-07';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690417, null, null),
   ('Revestio', null, 587406, null, null),
   ('Metropolis', null, 645398, null, null),
@@ -6071,13 +6206,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 14117, null, null),
   ('Seven', null, 3834, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67608, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-09';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690489, null, null),
   ('Revestio', null, 586264, null, null),
   ('Metropolis', null, 643568, null, null),
@@ -6127,13 +6263,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13993, null, null),
   ('Seven', null, 3832, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67513, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-11';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 691134, null, null),
   ('Revestio', null, 590605, null, null),
   ('Metropolis', null, 641206, null, null),
@@ -6183,13 +6320,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13932, null, null),
   ('Seven', null, 3857, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67465, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-12';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690904, null, null),
   ('Revestio', null, 591508, null, null),
   ('Metropolis', null, 638153, null, null),
@@ -6239,13 +6377,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13871, null, null),
   ('Seven', null, 3864, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67418, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-13';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690914, null, null),
   ('Revestio', null, 590830, null, null),
   ('Metropolis', null, 637500, null, null),
@@ -6295,13 +6434,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13811, null, null),
   ('Seven', null, 3870, null, null),
   ('MJ Immo', null, 42, null, null),
+  ('Advenio', null, 0, null, null),
   ('Paradox', null, 67371, null, null)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-14';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-15', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690684, 133394530, 2),
   ('Revestio', null, 590668, 29611500, 4),
   ('Metropolis', null, 637276, 2720868, 3),
@@ -6351,13 +6491,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13752, 564851, 2),
   ('Seven', null, 3882, 35320910, 4),
   ('MJ Immo', null, 42, 14326151, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67324, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-15';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-16', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690454, 132695530, 2),
   ('Revestio', null, 592710, 26647500, 4),
   ('Metropolis', null, 636303, 3183640, 3),
@@ -6407,13 +6548,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13693, 564845, 2),
   ('Seven', null, 3885, 35321921, 4),
   ('MJ Immo', null, 42, 14326099, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67277, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-16';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 690224, 132238530, 2),
   ('Revestio', null, 592250, 25257500, 4),
   ('Metropolis', null, 633330, 3004908, 3),
@@ -6463,13 +6605,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13634, 564821, 2),
   ('Seven', null, 3892, 35326195, 4),
   ('MJ Immo', null, 42, 14326047, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67230, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-17';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689994, 131715530, 2),
   ('Revestio', null, 593470, 25317500, 4),
   ('Metropolis', null, 637268, 4264995, 3),
@@ -6519,13 +6662,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13576, 564821, 2),
   ('Seven', null, 3891, 35327717, 4),
   ('MJ Immo', null, 42, 14325995, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67183, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-18';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689851, 131765030, 2),
   ('Revestio', null, 593597, 26298300, 4),
   ('Metropolis', null, 634324, 4063924, 3),
@@ -6575,13 +6719,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13519, 564821, 2),
   ('Seven', null, 3892, 35336528, 4),
   ('MJ Immo', null, 42, 14325943, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67136, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-19';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689622, 131567430, 2),
   ('Revestio', null, 594092, 26111300, 4),
   ('Metropolis', null, 636009, 5036292, 3),
@@ -6631,13 +6776,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13462, 564821, 2),
   ('Seven', null, 3909, 35339023, 4),
   ('MJ Immo', null, 42, 14325891, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67089, 1335750, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-20';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689392, 131815930, 2),
   ('Revestio', null, 594906, 27485900, 4),
   ('Metropolis', null, 634084, 5033985, 3),
@@ -6687,13 +6833,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13405, 564821, 2),
   ('Seven', null, 3907, 35340050, 4),
   ('MJ Immo', null, 42, 14325839, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 67042, 1255750, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-21';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689296, 131939930, 2),
   ('Revestio', null, 595702, 27131900, 4),
   ('Metropolis', null, 631189, 3884106, 3),
@@ -6743,13 +6890,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13349, 564821, 2),
   ('Seven', null, 3909, 35342705, 4),
   ('MJ Immo', null, 42, 14325787, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66995, 1239750, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-22';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-23', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 689067, 131493430, 4),
   ('Revestio', null, 597114, 26552900, 4),
   ('Metropolis', null, 634229, 5141749, 3),
@@ -6799,13 +6947,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13293, 564821, 2),
   ('Seven', null, 3912, 35342421, 4),
   ('MJ Immo', null, 42, 14325735, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66948, 1236750, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-23';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688838, 130968830, 4),
   ('Revestio', null, 597350, 27131500, 4),
   ('Metropolis', null, 631359, 4700500, 3),
@@ -6855,13 +7004,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13238, 564821, 2),
   ('Seven', null, 3926, 35347371, 4),
   ('MJ Immo', null, 42, 14325683, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66902, 1236750, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-24';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688682, 130524130, 4),
   ('Revestio', null, 597308, 27659900, 4),
   ('Metropolis', null, 628515, 4658151, 3),
@@ -6911,13 +7061,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13183, 564821, 2),
   ('Seven', null, 3945, 35355725, 4),
   ('MJ Immo', null, 42, 14325631, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66970, 1319250, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-25';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688494, 130223230, 4),
   ('Revestio', null, 596632, 27826300, 4),
   ('Metropolis', null, 628163, 5293576, 3),
@@ -6967,13 +7118,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13129, 564820, 2),
   ('Seven', null, 3961, 35364351, 4),
   ('MJ Immo', null, 42, 14325579, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66924, 1318246, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-26';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-27', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688266, 130203730, 3),
   ('Revestio', null, 596834, 27606300, 4),
   ('Metropolis', null, 625359, 5491407, 3),
@@ -7023,13 +7175,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 13075, 564797, 2),
   ('Seven', null, 3953, 35360913, 4),
   ('MJ Immo', null, 42, 14325527, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66877, 1318246, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-27';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-29', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688628, 131859430, 4),
   ('Revestio', null, 597628, 28511300, 4),
   ('Metropolis', null, 621241, 6193939, 4),
@@ -7079,13 +7232,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12969, 598771, 2),
   ('Seven', null, 3938, 35359316, 4),
   ('MJ Immo', null, 42, 14325423, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66789, 1321246, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-29';
 
 insert into public.snapshots (taken_on, source) values ('2025-08-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688486, 131282430, 3),
   ('Revestio', null, 597142, 28657300, 4),
   ('Metropolis', null, 622909, 7330731, 4),
@@ -7135,13 +7289,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12917, 698771, 2),
   ('Seven', null, 3933, 35360211, 4),
   ('MJ Immo', null, 42, 14325371, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66742, 1321244, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-08-30';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688164, 130317830, 4),
   ('Revestio', null, 596204, 28817300, 4),
   ('Metropolis', null, 617469, 7317307, 4),
@@ -7191,13 +7346,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12813, 698748, 2),
   ('Seven', null, 3951, 35371480, 4),
   ('MJ Immo', null, 42, 14325267, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66650, 1314238, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-01';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688715, 132466730, 3),
   ('Revestio', null, 598067, 27926900, 4),
   ('Metropolis', null, 606402, 2328846, 4),
@@ -7247,13 +7403,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12511, 698678, 2),
   ('Seven', null, 3966, 35340413, 4),
   ('MJ Immo', null, 41, 14324956, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66489, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-07';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687971, 131132030, 3),
   ('Revestio', null, 597781, 28760900, 4),
   ('Metropolis', null, 605395, 6204030, 4),
@@ -7303,13 +7460,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12318, 698678, 2),
   ('Seven', null, 3988, 35347229, 4),
   ('MJ Immo', null, 41, 14324752, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66306, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-11';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687744, 131107530, 3),
   ('Revestio', null, 597117, 28748700, 4),
   ('Metropolis', null, 605956, 5128303, 4),
@@ -7359,13 +7517,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12271, 698678, 2),
   ('Seven', null, 3989, 35349093, 4),
   ('MJ Immo', null, 41, 14324701, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66260, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-12';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688072, 132712730, 3),
   ('Revestio', null, 597204, 29003700, 4),
   ('Metropolis', null, 603442, 2889680, 4),
@@ -7415,13 +7574,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 12224, 698677, 2),
   ('Seven', null, 3981, 35348146, 4),
   ('MJ Immo', null, 41, 14324650, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 66215, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-13';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687397, 130510990, 3),
   ('Revestio', null, 602182, 26851700, 3),
   ('Metropolis', null, 591993, 4175538, 4),
@@ -7471,13 +7631,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 11860, 698542, 2),
   ('Seven', null, 3955, 35355196, 4),
   ('MJ Immo', null, 41, 14324242, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 65853, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-21';
 
 insert into public.snapshots (taken_on, source) values ('2025-09-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 686874, 130610290, 3),
   ('Revestio', null, 601199, 27531700, 3),
   ('Metropolis', null, 589748, 5460085, 4),
@@ -7527,13 +7688,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 11686, 698501, 2),
   ('Seven', null, 3958, 35362812, 4),
   ('MJ Immo', null, 41, 14324038, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 65673, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-09-25';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 686031, 129702290, 3),
   ('Revestio', null, 602200, 27168400, 3),
   ('Metropolis', null, 583557, 2345259, 5),
@@ -7583,13 +7745,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 11435, 698437, 2),
   ('Seven', null, 3970, 35378754, 4),
   ('MJ Immo', null, 41, 14323732, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 65406, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-01';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 685390, 129130130, 3),
   ('Revestio', null, 601206, 27510600, 2),
   ('Metropolis', null, 588634, 3507014, 4),
@@ -7639,13 +7802,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 11116, 1256850, 2),
   ('Seven', null, 3983, 35390445, 4),
   ('MJ Immo', null, 41, 14323324, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 65053, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-09';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 685491, 131492130, 4),
   ('Revestio', null, 597984, 27426200, 2),
   ('Metropolis', null, 586696, 5581857, 4),
@@ -7695,13 +7859,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10926, 1256797, 2),
   ('Seven', null, 3977, 35396908, 4),
   ('MJ Immo', null, 41, 14323069, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 64834, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-14';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687716, 126074688, 3),
   ('Revestio', null, 606723, 29901800, 3),
   ('Metropolis', null, 586953, 5325556, 4),
@@ -7751,13 +7916,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10635, 1508753, 2),
   ('Seven', null, 4008, 30423388, 4),
   ('MJ Immo', null, 41, 14322661, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 64487, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-22';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687639, 125546688, 4),
   ('Revestio', null, 609361, 32360000, 3),
   ('Metropolis', null, 582791, 5041182, 4),
@@ -7807,13 +7973,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10564, 1635242, 2),
   ('Seven', null, 4028, 30435462, 4),
   ('MJ Immo', null, 41, 14322559, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 64401, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-24';
 
 insert into public.snapshots (taken_on, source) values ('2025-10-25', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688177, 125867288, 4),
   ('Revestio', null, 610167, 33149900, 3),
   ('Metropolis', null, 580731, 4775559, 4),
@@ -7863,13 +8030,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10529, 1635242, 2),
   ('Seven', null, 4026, 30437764, 3),
   ('MJ Immo', null, 41, 14322508, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 64358, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-10-25';
 
 insert into public.snapshots (taken_on, source) values ('2025-11-02', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687460, 123073608, 4),
   ('Revestio', null, 618039, 31722950, 3),
   ('Metropolis', null, 575247, 3870643, 5),
@@ -7919,13 +8087,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10259, 2609415, 2),
   ('Seven', null, 4058, 30465527, 3),
   ('MJ Immo', null, 41, 14106776, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 64016, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-11-02';
 
 insert into public.snapshots (taken_on, source) values ('2025-11-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 688038, 122512128, 6),
   ('Revestio', null, 622069, 30614550, 3),
   ('Metropolis', null, 571715, 4535535, 4),
@@ -7975,13 +8144,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 10001, 2634323, 2),
   ('Seven', null, 4080, 30427819, 3),
   ('MJ Immo', null, 41, 13548539, 17),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 63678, 1400238, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-11-10';
 
 insert into public.snapshots (taken_on, source) values ('2025-12-03', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687435, 121270798, 4),
   ('Revestio', null, 619311, 29555000, 2),
   ('Metropolis', null, 565066, 3552049, 4),
@@ -8031,13 +8201,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9782, 2748158, 2),
   ('Seven', null, 4133, 30490071, 4),
   ('MJ Immo', null, 40, 12057477, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 62725, 1320239, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-12-03';
 
 insert into public.snapshots (taken_on, source) values ('2025-12-10', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687207, 121125698, 5),
   ('Revestio', null, 617747, 29305600, 2),
   ('Metropolis', null, 577431, 1621211, 4),
@@ -8087,13 +8258,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9586, 2748107, 2),
   ('Seven', null, 4133, 30501830, 4),
   ('MJ Immo', null, 40, 11941713, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 62441, 1320239, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-12-10';
 
 insert into public.snapshots (taken_on, source) values ('2025-12-18', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 687077, 121213018, 5),
   ('Revestio', null, 616615, 30191000, 2),
   ('Metropolis', null, 574771, 4463154, 5),
@@ -8143,13 +8315,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9371, 2748784, 2),
   ('Seven', null, 4123, 30515297, 4),
   ('MJ Immo', null, 40, 11941297, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 62119, 1320239, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-12-18';
 
 insert into public.snapshots (taken_on, source) values ('2025-12-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 686858, 120347318, 6),
   ('Revestio', null, 616378, 30551000, 2),
   ('Metropolis', null, 574878, 4178634, 5),
@@ -8199,13 +8372,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9345, 2748763, 2),
   ('Seven', null, 4121, 30515250, 4),
   ('MJ Immo', null, 40, 11941245, 18),
+  ('Advenio', null, 0, 13340481, 1),
   ('Paradox', null, 62079, 1320239, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2025-12-19';
 
 insert into public.snapshots (taken_on, source) values ('2026-01-31', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 683331, 83426582, 6),
   ('Revestio', null, 621950, 23778790, 3),
   ('Metropolis', null, 551767, 1428176, 4),
@@ -8255,13 +8429,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8592, 3170973, 2),
   ('Seven', null, 4178, 30545526, 3),
   ('MJ Immo', null, 39, 11939009, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 60483, 1362196, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-01-31';
 
 insert into public.snapshots (taken_on, source) values ('2026-02-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681243, 84050782, 6),
   ('Revestio', null, 618045, 21146000, 2),
   ('Metropolis', null, 532433, 3311373, 3),
@@ -8311,13 +8486,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8203, 3170927, 2),
   ('Seven', null, 4141, 30602621, 3),
   ('MJ Immo', null, 39, 11750762, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 60925, 1425990, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-02-19';
 
 insert into public.snapshots (taken_on, source) values ('2026-02-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681318, 84963682, 6),
   ('Revestio', null, 616965, 20736000, 1),
   ('Metropolis', null, 529524, 3010443, 4),
@@ -8367,13 +8543,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8145, 3170927, 2),
   ('Seven', null, 4128, 30608045, 3),
   ('MJ Immo', null, 39, 11750606, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 60812, 1425990, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-02-22';
 
 insert into public.snapshots (taken_on, source) values ('2026-02-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681330, 83426582, 6),
   ('Revestio', null, 616968, 23778790, 2),
   ('Metropolis', null, 528504, 1428176, 3),
@@ -8423,13 +8600,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8069, 3170973, 2),
   ('Seven', null, 4111, 30545526, 3),
   ('MJ Immo', null, 39, 11939009, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 60672, 1362196, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-02-26';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682476, 85961382, 5),
   ('Revestio', null, 617042, 21437700, 4),
   ('Metropolis', null, 526151, 4648270, 4),
@@ -8479,13 +8657,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8464, 3364905, 2),
   ('Seven', null, 4105, 30625018, 3),
   ('MJ Immo', null, 39, 11688842, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 60560, 1437990, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-01';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-13', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681788, 85600333, 5),
   ('Revestio', null, 615489, 22516000, 2),
   ('Metropolis', null, 518977, 5804583, 4),
@@ -8535,13 +8714,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8234, 3364905, 2),
   ('Seven', null, 4116, 31616359, 4),
   ('MJ Immo', null, 39, 11688218, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 62876, 12784987, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-13';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682283, 85398733, 5),
   ('Revestio', null, 615268, 22801400, 2),
   ('Metropolis', null, 518864, 4883711, 4),
@@ -8591,13 +8771,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8215, 3364905, 2),
   ('Seven', null, 4128, 31612234, 4),
   ('MJ Immo', null, 39, 11688166, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 63448, 12784987, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-14';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681954, 84790383, 7),
   ('Revestio', null, 615063, 24308400, 2),
   ('Metropolis', null, 518445, 1826755, 5),
@@ -8647,13 +8828,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8124, 3364858, 2),
   ('Seven', null, 4147, 31631218, 4),
   ('MJ Immo', null, 39, 11687906, 18),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 63255, 2784988, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-19';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-24', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681465, 24800689, 6),
   ('Revestio', null, 613299, 24320700, 3),
   ('Metropolis', null, 513439, 1419550, 5),
@@ -8703,13 +8885,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8034, 3384858, 1),
   ('Seven', null, 4164, 31621833, 4),
   ('MJ Immo', null, 39, 11687662, 1),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 63371, 3079988, 1)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-24';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-28', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681631, 24260689, 6),
   ('Revestio', null, 613710, 25781700, 3),
   ('Metropolis', null, 508740, 1180050, 4),
@@ -8759,13 +8942,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7964, 3393854, 2),
   ('Seven', null, 4210, 5621571, 4),
   ('MJ Immo', null, 39, 11687518, 1),
+  ('Advenio', null, 0, 12460481, 1),
   ('Paradox', null, 63228, 3102984, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-28';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-30', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681382, 23689929, 7),
   ('Revestio', null, 613091, 25737700, 3),
   ('Metropolis', null, 507732, 5183698, 4),
@@ -8815,13 +8999,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7929, 3393852, 2),
   ('Seven', null, 4224, 5624287, 4),
   ('MJ Immo', null, 39, 11687446, 1),
+  ('Advenio', null, 0, 110481, 1),
   ('Paradox', null, 63520, 3565979, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-30';
 
 insert into public.snapshots (taken_on, source) values ('2026-03-31', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681355, 23542129, 7),
   ('Revestio', null, 613676, 24644700, 3),
   ('Metropolis', null, 506578, 5489583, 4),
@@ -8871,13 +9056,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7912, 3393851, 2),
   ('Seven', null, 4223, 5623105, 4),
   ('MJ Immo', null, 39, 11687410, 1),
+  ('Advenio', null, 0, 110481, 1),
   ('Paradox', null, 63486, 3627977, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-03-31';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-02', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681201, 23631229, 7),
   ('Revestio', null, 612969, 24552700, 3),
   ('Metropolis', null, 514727, 3186030, 5),
@@ -8927,13 +9113,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7878, 3405549, 2),
   ('Seven', null, 4215, 5622421, 3),
   ('MJ Immo', null, 39, 11687338, 1),
+  ('Advenio', null, 0, 110481, 2),
   ('Paradox', null, 63409, 3627973, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-02';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-06', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681046, 24374429, 7),
   ('Revestio', null, 611522, 25032700, 5),
   ('Metropolis', null, 515963, 3487794, 5),
@@ -8983,13 +9170,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7810, 3405545, 2),
   ('Seven', null, 4216, 5639393, 3),
   ('MJ Immo', null, 39, 11687194, 1),
+  ('Advenio', null, 0, 110481, 2),
   ('Paradox', null, 63262, 3635965, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-06';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-09', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681081, 25059429, 6),
   ('Revestio', null, 612550, 24207700, 5),
   ('Metropolis', null, 519197, 4887060, 5),
@@ -9039,13 +9227,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7760, 3405542, 2),
   ('Seven', null, 4218, 5617145, 4),
   ('MJ Immo', null, 39, 11687086, 1),
+  ('Advenio', null, 0, 110481, 2),
   ('Paradox', null, 63155, 3647959, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-09';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-17', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682332, 25878317, 6),
   ('Revestio', null, 611671, 25511000, 5),
   ('Metropolis', null, 515360, 4141347, 5),
@@ -9095,13 +9284,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8122, 3675974, 2),
   ('Seven', null, 4248, 5606331, 5),
   ('MJ Immo', null, 39, 11686798, 1),
+  ('Advenio', null, 0, 100481, 1),
   ('Paradox', null, 62870, 2787943, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-17';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682072, 26973617, 6),
   ('Revestio', null, 611020, 24805000, 5),
   ('Metropolis', null, 513847, 5233728, 5),
@@ -9151,13 +9341,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8072, 3679644, 2),
   ('Seven', null, 4274, 5611915, 5),
   ('MJ Immo', null, 38, 11686690, 1),
+  ('Advenio', null, 0, 100481, 1),
   ('Paradox', null, 62758, 2787937, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-20';
 
 insert into public.snapshots (taken_on, source) values ('2026-04-27', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682783, 26654217, 6),
   ('Revestio', null, 610548, 18132000, 5),
   ('Metropolis', null, 510903, 3269884, 4),
@@ -9207,13 +9398,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9157, 4047656, 2),
   ('Seven', null, 4294, 5591691, 5),
   ('MJ Immo', null, 38, 11686438, 1),
+  ('Advenio', null, 0, 100481, 1),
   ('Paradox', null, 62497, 2787923, 3)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-04-27';
 
 insert into public.snapshots (taken_on, source) values ('2026-05-05', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682452, 25388817, 5),
   ('Revestio', null, 610391, 17984000, 5),
   ('Metropolis', null, 505524, 6490772, 4),
@@ -9263,13 +9455,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9112, 4380648, 2),
   ('Seven', null, 4298, 5574873, 4),
   ('MJ Immo', null, 38, 11686150, 1),
+  ('Advenio', null, 0, 100481, 1),
   ('Paradox', null, 62203, 499908, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-05-05';
 
 insert into public.snapshots (taken_on, source) values ('2026-05-07', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682270, 24928817, 5),
   ('Revestio', null, 610192, 18859000, 5),
   ('Metropolis', null, 503404, 5737742, 4),
@@ -9319,13 +9512,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 9085, 4373146, 2),
   ('Seven', null, 4296, 5577539, 4),
   ('MJ Immo', null, 38, 11686078, 2),
+  ('Advenio', null, 0, 115481, 1),
   ('Paradox', null, 62134, 499906, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-05-07';
 
 insert into public.snapshots (taken_on, source) values ('2026-05-22', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 683069, 26155087, 6),
   ('Revestio', null, 606912, 19106100, 5),
   ('Metropolis', null, 504199, 6493665, 2),
@@ -9375,13 +9569,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8848, 4311770, 2),
   ('Seven', null, 4347, 5564021, 5),
   ('MJ Immo', null, 38, 11685523, 2),
+  ('Advenio', null, 0, 100000, 1),
   ('Paradox', null, 61588, 416992, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-05-22';
 
 insert into public.snapshots (taken_on, source) values ('2026-06-21', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 684455, 29030907, 7),
   ('Revestio', null, 601364, 19200100, 6),
   ('Metropolis', null, 511018, 3738143, 4),
@@ -9431,13 +9626,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8415, 4496241, 2),
   ('Seven', null, 4451, 5465565, 6),
   ('MJ Immo', null, 38, 11684429, 3),
+  ('Advenio', null, 0, 100000, 1),
   ('Paradox', null, 61068, 374467, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-06-21';
 
 insert into public.snapshots (taken_on, source) values ('2026-07-01', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 685904, 29134527, 8),
   ('Revestio', null, 598741, 19503120, 6),
   ('Metropolis', null, 508206, 3975249, 3),
@@ -9487,13 +9683,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 8270, 4504230, 2),
   ('Seven', null, 4487, 5360227, 5),
   ('MJ Immo', null, 38, 11684011, 3),
+  ('Advenio', null, 0, 102800, 1),
   ('Paradox', null, 60912, 514456, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-07-01';
 
 insert into public.snapshots (taken_on, source) values ('2026-08-20', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 684222, 26433177, 6),
   ('Revestio', null, 586056, 22441120, 3),
   ('Metropolis', null, 487479, 1213900, 2),
@@ -9543,13 +9740,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7774, 4408680, 2),
   ('Seven', null, 4465, 5317531, 6),
   ('MJ Immo', null, 37, 11682111, 3),
+  ('Advenio', null, 0, 102800, 1),
   ('Paradox', null, 59533, 799406, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-08-20';
 
 insert into public.snapshots (taken_on, source) values ('2026-09-19', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 683135, 27715097, 8),
   ('Revestio', null, 572914, 21089960, 3),
   ('Metropolis', null, 477591, 1869317, 3),
@@ -9599,13 +9797,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7563, 4315239, 2),
   ('Seven', null, 4598, 5508880, 4),
   ('MJ Immo', null, 37, 11680971, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 58555, 799376, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-09-19';
 
 insert into public.snapshots (taken_on, source) values ('2026-09-26', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 682919, 27805397, 8),
   ('Revestio', null, 570613, 21944960, 3),
   ('Metropolis', null, 474248, 1873302, 3),
@@ -9655,13 +9854,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7480, 4314992, 2),
   ('Seven', null, 4630, 5516187, 5),
   ('MJ Immo', null, 37, 11680705, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 58332, 719370, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-09-26';
 
 insert into public.snapshots (taken_on, source) values ('2026-10-08', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681672, 27176597, 7),
   ('Revestio', null, 566341, 22097960, 2),
   ('Metropolis', null, 482022, 3240302, 2),
@@ -9711,13 +9911,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7354, 4339980, 2),
   ('Seven', null, 4683, 5245757, 6),
   ('MJ Immo', null, 36, 11680249, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 58082, 785358, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-10-08';
 
 insert into public.snapshots (taken_on, source) values ('2026-10-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681250, 24250797, 8),
   ('Revestio', null, 565029, 22052960, 2),
   ('Metropolis', null, 481161, 3936547, 2),
@@ -9767,13 +9968,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7320, 4339977, 2),
   ('Seven', null, 4688, 5243185, 6),
   ('MJ Immo', null, 36, 11680135, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 57988, 785355, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-10-11';
 
 insert into public.snapshots (taken_on, source) values ('2026-10-12', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 681092, 24076797, 8),
   ('Revestio', null, 564593, 22117960, 2),
   ('Metropolis', null, 481411, 3025443, 2),
@@ -9823,13 +10025,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7309, 4339976, 2),
   ('Seven', null, 4688, 5244940, 5),
   ('MJ Immo', null, 36, 11680097, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 57957, 785354, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-10-12';
 
 insert into public.snapshots (taken_on, source) values ('2026-10-14', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 680923, 24381197, 8),
   ('Revestio', null, 563846, 22087960, 2),
   ('Metropolis', null, 479911, 2790302, 2),
@@ -9858,6 +10061,7 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Orbital Bank', null, 77634, 4907856, 7),
   ('Aequilibrium Financial', null, 71469, 18715276, 6),
   ('La Forteresse', null, 61782, 26180522, 3),
+  ('Armacham Bullets', null, 0, 8143368, 0),
   ('Mirar', null, 54705, 8334276, 2),
   ('Le Bar à Mine', null, 54304, 11772045, 6),
   ('Donnestyle', null, 55084, 3948846, 2),
@@ -9879,13 +10083,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7287, 4339974, 2),
   ('Seven', null, 4697, 5249731, 6),
   ('MJ Immo', null, 36, 11680021, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 57894, 785352, 2)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-10-14';
 
 insert into public.snapshots (taken_on, source) values ('2026-11-11', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', null, 677361, 26754769, 5),
   ('Revestio', null, 553119, 22173988, 2),
   ('Metropolis', null, 498373, 5104202, 2),
@@ -9936,13 +10141,14 @@ select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
   ('Artefactum', null, 7000, 4363846, 2),
   ('Seven', null, 4765, 5181174, 6),
   ('MJ Immo', null, 36, 11678957, 3),
+  ('Advenio', null, 0, 112800, 1),
   ('Paradox', null, 0, 3340, 0)
 ) as v(name, rank, chiffre, capital, employees)
 join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = '2026-11-11';
 
 insert into public.snapshots (taken_on, source) values ('2026-11-13', 'paste');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
-select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values
+select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
   ('Armacham Technology', 1, 677085, 27120847, 4),
   ('Revestio', 2, 552286, 22143988, 2),
   ('Metropolis', 3, 496878, 5308752, 2),

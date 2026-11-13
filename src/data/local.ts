@@ -56,6 +56,7 @@ export function createLocalSource(): DataSource {
       return { state: "signed-in", email: "mode local", isAdmin: true };
     },
     async requestSignIn() {},
+    async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {
       return () => {};

@@ -233,3 +233,7 @@
   color: var(--alerte);
   font-size: var(--fs-cap);
 }
+
+.signin__hint {
+  font-size: var(--fs-sm);
+}

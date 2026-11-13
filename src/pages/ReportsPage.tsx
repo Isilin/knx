@@ -24,7 +24,9 @@ interface FormRow {
 
 function SignIn() {
   const { source } = useData();
+  const [method, setMethod] = useState<"password" | "link">("password");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
 
@@ -32,21 +34,41 @@ function SignIn() {
     event.preventDefault();
     setState("sending");
     try {
-      await source.requestSignIn(email.trim());
-      setState("sent");
+      if (method === "password") {
+        await source.signInWithPassword(email.trim(), password);
+        // The session listener swaps this form for the editor.
+        setState("idle");
+      } else {
+        await source.requestSignIn(email.trim());
+        setState("sent");
+      }
     } catch (error) {
       setState("error");
       setMessage(error instanceof Error ? error.message : String(error));
     }
   };
 
+  const choose = (next: "password" | "link") => {
+    setMethod(next);
+    setState("idle");
+  };
+
   return (
     <form className="signin" onSubmit={submit}>
       <h2>Accès opérateur</h2>
-      <p>
-        La saisie des relevés est réservée aux opérateurs de KNX. Recevez un lien de connexion par
-        e-mail.
-      </p>
+      <p>La saisie des relevés est réservée aux opérateurs de KNX.</p>
+      <div className="segmented" role="group" aria-label="Mode de connexion">
+        <button
+          type="button"
+          aria-pressed={method === "password"}
+          onClick={() => choose("password")}
+        >
+          Mot de passe
+        </button>
+        <button type="button" aria-pressed={method === "link"} onClick={() => choose("link")}>
+          Lien par e-mail
+        </button>
+      </div>
       <label className="field">
         <span className="label">Adresse e-mail</span>
         <input
@@ -57,15 +79,42 @@ function SignIn() {
           onChange={(e) => setEmail(e.target.value)}
         />
       </label>
+      {method === "password" ? (
+        <label className="field">
+          <span className="label">Mot de passe</span>
+          <input
+            type="password"
+            required
+            autoComplete="current-password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+      ) : (
+        <p className="signin__hint">
+          Un lien de connexion vous est envoyé. Supabase limite ces envois à 2 par heure pour tout
+          le projet.
+        </p>
+      )}
       <button className="button" type="submit" disabled={state === "sending"}>
-        {state === "sending" ? "Envoi…" : "Recevoir le lien"}
+        {state === "sending"
+          ? method === "password"
+            ? "Connexion…"
+            : "Envoi…"
+          : method === "password"
+            ? "Se connecter"
+            : "Recevoir le lien"}
       </button>
       {state === "sent" ? (
         <p className="note note--ok">
           Lien envoyé. Ouvrez-le depuis ce navigateur pour revenir ici connecté.
         </p>
       ) : null}
-      {state === "error" ? <p className="note note--error">Envoi impossible : {message}</p> : null}
+      {state === "error" ? (
+        <p className="note note--error" role="alert">
+          {method === "password" ? "Connexion impossible" : "Envoi impossible"} : {message}
+        </p>
+      ) : null}
     </form>
   );
 }

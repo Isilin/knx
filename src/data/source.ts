@@ -19,6 +19,8 @@ export interface DataSource {
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
+  /** Signs in with an operator password; resolves once the session exists. */
+  signInWithPassword(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
   onSessionChange(listener: () => void): () => void;
 }

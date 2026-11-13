@@ -15,6 +15,8 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     publish: async (request) => (await get()).publish(request),
     session: async () => (await get()).session(),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
+    signInWithPassword: async (email, password) =>
+      (await get()).signInWithPassword(email, password),
     signOut: async () => (await get()).signOut(),
     onSessionChange(listener) {
       let unsubscribe = () => {};

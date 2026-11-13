@@ -2,6 +2,23 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Dataset } from "../domain/types.ts";
 import type { DataSource, PublishRequest, Session } from "./source.ts";
 
+/** Supabase Auth errors, said in the operator's terms. */
+function signInMessage(error: { message: string; status?: number; code?: string }): string {
+  if (error.code === "over_email_send_rate_limit" || error.status === 429) {
+    return "trop de liens demandés. Le service d'e-mail intégré de Supabase n'en envoie que 2 par heure pour tout le projet ; réessayez dans une heure, ou configurez un SMTP dans Supabase pour lever cette limite.";
+  }
+  if (error.code === "otp_disabled" || /signups not allowed/i.test(error.message)) {
+    return "cette adresse n'a pas de compte opérateur. Un administrateur doit d'abord l'inviter dans Supabase.";
+  }
+  if (error.code === "invalid_credentials" || /invalid login credentials/i.test(error.message)) {
+    return "adresse ou mot de passe incorrect.";
+  }
+  if (error.code === "email_not_confirmed") {
+    return "ce compte n'est pas confirmé. Dans Supabase, confirmez l'utilisateur ou recréez-le avec « Auto Confirm User ».";
+  }
+  return error.message;
+}
+
 export function createSupabaseSource(url: string, key: string): DataSource {
   const client: SupabaseClient = createClient(url, key, {
     auth: { persistSession: true, detectSessionInUrl: true },
@@ -35,7 +52,11 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         email,
         options: { emailRedirectTo: `${window.location.origin}/releves`, shouldCreateUser: false },
       });
-      if (error) throw new Error(error.message);
+      if (error) throw new Error(signInMessage(error));
+    },
+    async signInWithPassword(email: string, password: string) {
+      const { error } = await client.auth.signInWithPassword({ email, password });
+      if (error) throw new Error(signInMessage(error));
     },
     async signOut() {
       await client.auth.signOut();

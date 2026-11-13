@@ -38,7 +38,7 @@ export function toSeedSql(dataset: Dataset): string {
       .join(",\n");
     out.push(
       "insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)",
-      `select s.id, c.id, v.rank, v.chiffre, v.capital, v.employees from (values\n${values}\n) as v(name, rank, chiffre, capital, employees)`,
+      `select s.id, c.id, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values\n${values}\n) as v(name, rank, chiffre, capital, employees)`,
       `join public.companies c on c.name = v.name join public.snapshots s on s.taken_on = ${text(snapshot.date)};`,
       "",
     );
