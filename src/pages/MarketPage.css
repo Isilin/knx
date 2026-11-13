@@ -164,6 +164,18 @@
   font-weight: 500;
 }
 
+.market__map,
+.market__regimes {
+  padding: var(--s-7) 0 var(--s-6);
+  border-bottom: 1px solid var(--filet);
+}
+
+.regimes-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--s-7);
+}
+
 .market__treasury {
   padding: var(--s-7) 0 var(--s-6);
   border-bottom: 1px solid var(--filet);
@@ -204,6 +216,7 @@
 }
 
 @media (max-width: 1100px) {
+  .regimes-pair,
   .treasury-pair {
     grid-template-columns: 1fr;
     gap: var(--s-6);

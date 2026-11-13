@@ -11,12 +11,16 @@ import {
 } from "../components/figures.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
+import { DynamicsKey, MarketMap } from "../components/MarketMap.tsx";
+import { RegimeChart } from "../components/RegimeChart.tsx";
+import { RegimeList } from "../components/RegimeList.tsx";
 import { TimeChart, type ChartSeries } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
 import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { computeMovers } from "../domain/movers.ts";
 import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
+import { groupByRegime, marketMap } from "../domain/regimes.ts";
 import { marketTreasury, type MarketTreasuryPoint } from "../domain/treasury.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
@@ -184,6 +188,8 @@ export function MarketPage() {
   const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
   const treasury = useMemo(() => marketTreasury(market), [market]);
+  const map = useMemo(() => marketMap(market), [market]);
+  const regimes = useMemo(() => groupByRegime(market), [market]);
   const { facts } = market;
 
   const top = useMemo(
@@ -359,6 +365,53 @@ export function MarketPage() {
           </p>
         </aside>
       </div>
+
+      <section className="market__map" aria-labelledby="carte">
+        <div className="section-head">
+          <h2 id="carte">Carte du marché</h2>
+          <p>
+            surface : <span className="estimated">poids économique sur 30 jours</span> · couleur :{" "}
+            <span className="estimated">dynamique</span>
+          </p>
+          <div className="push">
+            <DynamicsKey />
+          </div>
+        </div>
+        <MarketMap tiles={map.tiles} />
+        <p className="chart-note">
+          Chaque surface est la part de la corporation dans les recettes estimées de tout le marché
+          sur les 30 derniers jours ; sa couleur, sa dynamique (30 derniers jours face aux 90
+          précédents). Les corporations sous 0,5 % sont regroupées dans « Autres ».
+          {map.silent.length > 0 ? (
+            <span className="chart-note__source">
+              Sans recette mesurable sur 30 jours, donc absentes de la carte :{" "}
+              {map.silent.map((c) => c.name).join(", ")}.
+            </span>
+          ) : null}
+        </p>
+      </section>
+
+      <section className="market__regimes" aria-labelledby="regimes">
+        <div className="section-head">
+          <h2 id="regimes">Régimes</h2>
+          <p>
+            <span className="estimated">activité</span> face à{" "}
+            <span className="estimated">dynamique</span>, taille selon le poids économique
+          </p>
+        </div>
+        <div className="regimes-pair">
+          <RegimeChart
+            companies={market.companies.filter((c) => c.status === "active")}
+            pinned={followed}
+          />
+          <RegimeList groups={regimes.groups} unplaced={regimes.unplaced} />
+        </div>
+        <p className="chart-note">
+          Activité : recettes des 30 derniers jours face à la moyenne historique de la corporation.
+          Dynamique : 30 derniers jours face aux 90 précédents. Deux indicateurs estimés par KNX, de
+          −100 à +100.
+        </p>
+      </section>
 
       <TreasurySection points={treasury} />
 

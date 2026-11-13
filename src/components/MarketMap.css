@@ -1,0 +1,108 @@
+.map {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+
+.map__tile {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  padding: var(--s-2) var(--s-2) 0;
+  overflow: hidden;
+  background: var(--laque-3);
+  color: var(--ivoire);
+  text-decoration: none;
+  transition: opacity 160ms var(--ease-out);
+}
+
+.map__tile.is-dim {
+  opacity: 0.45;
+}
+
+.map__tile.is-focused {
+  box-shadow: inset 0 0 0 1px var(--ivoire);
+}
+
+.map__tile:focus-visible {
+  outline-offset: -2px;
+}
+
+/* « Others » is a remainder, not a company: lacquer with a hairline, never a direction colour. */
+.map__tile--others {
+  background: var(--laque-2);
+  box-shadow: inset 0 0 0 1px var(--filet);
+  color: var(--gris);
+  cursor: default;
+}
+
+.map__band {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 14px;
+  height: 2px;
+}
+
+.map__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+
+.map__figures {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 var(--s-2);
+  font-size: var(--fs-cap);
+  opacity: 0.86;
+}
+
+.map__score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.map__tip {
+  min-width: 230px;
+}
+
+.chart__tip .map__tip-name {
+  display: block;
+  margin-bottom: var(--s-1);
+  font-weight: 500;
+}
+
+.chart__tip .map__tip-list {
+  display: block;
+  color: var(--gris);
+  white-space: normal;
+}
+
+.map-key {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.map-key i {
+  width: 18px;
+  height: 8px;
+}
+
+.map-key__end:first-child {
+  margin-right: var(--s-1);
+}
+
+.map-key__end:last-child {
+  margin-left: var(--s-1);
+}
