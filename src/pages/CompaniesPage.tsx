@@ -1,6 +1,6 @@
 import { CoteTable } from "../components/CoteTable.tsx";
+import { ImperialDate } from "../components/figures.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
-import { formatLongDate } from "../domain/dates.ts";
 
 export function CompaniesPage() {
   const market = useMarket();
@@ -11,7 +11,8 @@ export function CompaniesPage() {
         <div>
           <h1>Corporations</h1>
           <p>
-            Les {market.facts.listed} corporations cotées au {formatLongDate(market.latestDate)}
+            Les {market.facts.listed} corporations cotées au{" "}
+            <ImperialDate date={market.latestDate} />
             {delisted > 0
               ? `, et ${delisted} radiée${delisted > 1 ? "s" : ""} dont KNX garde la mémoire`
               : ""}

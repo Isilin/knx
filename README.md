@@ -29,7 +29,7 @@ relevés saisis dans la page Relevés restent dans le navigateur.
 ## Données
 
 - `src/domain/` : parsing du rapport, estimation de l'âge, CA réel, indicateurs, contrôle des
-  relevés. Tout le calcul vit là, testé ; voir aussi la page Méthodologie.
+  relevés. Tout le calcul vit là, testé.
 - `scripts/import-sheet.ts` : lit l'export `.xlsx` du tableur historique (valeurs uniquement) et
   écrit `public/data/history.json` et `supabase/seed.sql`.
 
