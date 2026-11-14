@@ -19,6 +19,7 @@ export interface CompanyPatch {
   consortiumId?: string | null;
   sector?: SectorId | null;
   creationOverride?: IsoDate | null;
+  hidden?: boolean;
 }
 
 export interface ConsortiumDraft {
@@ -86,6 +87,7 @@ const blank = (id: string, name: string): CompanyMeta => ({
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  hidden: false,
 });
 
 /**
@@ -115,6 +117,7 @@ export function normalizeDataset(raw: unknown): Dataset {
       creationOverride: c.creationOverride ?? null,
       closedOn: c.closedOn ?? null,
       logoUrl: c.logoUrl ?? null,
+      hidden: c.hidden === true,
     })),
     consortiums: (data.consortiums ?? []).filter((k) =>
       (CONSORTIUM_COLORS as readonly string[]).includes(k.color),

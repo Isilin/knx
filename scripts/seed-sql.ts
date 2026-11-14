@@ -37,11 +37,11 @@ export function toSeedSql(dataset: Dataset): string {
   }
 
   out.push(
-    "insert into public.companies (id, name, aliases, consortium_id, sector, creation_override, closed_on) overriding system value values",
+    "insert into public.companies (id, name, aliases, consortium_id, sector, creation_override, closed_on, hidden) overriding system value values",
     dataset.companies
       .map(
         (c) =>
-          `  (${Number(c.id)}, ${text(c.name)}, ${textArray(c.formerNames)}, ${nullable(c.consortiumId === null ? null : Number(c.consortiumId))}, ${nullable(c.sector)}, ${nullable(c.creationOverride)}, ${nullable(c.closedOn)})`,
+          `  (${Number(c.id)}, ${text(c.name)}, ${textArray(c.formerNames)}, ${nullable(c.consortiumId === null ? null : Number(c.consortiumId))}, ${nullable(c.sector)}, ${nullable(c.creationOverride)}, ${nullable(c.closedOn)}, ${c.hidden})`,
       )
       .join(",\n") + ";",
     "select setval(pg_get_serial_sequence('public.companies', 'id'), (select max(id) from public.companies));",

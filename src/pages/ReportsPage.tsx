@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { ConsortiumManager } from "../components/ConsortiumManager.tsx";
+import { HiddenCompanies } from "../components/HiddenCompanies.tsx";
 import { MarketEventManager } from "../components/MarketEventManager.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import { ApiKeysPanel } from "./reports/ApiKeysPanel.tsx";
@@ -156,6 +157,9 @@ export function ReportsPage() {
           </div>
           <div className="reports__side">
             {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
+            {state.status === "ready" ? (
+              <HiddenCompanies registry={state.dataset.companies} market={state.market} />
+            ) : null}
             {state.status === "ready" ? <MarketEventManager market={state.market} /> : null}
             {source.kind === "supabase" ? <ApiKeysPanel /> : null}
           </div>

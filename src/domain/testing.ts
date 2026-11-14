@@ -22,6 +22,7 @@ export function datasetByName(named: NamedDataset): Dataset {
       creationOverride: null,
       closedOn: null,
       logoUrl: null,
+      hidden: false,
       ...meta,
     });
   for (const meta of named.companies ?? []) add(meta);

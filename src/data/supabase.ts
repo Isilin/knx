@@ -95,6 +95,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         values.consortium_id = patch.consortiumId === null ? null : Number(patch.consortiumId);
       if (patch.sector !== undefined) values.sector = patch.sector;
       if (patch.creationOverride !== undefined) values.creation_override = patch.creationOverride;
+      if (patch.hidden !== undefined) values.hidden = patch.hidden;
       await updateCompanyRow(id, values);
     },
     async setLogo(id, logo) {

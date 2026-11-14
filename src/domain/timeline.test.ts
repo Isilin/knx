@@ -12,6 +12,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  hidden: false,
   ...extra,
 });
 
