@@ -179,6 +179,7 @@ function assignIdentities(
             creationOverride: null,
             closedOn: null,
             logoUrl: null,
+            district: null,
           };
       if (!continues) {
         companies.push(meta);
@@ -311,6 +312,7 @@ async function main(): Promise<void> {
     consortiums,
     events: [],
     marketEvents: MARKET_EVENTS,
+    ratings: [],
     snapshots,
   };
 

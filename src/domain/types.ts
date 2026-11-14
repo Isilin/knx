@@ -1,3 +1,4 @@
+import type { CompanyRating, District } from "./rating.ts";
 import type { SectorId } from "./sectors.ts";
 
 /** ISO calendar date, `YYYY-MM-DD`, always interpreted in UTC. */
@@ -61,6 +62,8 @@ export interface CompanyMeta {
   /** Date of the first report the corporation was missing from (closure is final). */
   closedOn: IsoDate | null;
   logoUrl: string | null;
+  /** Centre-Ville, Basse-Ville or Haute-Ville; the Agence's « Localisation » criterion. */
+  district: District | null;
 }
 
 export type EventKind = "renamed" | "ceo_change" | "closed" | "other";
@@ -109,6 +112,8 @@ export interface Dataset {
   consortiums: Consortium[];
   events: CompanyEvent[];
   marketEvents: MarketEvent[];
+  /** Ratings published by the Agence impériale de notation. */
+  ratings: CompanyRating[];
   snapshots: Snapshot[];
 }
 

@@ -1,3 +1,4 @@
+import { EMPTY_INPUTS, isDistrict, type CompanyRating, type District } from "./rating.ts";
 import { isSectorId, type SectorId } from "./sectors.ts";
 import {
   CONSORTIUM_COLORS,
@@ -18,8 +19,12 @@ import { MAX_EVENT_SPAN } from "./marketEvents.ts";
 export interface CompanyPatch {
   consortiumId?: string | null;
   sector?: SectorId | null;
+  district?: District | null;
   creationOverride?: IsoDate | null;
 }
+
+/** A rating about to be published: frozen as computed, never edited afterwards. */
+export type RatingDraft = Omit<CompanyRating, "id">;
 
 export interface ConsortiumDraft {
   /** null creates a consortium. */
@@ -75,7 +80,9 @@ export type LocalOp =
   | { type: "saveEvent"; event: CompanyEvent }
   | { type: "deleteEvent"; id: string }
   | { type: "saveMarketEvent"; event: MarketEvent }
-  | { type: "deleteMarketEvent"; id: string };
+  | { type: "deleteMarketEvent"; id: string }
+  | { type: "saveRating"; rating: CompanyRating }
+  | { type: "deleteRating"; id: string };
 
 const blank = (id: string, name: string): CompanyMeta => ({
   id,
@@ -86,6 +93,7 @@ const blank = (id: string, name: string): CompanyMeta => ({
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  district: null,
 });
 
 /**
@@ -115,6 +123,7 @@ export function normalizeDataset(raw: unknown): Dataset {
       creationOverride: c.creationOverride ?? null,
       closedOn: c.closedOn ?? null,
       logoUrl: c.logoUrl ?? null,
+      district: isDistrict(c.district) ? c.district : null,
     })),
     consortiums: (data.consortiums ?? []).filter((k) =>
       (CONSORTIUM_COLORS as readonly string[]).includes(k.color),
@@ -123,6 +132,13 @@ export function normalizeDataset(raw: unknown): Dataset {
       ...e,
       details: e.details ?? {},
       note: e.note ?? null,
+    })),
+    ratings: (data.ratings ?? []).map((r) => ({
+      ...r,
+      score: Number(r.score),
+      inputs: { ...EMPTY_INPUTS, ...r.inputs },
+      district: isDistrict(r.district) ? r.district : null,
+      rationale: r.rationale ?? null,
     })),
     marketEvents: (data.marketEvents ?? []).map((e) => ({
       ...e,
@@ -379,5 +395,15 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
         ...dataset,
         marketEvents: dataset.marketEvents.filter((e) => e.id !== op.id),
       };
+    case "saveRating": {
+      const { rating } = op;
+      requireCompany(dataset, rating.companyId);
+      if (!(rating.score >= 0 && rating.score <= 5)) throw new Error("score hors de l'échelle 0–5");
+      if (dataset.ratings.some((r) => r.companyId === rating.companyId && r.date === rating.date))
+        throw new Error("une notation existe déjà à cette date : retirez-la d'abord");
+      return { ...dataset, ratings: [...dataset.ratings, rating] };
+    }
+    case "deleteRating":
+      return { ...dataset, ratings: dataset.ratings.filter((r) => r.id !== op.id) };
   }
 }

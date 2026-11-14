@@ -111,3 +111,15 @@ export function lastLife(points: readonly ChiffrePoint[]): ChiffrePoint[] {
 export function activityDays(creation: IsoDate, date: IsoDate): number {
   return toDayNumber(date) - toDayNumber(creation);
 }
+
+export type CreationReliability = { label: string; tone: "high" | "mid" | "low" };
+
+/** How far the creation date can be trusted: typed, tightly bounded, loosely bounded, unknown. */
+export function creationReliability(creation: CreationEstimate): CreationReliability {
+  if (creation.method === "manual") return { label: "date saisie", tone: "high" };
+  if (creation.method === "first-seen") return { label: "historique trop court", tone: "low" };
+  if (creation.support >= 3 || (creation.margin ?? Infinity) <= 7)
+    return { label: "fiabilité élevée", tone: "high" };
+  if ((creation.margin ?? Infinity) <= 60) return { label: "fiabilité moyenne", tone: "mid" };
+  return { label: "fiabilité faible", tone: "low" };
+}

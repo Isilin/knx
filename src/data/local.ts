@@ -93,6 +93,8 @@ export function createLocalSource(): DataSource {
     saveMarketEvent: ({ id, ...draft }) =>
       record({ type: "saveMarketEvent", event: { ...draft, id: id ?? newId() } }),
     deleteMarketEvent: (id) => record({ type: "deleteMarketEvent", id }),
+    publishRating: (draft) => record({ type: "saveRating", rating: { ...draft, id: newId() } }),
+    deleteRating: (id) => record({ type: "deleteRating", id }),
     async session(): Promise<Session> {
       return { state: "signed-in", email: "mode local", isAdmin: true };
     },

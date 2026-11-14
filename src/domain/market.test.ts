@@ -11,6 +11,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  district: null,
   ...extra,
 });
 
@@ -37,6 +38,7 @@ const dataset: Dataset = {
   consortiums: [{ id: "k1", name: "Alpha", color: "cyan" }],
   events: [],
   marketEvents: [],
+  ratings: [],
   snapshots: [
     snapshot("2026-11-10", "sheet", [
       { name: "Alpha Corp", rank: null, chiffre: 1_000, capital: null, employees: null },
@@ -99,6 +101,7 @@ describe("identity", () => {
     consortiums: [],
     events: [],
     marketEvents: [],
+    ratings: [],
     companies: [
       meta("10", "Paradox", { closedOn: "2026-11-12" }),
       meta("11", "Paradox"),

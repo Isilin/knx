@@ -12,6 +12,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  district: null,
   ...extra,
 });
 
@@ -49,6 +50,7 @@ const dataset: Dataset = {
   consortiums: [],
   events,
   marketEvents: [],
+  ratings: [],
   companies: [
     meta("1", "Paradox", { closedOn: "2026-11-11" }),
     meta("2", "Paradox", { creationOverride: "2026-11-09", formerNames: ["Old"] }),

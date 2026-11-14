@@ -13,17 +13,21 @@ import { CompanyEditor } from "../components/CompanyEditor.tsx";
 import { CompanyTimeline } from "../components/CompanyTimeline.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
+import { RatingBadge } from "../components/RatingBadge.tsx";
+import { RatingForm } from "../components/RatingForm.tsx";
+import { RatingPanel } from "../components/RatingPanel.tsx";
 import { RiskPanel } from "../components/RiskPanel.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
-import type { CreationEstimate } from "../domain/age.ts";
+import { creationReliability } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
 import { smoothedRealDaily } from "../domain/market.ts";
 import { marketEventsBetween, marketMarkers } from "../domain/marketEvents.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
+import { CATEGORY_INFO, CONFIDENCE_INFO, DISTRICT_LABELS } from "../domain/rating.ts";
 import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import { sectorLabel } from "../domain/sectors.ts";
 import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
@@ -55,15 +59,6 @@ function AgeFigure({ age }: { age: ImperialAge }) {
       <span className="sr-only">{full}</span>
     </span>
   );
-}
-
-function reliability(creation: CreationEstimate): { label: string; tone: "high" | "mid" | "low" } {
-  if (creation.method === "manual") return { label: "date saisie", tone: "high" };
-  if (creation.method === "first-seen") return { label: "historique trop court", tone: "low" };
-  if (creation.support >= 3 || (creation.margin ?? Infinity) <= 7)
-    return { label: "fiabilité élevée", tone: "high" };
-  if ((creation.margin ?? Infinity) <= 60) return { label: "fiabilité moyenne", tone: "mid" };
-  return { label: "fiabilité faible", tone: "low" };
 }
 
 /** Drawn chevron, the same stroke as the back link. */
@@ -121,6 +116,7 @@ export function CompanyPage() {
   const [period, setPeriod] = useState<PeriodId>("12");
   // Remembered per address, so moving to another corporation closes the form.
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const [ratingSlug, setRatingSlug] = useState<string | null>(null);
   const isAdmin = session?.state === "signed-in" && session.isAdmin;
   const company = market.bySlug.get(slug);
 
@@ -194,12 +190,14 @@ export function CompanyPage() {
   }
 
   const { latest, creation } = company;
+  const ratings = market.ratings.get(company.id) ?? [];
+  const latestRating = ratings.at(-1) ?? null;
   const projection = company.status === "active" ? company.projection : null;
   const crossings = market.projection.crossings.filter(
     (x) => x.passer.slug === company.slug || x.passed.slug === company.slug,
   );
   const color = groupColor(company.consortium);
-  const rel = creation ? reliability(creation) : null;
+  const rel = creation ? creationReliability(creation) : null;
   const age =
     creation && creation.method !== "first-seen"
       ? imperialAge(creation.creation, market.latestDate)
@@ -248,6 +246,18 @@ export function CompanyPage() {
               </span>
             ) : null}
             <h1>{company.name}</h1>
+            {latestRating ? (
+              <a
+                className="company__rating"
+                href="#notation"
+                title={`Notation de l'Agence impériale : ${CATEGORY_INFO[latestRating.category].label}, ${CONFIDENCE_INFO[latestRating.confidence].label}`}
+              >
+                <RatingBadge
+                  category={latestRating.category}
+                  confidence={latestRating.confidence}
+                />
+              </a>
+            ) : null}
           </div>
           <div className="company__meta">
             <GroupTag consortium={company.consortium} />
@@ -259,6 +269,7 @@ export function CompanyPage() {
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
             ) : null}
             {company.sector ? <span>{sectorLabel(company.sector)}</span> : null}
+            {company.district ? <span>{DISTRICT_LABELS[company.district]}</span> : null}
             {company.formerNames.length > 0 ? (
               <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
             ) : null}
@@ -656,6 +667,38 @@ export function CompanyPage() {
         </section>
       </div>
 
+      <section className="company__notation" aria-labelledby="notation">
+        <div className="section-head">
+          <h2 id="notation">Notation impériale</h2>
+          <p>Agence impériale de notation des entreprises</p>
+          {isAdmin && company.status !== "delisted" && ratingSlug !== company.slug ? (
+            <div className="push">
+              <button
+                type="button"
+                className="button button--quiet"
+                onClick={() => setRatingSlug(company.slug)}
+              >
+                Noter
+              </button>
+            </div>
+          ) : null}
+        </div>
+        {isAdmin && ratingSlug === company.slug ? (
+          <RatingForm
+            company={company}
+            asOf={market.latestDate}
+            onClose={() => setRatingSlug(null)}
+          />
+        ) : null}
+        {ratings.length > 0 ? (
+          <RatingPanel ratings={ratings} isAdmin={isAdmin} />
+        ) : ratingSlug === company.slug ? null : (
+          <p className="company__empty">
+            L'Agence impériale n'a pas encore noté cette corporation.
+          </p>
+        )}
+      </section>
+
       {company.status !== "delisted" ? (
         <section className="company__risk" aria-labelledby="risque">
           <div className="section-head">
@@ -719,6 +762,7 @@ export function CompanyPage() {
           company={company}
           events={market.events.get(company.id) ?? []}
           marketEvents={market.marketEvents}
+          ratings={ratings}
           isAdmin={isAdmin}
         />
       </div>
