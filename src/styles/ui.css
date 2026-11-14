@@ -224,3 +224,14 @@
 .backlink:hover {
   color: var(--ivoire);
 }
+
+.linklike {
+  padding: 0;
+  background: none;
+  border: 0;
+  color: var(--ivoire);
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+  cursor: pointer;
+}

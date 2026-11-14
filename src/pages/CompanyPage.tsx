@@ -8,15 +8,17 @@ import {
   groupColor,
   RankChange,
 } from "../components/figures.tsx";
+import { CompanyEditor } from "../components/CompanyEditor.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
-import { useMarket } from "../data/DataProvider.tsx";
+import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
 import { daysBetween, formatDuration, formatLongDate, formatShortDate } from "../domain/dates.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
+import { sectorLabel } from "../domain/sectors.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
 
@@ -113,8 +115,12 @@ function Gauge({ label, value, help }: { label: string; value: number | null; he
 export function CompanyPage() {
   const { slug = "" } = useParams();
   const market = useMarket();
+  const { session } = useData();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodId>("365");
+  // Remembered per address, so moving to another corporation closes the form.
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const isAdmin = session?.state === "signed-in" && session.isAdmin;
   const company = market.bySlug.get(slug);
 
   const neighbours = useMemo(() => {
@@ -221,7 +227,14 @@ export function CompanyPage() {
       <header className="company__head" style={{ "--brand": color } as React.CSSProperties}>
         <Seal seed={company.sealSeed} size={168} draw className="company__seal" />
         <div className="company__title">
-          <h1>{company.name}</h1>
+          <div className="company__name">
+            {company.logoUrl ? (
+              <span className="logo-frame company__logo">
+                <img src={company.logoUrl} alt={`Logo de ${company.name}`} width={72} height={72} />
+              </span>
+            ) : null}
+            <h1>{company.name}</h1>
+          </div>
           <div className="company__meta">
             <GroupTag consortium={company.consortium} />
             {company.status === "delisted" ? (
@@ -231,12 +244,34 @@ export function CompanyPage() {
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
             ) : null}
-            {company.sector ? <span>{company.sector}</span> : null}
+            {company.sector ? <span>{sectorLabel(company.sector)}</span> : null}
+            {company.formerNames.length > 0 ? (
+              <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
+            ) : null}
             <span>Suivie par KNX depuis le {formatLongDate(company.firstSeen)}</span>
           </div>
         </div>
-        <FollowButton slug={company.slug} name={company.name} />
+        <div className="company__actions">
+          <FollowButton slug={company.slug} name={company.name} />
+          {isAdmin && editingSlug !== company.slug ? (
+            <button
+              type="button"
+              className="button button--quiet"
+              onClick={() => setEditingSlug(company.slug)}
+            >
+              Modifier la fiche
+            </button>
+          ) : null}
+        </div>
       </header>
+
+      {isAdmin && editingSlug === company.slug ? (
+        <CompanyEditor
+          company={company}
+          consortiums={market.consortiums}
+          onClose={() => setEditingSlug(null)}
+        />
+      ) : null}
 
       <dl className="kpis">
         <div className="kpi">

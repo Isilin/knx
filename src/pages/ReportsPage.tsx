@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { ConsortiumManager } from "../components/ConsortiumManager.tsx";
 import { Amount, Change } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import { daysBetween, formatLongDate, formatShortDate } from "../domain/dates.ts";
@@ -683,7 +684,10 @@ export function ReportsPage() {
       ) : (
         <div className="reports__grid">
           <Editor key={dataset?.snapshots.length ?? 0} dataset={dataset} />
-          {dataset ? <Journal dataset={dataset} /> : null}
+          <div className="reports__side">
+            {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
+            {dataset ? <Journal dataset={dataset} /> : null}
+          </div>
         </div>
       )}
     </div>

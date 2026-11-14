@@ -6,20 +6,16 @@
   border-top: 1px solid var(--filet);
 }
 
+.reports__side {
+  display: grid;
+  gap: var(--s-7);
+  align-content: start;
+  min-width: 0;
+}
+
 .reports__who {
   color: var(--gris);
   font-size: var(--fs-sm);
-}
-
-.linklike {
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--ivoire);
-  text-decoration: underline;
-  text-decoration-color: var(--or-sombre);
-  text-underline-offset: 0.22em;
-  cursor: pointer;
 }
 
 .editor {
