@@ -5,6 +5,7 @@ import { ImperialDate } from "./figures.tsx";
 import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { buildTimeline, EVENT_LABELS, type TimelineEntry } from "../domain/timeline.ts";
+import type { CompanyRating } from "../domain/rating.ts";
 import type { CompanyEvent, EventDetails, EventKind, MarketEvent } from "../domain/types.ts";
 import "./CompanyTimeline.css";
 
@@ -232,17 +233,20 @@ export function CompanyTimeline({
   company,
   events,
   marketEvents,
+  ratings,
   isAdmin,
 }: {
   company: CompanySeries;
   events: readonly CompanyEvent[];
   /** Events of the whole market; those dated while the corporation was listed show. */
   marketEvents: readonly MarketEvent[];
+  /** The Agence's ratings, oldest first. */
+  ratings: readonly CompanyRating[];
   isAdmin: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState<{ entry: TimelineEntry | null } | null>(null);
-  const entries = buildTimeline(company, events, marketEvents);
+  const entries = buildTimeline(company, events, marketEvents, ratings);
   const visible = showAll ? entries : entries.slice(0, VISIBLE);
 
   return (
@@ -282,6 +286,14 @@ export function CompanyTimeline({
                   {entry.title}
                 </span>
                 {entry.origin === "manual" ? <span className="timeline__tag">saisi</span> : null}
+                {entry.origin === "agency" ? (
+                  <span
+                    className="timeline__tag timeline__tag--market"
+                    title="Notation publiée par l'Agence impériale de notation"
+                  >
+                    agence
+                  </span>
+                ) : null}
                 {entry.origin === "market" ? (
                   <span
                     className="timeline__tag timeline__tag--market"

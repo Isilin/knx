@@ -11,6 +11,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  district: null,
   hidden: false,
   ...extra,
 });
@@ -23,6 +24,7 @@ const base: Dataset = {
   consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
   events: [],
   marketEvents: [],
+  ratings: [],
   snapshots: [
     {
       date: "2026-11-12",

@@ -1,7 +1,8 @@
 import { formatImperialDate, imperialYear } from "./imperial.ts";
 import type { CompanySeries } from "./market.ts";
 import { listedOn, marketEventsBetween } from "./marketEvents.ts";
-import { formatCompact, formatInteger, formatPercent } from "./numbers.ts";
+import { formatCompact, formatInteger, formatPercent, formatScore2 } from "./numbers.ts";
+import { OUTLOOK_LABELS, ratingCode, ratingMove, type CompanyRating } from "./rating.ts";
 import { largestFlows } from "./treasury.ts";
 import type { CompanyEvent, EventKind, IsoDate, MarketEvent } from "./types.ts";
 
@@ -19,9 +20,10 @@ export interface TimelineEntry {
   note: string | null;
   /**
    * `estimate`: computed by KNX (violet, dotted); `auto`: read from the reports; `manual`: typed;
-   * `market`: an event of the whole market, edited on the Relevés page.
+   * `market`: an event of the whole market, edited on the Relevés page; `agency`: a rating of
+   * the Agence impériale de notation.
    */
-  origin: "auto" | "manual" | "estimate" | "market";
+  origin: "auto" | "manual" | "estimate" | "market" | "agency";
   /** The recorded event behind the entry, when the operator can edit it. */
   event: CompanyEvent | null;
   /** The market event behind the entry. */
@@ -69,6 +71,7 @@ export function buildTimeline(
   company: CompanySeries,
   events: readonly CompanyEvent[],
   marketEvents: readonly MarketEvent[] = [],
+  ratings: readonly CompanyRating[] = [],
 ): TimelineEntry[] {
   const list: TimelineEntry[] = [];
   const { creation } = company;
@@ -148,6 +151,19 @@ export function buildTimeline(
       }),
     );
   }
+
+  ratings.forEach((rating, index) => {
+    const move = ratingMove(rating, ratings[index - 1] ?? null);
+    list.push(
+      entry({
+        key: `rating-${rating.id}`,
+        date: rating.date,
+        title: `Notation ${ratingCode(rating.category, rating.confidence)} de l'Agence impériale`,
+        note: `${move.text.replace(/^./, (c) => c.toUpperCase())} · ${formatScore2(rating.score)}/5 · perspective ${OUTLOOK_LABELS[rating.outlook]}.`,
+        origin: "agency",
+      }),
+    );
+  });
 
   for (const market of marketEvents)
     if (listedOn(company, market.date))

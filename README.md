@@ -40,6 +40,11 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   évènements saisis. Les évènements de marché (une règle du jeu, une faille) se gèrent sur la page
   Relevés : chacun s'affiche dans l'historique de toutes les corporations cotées à sa date et sur
   les graphiques.
+- Notation de l'Agence impériale : un opérateur note une corporation depuis sa fiche (« Noter »).
+  KNX remplit les critères qu'il sait lire (croissance, trésorerie, rentabilité, équipe), l'Agence
+  apprécie les autres ; la catégorie (Ω, α, ß, Γ, Δ, ε) et l'indice de confiance se calculent en
+  direct. Une notation publiée est figée ; pour la corriger, la retirer et noter à nouveau. Barèmes,
+  pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v1`).
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;
@@ -62,12 +67,14 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
    jeu), `20261114000000_fiche_identite_historique.sql`,
    `20261114100000_publication_envois_identite.sql`, `20261114200000_retrait_releve.sql`
    (retrait du dernier relevé depuis le journal), `20261115000000_evenements_marche.sql`
-   (évènements de marché, dont la Faille ZD-385) et `20261116000000_corporations_masquees.sql`
-   (corporations masquées, dont MJ Immo), puis `supabase/seed.sql` pour charger
+   (évènements de marché, dont la Faille ZD-385), `20261116000000_corporations_masquees.sql`
+   (corporations masquées, dont MJ Immo) et `20261117000000_notation_agence.sql` (notations
+   et quartier des corporations), puis `supabase/seed.sql` pour charger
    l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
    fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
    11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le
-   registre : ne pas le relancer après des modifications faites depuis le site.
+   registre, notations comprises : ne pas le relancer après des modifications faites depuis le
+   site.
 3. Authentication → URL Configuration :
    - **Site URL** : l'adresse de production, par exemple `https://knx.vercel.app` (pas localhost :
      c'est l'adresse de repli quand une redirection n'est pas autorisée).

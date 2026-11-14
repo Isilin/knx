@@ -1,6 +1,7 @@
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
 import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
+import type { CompanyRating, District } from "./rating.ts";
 import { rateBetween } from "./revenue.ts";
 import { assessRisk, type CompanyRisk } from "./risk.ts";
 import type { SectorId } from "./sectors.ts";
@@ -71,6 +72,7 @@ export interface CompanySeries {
   formerNames: string[];
   consortium: Consortium | null;
   sector: SectorId | null;
+  district: District | null;
   logoUrl: string | null;
   closedOn: IsoDate | null;
   /** Seed of the guilloché seal: stable across renames, distinct between namesakes. */
@@ -124,6 +126,8 @@ export interface Market {
   events: Map<string, CompanyEvent[]>;
   /** Events of the whole market, oldest first. */
   marketEvents: MarketEvent[];
+  /** Published ratings, by corporation id, oldest first. */
+  ratings: Map<string, CompanyRating[]>;
   /** Horizon of the projections and the changes of order expected before it. */
   projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
 }
@@ -321,6 +325,7 @@ export function buildMarket(dataset: Dataset): Market {
       formerNames: meta.formerNames,
       consortium: meta.consortiumId ? (consortiums.get(meta.consortiumId) ?? null) : null,
       sector: meta.sector,
+      district: meta.district,
       logoUrl: meta.logoUrl,
       closedOn: meta.closedOn,
       sealSeed: meta.name,
@@ -394,6 +399,10 @@ export function buildMarket(dataset: Dataset): Market {
   for (const event of [...dataset.events].sort((a, b) => a.date.localeCompare(b.date)))
     events.set(event.companyId, [...(events.get(event.companyId) ?? []), event]);
 
+  const ratings = new Map<string, CompanyRating[]>();
+  for (const rating of [...dataset.ratings].sort((a, b) => a.date.localeCompare(b.date)))
+    ratings.set(rating.companyId, [...(ratings.get(rating.companyId) ?? []), rating]);
+
   const byId = new Map(companies.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
   const latestRows = latest.rows.filter((r) => shown(r.companyId));
@@ -425,6 +434,7 @@ export function buildMarket(dataset: Dataset): Market {
     byId,
     slugAliases,
     events,
+    ratings,
     marketEvents: [...dataset.marketEvents].sort(
       (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
     ),

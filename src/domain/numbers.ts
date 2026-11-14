@@ -65,6 +65,16 @@ export function formatPercent(ratio: number): string {
   return visibleGrouping(format.format(ratio)).replace("-", "−");
 }
 
+const scoreFormat = new Intl.NumberFormat("fr-FR", {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 2,
+});
+
+/** `3,99`: a rating score, never rounded across a category threshold. */
+export function formatScore2(value: number): string {
+  return scoreFormat.format(value);
+}
+
 export function formatDecimal(value: number): string {
   return visibleGrouping(decimalFormat.format(value));
 }

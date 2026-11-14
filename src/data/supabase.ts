@@ -94,6 +94,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       if (patch.consortiumId !== undefined)
         values.consortium_id = patch.consortiumId === null ? null : Number(patch.consortiumId);
       if (patch.sector !== undefined) values.sector = patch.sector;
+      if (patch.district !== undefined) values.district = patch.district;
       if (patch.creationOverride !== undefined) values.creation_override = patch.creationOverride;
       if (patch.hidden !== undefined) values.hidden = patch.hidden;
       await updateCompanyRow(id, values);
@@ -163,6 +164,32 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async deleteMarketEvent(id) {
       const { error } = await client.from("market_events").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async publishRating(draft) {
+      const { error } = await client.from("company_ratings").insert({
+        company_id: Number(draft.companyId),
+        rated_on: draft.date,
+        method: draft.method,
+        category: draft.category,
+        confidence: draft.confidence,
+        outlook: draft.outlook,
+        score: draft.score,
+        axes: draft.axes,
+        criteria: draft.criteria,
+        inputs: draft.inputs,
+        district: draft.district,
+        rationale: draft.rationale,
+      });
+      if (error)
+        throw error.code === "42P01" || error.code === "PGRST205"
+          ? new Error(
+              "table des notations absente : exécuter la migration 20261117000000_notation_agence.sql.",
+            )
+          : writeMessage(error, "une notation existe déjà à cette date : retirez-la d'abord");
+    },
+    async deleteRating(id) {
+      const { error } = await client.from("company_ratings").delete().eq("id", id);
       if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {

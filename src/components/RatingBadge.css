@@ -1,0 +1,70 @@
+.rating-badge {
+  --tone: var(--note-gamma);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  flex: none;
+  border: 1px solid color-mix(in oklab, var(--tone), transparent 35%);
+  background: color-mix(in oklab, var(--tone), transparent 88%);
+  color: var(--tone);
+  font-weight: 400;
+  line-height: 1;
+  font-variant-numeric: lining-nums;
+}
+
+.rating-badge--omega {
+  --tone: var(--note-omega);
+}
+
+.rating-badge--alpha {
+  --tone: var(--note-alpha);
+}
+
+.rating-badge--beta {
+  --tone: var(--note-beta);
+}
+
+.rating-badge--gamma {
+  --tone: var(--note-gamma);
+}
+
+.rating-badge--delta {
+  --tone: var(--note-delta);
+}
+
+/* Dark grey, nearly black: the frame carries it on the lacquer. */
+.rating-badge--epsilon {
+  --tone: var(--note-epsilon);
+  background: var(--laque-3);
+  border-color: var(--filet-fort);
+}
+
+.rating-badge--sm {
+  min-width: 30px;
+  height: 22px;
+  padding: 0 var(--s-1);
+  font-size: 0.875rem;
+}
+
+.rating-badge--md {
+  min-width: 52px;
+  height: 40px;
+  padding: 0 var(--s-2);
+  font-size: 1.5rem;
+}
+
+.rating-badge--lg {
+  min-width: 112px;
+  height: 92px;
+  padding: 0 var(--s-4);
+  font-size: 3.5rem;
+  font-weight: 300;
+}
+
+.rating-badge__sign {
+  align-self: flex-start;
+  margin-top: 0.12em;
+  font-size: 0.6em;
+  font-weight: 500;
+}

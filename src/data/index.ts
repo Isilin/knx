@@ -22,6 +22,8 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     deleteEvent: async (id) => (await get()).deleteEvent(id),
     saveMarketEvent: async (draft) => (await get()).saveMarketEvent(draft),
     deleteMarketEvent: async (id) => (await get()).deleteMarketEvent(id),
+    publishRating: async (draft) => (await get()).publishRating(draft),
+    deleteRating: async (id) => (await get()).deleteRating(id),
     session: async () => (await get()).session(),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>
@@ -71,6 +73,7 @@ export type {
   EventDraft,
   MarketEventDraft,
   PendingSnapshot,
+  RatingDraft,
   PublishRequest,
   Session,
 } from "./source.ts";

@@ -1,3 +1,4 @@
+import type { CompanyRating, District } from "./rating.ts";
 import type { SectorId } from "./sectors.ts";
 
 /** ISO calendar date, `YYYY-MM-DD`, always interpreted in UTC. */
@@ -61,6 +62,8 @@ export interface CompanyMeta {
   /** Date of the first report the corporation was missing from (closure is final). */
   closedOn: IsoDate | null;
   logoUrl: string | null;
+  /** Centre-Ville, Basse-Ville or Haute-Ville; the Agence's « Localisation » criterion. */
+  district: District | null;
   /**
    * Kept out of every KNX display (cote, charts, counts, shares). Its lines are still read and
    * published with the reports: the game prints it, so the registry must keep recognising it.
@@ -115,6 +118,8 @@ export interface Dataset {
   consortiums: Consortium[];
   events: CompanyEvent[];
   marketEvents: MarketEvent[];
+  /** Ratings published by the Agence impériale de notation. */
+  ratings: CompanyRating[];
   snapshots: Snapshot[];
 }
 

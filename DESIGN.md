@@ -21,6 +21,12 @@ colors:
   g-magenta: "#ff3ccf"
   g-ambre: "#ffb21a"
   g-bleu: "#5b8cff"
+  note-omega: "#e3b84f"
+  note-alpha: "#5a7ff0"
+  note-beta: "#4fbf7d"
+  note-gamma: "#f2a03d"
+  note-delta: "#ec4f57"
+  note-epsilon: "#8f8d96"
 typography:
   display:
     fontFamily: "Hanken Grotesk Variable, Hanken Grotesk, ui-sans-serif, system-ui, sans-serif"
@@ -259,6 +265,9 @@ Une entreprise survolée ou focalisée dans le graphique, la légende, les mouve
 
 ### Sceau guilloché
 Rosette générée de façon déterministe depuis le nom de l'entreprise (hachage stable), au trait doré sans remplissage. À 26 px dans la cote, trait d'un pixel non mis à l'échelle. À 168 px sur la fiche, tracé une seule fois à l'ouverture (stroke-dashoffset, 1500 ms, ease-out), affiché d'emblée sous mouvement réduit.
+
+### Notation de l'Agence impériale
+Cartouche à angles vifs : symbole de la catégorie (Ω, α, ß, Γ, Δ, ε) dans sa couleur `note-*`, filet d'1 px de la même couleur à 65 %, fond à 12 % ; signe de confiance (+ ou −) en exposant à 60 %. Epsilon, gris presque noir, passe sur laque haute et filet fort. Trois tailles : 22 px (historique), 40 px (à côté du nom de la fiche, lien vers la section), 92 px (section et formulaire). La couleur ne sort jamais du cartouche : symbole et nom de catégorie la doublent toujours. Les couleurs de catégorie sont un choix de l'Agence (or pour Omega, bleu impérial, vert, orange, rouge, gris) : elles ne servent à rien d'autre. Section : cartouche, catégorie en 300, sens, confiance, perspective et date ; trois colonnes d'axes, chaque critère avec sa source (relevé, KNX, Agence), sa valeur (violet pointillé si estimée par KNX) et une barre 0–5 grise ; historique des notations à filets, mouvement doublé d'un triangle. Scores de notation à deux décimales, pour ne jamais arrondir au-delà d'un seuil.
 
 ### Profil de risque
 Échelle à sept cases numérotées, à la manière de l'indicateur de risque des documents de fonds : cases à filet d'1 px, chiffres en 300 gris éteint, la case du profil en violet d'estimation (bordure, fond `estime-fond`, chiffre agrandi), bornes « Plus faible / Plus élevé » en libellés capitales sous l'échelle. Chaque indice est une ligne à filets (libellé en 500 et aide en gris, mesure alignée à droite, niveau en sept segments de 6 × 10 px remplis comme les jauges estimées, gris sous points violets, puis `n/7`). Les niveaux 6 et 7 et les drapeaux d'état (dormant, plafonnée, exposée) passent en orange d'alerte ; vert et rouge n'y apparaissent que sur la tendance, qui est une variation.

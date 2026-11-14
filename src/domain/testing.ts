@@ -22,6 +22,7 @@ export function datasetByName(named: NamedDataset): Dataset {
       creationOverride: null,
       closedOn: null,
       logoUrl: null,
+      district: null,
       hidden: false,
       ...meta,
     });
@@ -34,6 +35,7 @@ export function datasetByName(named: NamedDataset): Dataset {
     consortiums: [],
     events: [],
     marketEvents: [],
+    ratings: [],
     snapshots: named.snapshots.map((s) => ({
       date: s.date,
       source: s.source,

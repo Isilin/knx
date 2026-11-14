@@ -29,6 +29,14 @@
   --g-ambre: #ffb21a;
   --g-bleu: #5b8cff;
 
+  /* Catégories de l'Agence impériale de notation : toujours dans leur cartouche, jamais seules */
+  --note-omega: #e3b84f;
+  --note-alpha: #5a7ff0;
+  --note-beta: #4fbf7d;
+  --note-gamma: #f2a03d;
+  --note-delta: #ec4f57;
+  --note-epsilon: #8f8d96;
+
   /* Typographie */
   --font: "Hanken Grotesk Variable", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
   --fs-cap: 0.75rem;

@@ -168,12 +168,19 @@
 }
 
 .company__projection,
+.company__notation,
 .company__risk {
   padding: var(--s-7) 0 var(--s-6);
   border-bottom: 1px solid var(--filet);
 }
 
-/* Reached from the risk tile: land below the sticky header (two rows on phones). */
+.company__rating {
+  display: inline-flex;
+  text-decoration: none;
+}
+
+/* Reached from the risk tile and the rating badge: land below the sticky header. */
+.company__notation h2,
 .company__risk h2 {
   scroll-margin-top: 112px;
 }
