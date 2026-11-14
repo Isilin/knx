@@ -9,6 +9,7 @@ import {
   RankChange,
 } from "../components/figures.tsx";
 import { CompanyEditor } from "../components/CompanyEditor.tsx";
+import { CompanyTimeline } from "../components/CompanyTimeline.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
@@ -16,7 +17,7 @@ import { TimeChart } from "../components/TimeChart.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
 import { daysBetween, formatDuration, formatLongDate, formatShortDate } from "../domain/dates.ts";
-import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
+import { smoothedRealDaily } from "../domain/market.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
 import { sectorLabel } from "../domain/sectors.ts";
 import { useTween } from "../hooks/useTween.ts";
@@ -29,40 +30,6 @@ function reliability(creation: CreationEstimate): { label: string; tone: "high" 
     return { label: "fiabilité élevée", tone: "high" };
   if ((creation.margin ?? Infinity) <= 60) return { label: "fiabilité moyenne", tone: "mid" };
   return { label: "fiabilité faible", tone: "low" };
-}
-
-interface Milestone {
-  date: string;
-  text: string;
-}
-
-function milestones(company: CompanySeries): Milestone[] {
-  const list: Milestone[] = [];
-  if (company.creation && company.creation.method !== "first-seen") {
-    list.push({
-      date: company.creation.creation,
-      text: company.creation.method === "manual" ? "Création (date saisie)" : "Création estimée",
-    });
-  }
-  list.push({ date: company.firstSeen, text: "Premier relevé KNX" });
-  let inTop = company.points[0].rank <= 10;
-  for (const p of company.points.slice(1)) {
-    const nowIn = p.rank <= 10;
-    if (nowIn !== inTop)
-      list.push({
-        date: p.date,
-        text: nowIn ? `Entre dans le top 10 (rang ${p.rank})` : `Sort du top 10 (rang ${p.rank})`,
-      });
-    inTop = nowIn;
-  }
-  list.push({ date: company.bestRank.date, text: `Meilleur rang : ${company.bestRank.rank}` });
-  list.push({
-    date: company.record.date,
-    text: `Record de CA publié : ${formatInteger(company.record.chiffre)} ¢`,
-  });
-  if (company.status === "delisted")
-    list.push({ date: company.latest.date, text: "Dernier relevé avant fermeture" });
-  return list.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 }
 
 /** Drawn chevron, the same stroke as the back link. */
@@ -456,19 +423,11 @@ export function CompanyPage() {
             </div>
           </dl>
         </section>
-        <section aria-labelledby="faits">
-          <div className="section-head">
-            <h2 id="faits">Faits marquants</h2>
-          </div>
-          <ol className="milestones">
-            {milestones(company).map((m) => (
-              <li key={`${m.date}-${m.text}`}>
-                <time dateTime={m.date}>{formatLongDate(m.date)}</time>
-                <span>{m.text}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <CompanyTimeline
+          company={company}
+          events={market.events.get(company.id) ?? []}
+          isAdmin={isAdmin}
+        />
       </div>
 
       <section className="company__history" aria-labelledby="historique">
