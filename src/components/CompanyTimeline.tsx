@@ -4,7 +4,7 @@ import { useData } from "../data/DataProvider.tsx";
 import { ImperialDate } from "./figures.tsx";
 import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
-import { buildTimeline, EVENT_LABELS, type TimelineEntry } from "../domain/timeline.ts";
+import { buildTimeline, EVENT_LABELS, lifeAt, type TimelineEntry } from "../domain/timeline.ts";
 import type { CompanyRating } from "../domain/rating.ts";
 import type { CompanyEvent, EventDetails, EventKind, MarketEvent } from "../domain/types.ts";
 import "./CompanyTimeline.css";
@@ -22,15 +22,17 @@ const KIND_OPTIONS: { id: FormKind; label: string }[] = [
 ];
 
 function EventForm({
-  company,
+  lives,
   entry,
   onClose,
 }: {
-  company: CompanySeries;
+  /** Lives of the page, oldest first; the last is the current one. */
+  lives: readonly CompanySeries[];
   /** The entry being edited; null records a new event. */
   entry: TimelineEntry | null;
   onClose: () => void;
 }) {
+  const company = lives[lives.length - 1];
   const { change } = useData();
   const id = useId();
   const event = entry?.event ?? null;
@@ -64,13 +66,16 @@ function EventForm({
             : {};
     setBusy(true);
     setError(null);
+    // An edited entry stays with its life; a new one goes to the life of its date.
+    const life =
+      lives.find((l) => l.id === entry?.companyId) ?? lifeAt(lives, date, kind === "founding");
     try {
       await change((source) =>
         kind === "founding"
-          ? source.updateCompany(company.id, { creationOverride: date })
+          ? source.updateCompany(life.id, { creationOverride: date })
           : source.saveEvent({
               id: event?.id ?? null,
-              companyId: company.id,
+              companyId: event?.companyId ?? life.id,
               date,
               kind,
               details,
@@ -179,15 +184,7 @@ function EventForm({
   );
 }
 
-function EntryTools({
-  company,
-  entry,
-  onEdit,
-}: {
-  company: CompanySeries;
-  entry: TimelineEntry;
-  onEdit: () => void;
-}) {
+function EntryTools({ entry, onEdit }: { entry: TimelineEntry; onEdit: () => void }) {
   const { change } = useData();
   const [confirming, setConfirming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -198,7 +195,7 @@ function EntryTools({
       await change((source) =>
         event
           ? source.deleteEvent(event.id)
-          : source.updateCompany(company.id, { creationOverride: null }),
+          : source.updateCompany(entry.companyId, { creationOverride: null }),
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -228,15 +225,20 @@ function EntryTools({
   );
 }
 
-/** Dated history of a corporation: read from the reports, estimated, or recorded by hand. */
+/**
+ * Dated history of a corporation across all its lives: read from the reports, estimated, or
+ * recorded by hand.
+ */
 export function CompanyTimeline({
-  company,
+  lives,
   events,
   marketEvents,
   ratings,
   isAdmin,
 }: {
-  company: CompanySeries;
+  /** Lives of the page, oldest first. */
+  lives: readonly CompanySeries[];
+  /** Recorded events of those lives. */
   events: readonly CompanyEvent[];
   /** Events of the whole market; those dated while the corporation was listed show. */
   marketEvents: readonly MarketEvent[];
@@ -246,7 +248,7 @@ export function CompanyTimeline({
 }) {
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState<{ entry: TimelineEntry | null } | null>(null);
-  const entries = buildTimeline(company, events, marketEvents, ratings);
+  const entries = buildTimeline(lives, events, marketEvents, ratings);
   const visible = showAll ? entries : entries.slice(0, VISIBLE);
 
   return (
@@ -270,7 +272,7 @@ export function CompanyTimeline({
       {form ? (
         <EventForm
           key={form.entry?.key ?? "new"}
-          company={company}
+          lives={lives}
           entry={form.entry}
           onClose={() => setForm(null)}
         />
@@ -310,7 +312,7 @@ export function CompanyTimeline({
                 </Link>
               ) : null}
               {isAdmin && (entry.event || entry.founding) ? (
-                <EntryTools company={company} entry={entry} onEdit={() => setForm({ entry })} />
+                <EntryTools entry={entry} onEdit={() => setForm({ entry })} />
               ) : null}
             </span>
           </li>

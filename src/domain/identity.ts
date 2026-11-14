@@ -63,6 +63,8 @@ export interface RenameProposal {
 
 export interface RefoundingProposal {
   companyId: string;
+  /** The page the new life opens on. */
+  profileId: string;
   name: string;
   before: RowFigures;
   after: RowFigures;
@@ -72,6 +74,8 @@ export interface Namesake {
   name: string;
   /** The closed corporation that carried the name. */
   companyId: string;
+  /** Its page, which the newcomer can join as a new life. */
+  profileId: string;
   closedOn: IsoDate;
 }
 
@@ -86,7 +90,10 @@ export interface IdentityProposals {
   missing: { companyId: string; name: string }[];
   renames: RenameProposal[];
   refoundings: RefoundingProposal[];
-  /** Newcomers whose name belonged to a closed corporation: a new company, history from zero. */
+  /**
+   * Newcomers whose name belonged to a closed corporation: in the game a new company (age and
+   * lifetime average from zero), most often the same house refounded, so a new life of its page.
+   */
   namesakes: Namesake[];
   /**
    * Closures, renames and refoundings only apply to the most recent report; an older day
@@ -112,6 +119,8 @@ export interface IdentityDecisions {
   renames: ReadonlySet<string>;
   /** Company ids of accepted refounding proposals. */
   refoundings: ReadonlySet<string>;
+  /** Names of the namesakes that join the page of the closed corporation. */
+  links: ReadonlySet<string>;
 }
 
 function evidenceFor(
@@ -205,8 +214,15 @@ export function proposeIdentities(input: IdentityInput): IdentityProposals {
     for (const row of input.rows) {
       const id = matched.get(row.name);
       const old = id ? before.get(id) : undefined;
-      if (id && old && isRefounding(old, row))
-        refoundings.push({ companyId: id, name: row.name, before: old, after: row });
+      const company = id ? companies.get(id) : undefined;
+      if (company && old && isRefounding(old, row))
+        refoundings.push({
+          companyId: company.id,
+          profileId: company.profileId,
+          name: row.name,
+          before: old,
+          after: row,
+        });
     }
 
     const gap = daysBetween(previous.date, date);
@@ -248,12 +264,22 @@ export function proposeIdentities(input: IdentityInput): IdentityProposals {
     }
   }
 
+  // A page that still has an open life (renamed since) cannot take another one.
+  const openProfiles = new Set(
+    input.companies.filter((c) => exists(c) && isOpen(c)).map((c) => c.profileId),
+  );
   const namesakes: Namesake[] = [];
   for (const name of newcomers) {
     const closed = input.companies
       .filter((c) => c.name === name && c.closedOn !== null && !isOpen(c))
       .sort((a, b) => (b.closedOn ?? "").localeCompare(a.closedOn ?? ""))[0];
-    if (closed?.closedOn) namesakes.push({ name, companyId: closed.id, closedOn: closed.closedOn });
+    if (closed?.closedOn && !openProfiles.has(closed.profileId))
+      namesakes.push({
+        name,
+        companyId: closed.id,
+        profileId: closed.profileId,
+        closedOn: closed.closedOn,
+      });
   }
 
   return {
@@ -273,12 +299,16 @@ export function suggestedDecisions(proposals: IdentityProposals): IdentityDecisi
   return {
     renames: new Set(proposals.renames.filter((r) => r.suggested).map((r) => r.companyId)),
     refoundings: new Set(proposals.refoundings.map((r) => r.companyId)),
+    links: new Set(proposals.namesakes.map((n) => n.name)),
   };
 }
 
 export type ResolvedRows = Pick<PublishRequest, "rows" | "closures">;
 
-/** Applies the operator's decisions: each row gets its corporation, or none (a new one). */
+/**
+ * Applies the operator's decisions: each row gets its corporation, or none (a new life, on the
+ * page of the refounded or linked corporation when there is one).
+ */
 export function resolveReport(
   rows: readonly ReportRow[],
   proposals: IdentityProposals,
@@ -289,14 +319,23 @@ export function resolveReport(
       .filter((r) => decisions.renames.has(r.companyId))
       .map((r) => [r.to, r.companyId]),
   );
-  const refounded = new Set(
+  const refoundedProfile = new Map(
     proposals.refoundings
       .filter((r) => decisions.refoundings.has(r.companyId))
-      .map((r) => r.companyId),
+      .map((r) => [r.companyId, r.profileId]),
+  );
+  const refounded = new Set(refoundedProfile.keys());
+  const linked = new Map(
+    proposals.namesakes
+      .filter((n) => decisions.links.has(n.name))
+      .map((n) => [n.name, n.profileId]),
   );
   const resolved = rows.map((row) => {
     const id = proposals.matched.get(row.name) ?? renamedTo.get(row.name) ?? null;
-    return { ...row, companyId: id !== null && refounded.has(id) ? null : id };
+    if (id !== null && refounded.has(id))
+      return { ...row, companyId: null, profileId: refoundedProfile.get(id) ?? null };
+    if (id === null) return { ...row, companyId: null, profileId: linked.get(row.name) ?? null };
+    return { ...row, companyId: id };
   });
   const renamedFrom = new Set(renamedTo.values());
   const closures = proposals.latest

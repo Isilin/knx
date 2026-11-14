@@ -267,7 +267,7 @@ export function MarketPage() {
         </Fact>
         <Fact
           label="Entrées · sorties"
-          detail={`${names(facts.newcomers)} · ${names(facts.delisted)}`}
+          detail={`${names(facts.newcomers)} · ${names(facts.delisted)}${facts.refounded.length > 0 ? ` · refondée${facts.refounded.length > 1 ? "s" : ""} : ${facts.refounded.join(", ")}` : ""}`}
         >
           {facts.newcomers.length}
           <span className="fact__sep">·</span>

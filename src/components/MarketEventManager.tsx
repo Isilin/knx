@@ -168,7 +168,7 @@ function Row({
 export function MarketEventManager({ market }: { market: Market }) {
   const [form, setForm] = useState<{ event: MarketEvent | null } | null>(null);
   const events = [...market.marketEvents].reverse();
-  const listed = (date: string) => market.companies.filter((c) => listedOn(c, date)).length;
+  const listed = (date: string) => market.allLives.filter((c) => listedOn(c, date)).length;
 
   return (
     <section className="market-events" aria-labelledby="evenements-marche">

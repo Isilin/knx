@@ -24,7 +24,7 @@ import { useData, useMarket } from "../data/DataProvider.tsx";
 import { creationReliability } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
-import { smoothedRealDaily } from "../domain/market.ts";
+import { acrossLives, refoundingMarkers, smoothedRealDaily } from "../domain/market.ts";
 import { marketEventsBetween, marketMarkers } from "../domain/marketEvents.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, DISTRICT_LABELS } from "../domain/rating.ts";
@@ -119,6 +119,11 @@ export function CompanyPage() {
   const [ratingSlug, setRatingSlug] = useState<string | null>(null);
   const isAdmin = session?.state === "signed-in" && session.isAdmin;
   const company = market.bySlug.get(slug);
+  // Every life of the page, oldest first; `company` is the current one.
+  const lives = useMemo(
+    () => (company ? (market.lives.get(company.profileId) ?? [company]) : []),
+    [market, company],
+  );
 
   const neighbours = useMemo(() => {
     const listed = market.companies.filter((c) => c.status !== "delisted");
@@ -149,14 +154,23 @@ export function CompanyPage() {
   }, [neighbours, navigate]);
 
   const start = company ? periodStart(period, market.latestDate) : null;
+  const inPeriod = (p: { date: string }) => !start || p.date >= start;
+  // The current life, for the figures that restart with it.
   const visible = useMemo(
     () => (company ? company.points.filter((p) => !start || p.date >= start) : []),
     [company, start],
   );
+  // The whole page for the charts: one line over all lives, broken at each destruction.
+  const pageLine = (value: (p: (typeof visible)[number]) => number | null) =>
+    acrossLives(lives, (life) =>
+      life.points.map((p) => ({ date: p.date, value: value(p) })),
+    ).filter(inPeriod);
   const trend = useMemo(
     () =>
-      company ? smoothedRealDaily(company.points).filter((p) => !start || p.date >= start) : [],
-    [company, start],
+      acrossLives(lives, (life) => smoothedRealDaily(life.points)).filter(
+        (p) => !start || p.date >= start,
+      ),
+    [lives, start],
   );
   const bridge = useMemo(
     () => (company ? treasuryBridge(company.points, start) : null),
@@ -166,7 +180,13 @@ export function CompanyPage() {
     () => (company ? largestFlows(company.points, start) : []),
     [company, start],
   );
-  const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
+  const markers = useMemo(
+    () =>
+      [...marketMarkers(market.marketEvents), ...refoundingMarkers(lives)].sort((a, b) =>
+        a.date.localeCompare(b.date),
+      ),
+    [market.marketEvents, lives],
+  );
   const periodChange =
     visible.length > 1 && visible[0].chiffre > 0
       ? visible[visible.length - 1].chiffre / visible[0].chiffre - 1
@@ -202,8 +222,13 @@ export function CompanyPage() {
     creation && creation.method !== "first-seen"
       ? imperialAge(creation.creation, market.latestDate)
       : null;
-  const history = [...company.points].reverse().slice(0, 12);
-  const hasCapital = company.points.some((p) => p.capital !== null);
+  const allPoints = lives.flatMap((life) => life.points);
+  const history = [...allPoints].reverse().slice(0, 12);
+  const lifeStarts = new Set(lives.slice(1).map((life) => life.firstSeen));
+  const hasCapital = allPoints.some((p) => p.capital !== null);
+  const firstLife = lives[0] ?? company;
+  const previousLife = lives.length > 1 ? lives[lives.length - 2] : null;
+  const refounded = company.life.count > 1;
 
   return (
     <article className="company" key={company.slug}>
@@ -278,8 +303,14 @@ export function CompanyPage() {
             {company.formerNames.length > 0 ? (
               <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
             ) : null}
+            {refounded ? (
+              <span className="company__status">
+                Refondée · vie {company.life.index} depuis le{" "}
+                <ImperialDate date={company.firstSeen} />
+              </span>
+            ) : null}
             <span>
-              Suivie par KNX depuis le <ImperialDate date={company.firstSeen} pti />
+              Suivie par KNX depuis le <ImperialDate date={firstLife.firstSeen} pti />
             </span>
           </div>
         </div>
@@ -300,6 +331,7 @@ export function CompanyPage() {
       {isAdmin && editingSlug === company.slug ? (
         <CompanyEditor
           company={company}
+          previousLife={previousLife}
           consortiums={market.consortiums}
           onClose={() => setEditingSlug(null)}
         />
@@ -346,7 +378,7 @@ export function CompanyPage() {
           </dd>
         </div>
         <div className="kpi">
-          <dt className="label">Âge estimé</dt>
+          <dt className="label">{refounded ? "Âge depuis la refondation" : "Âge estimé"}</dt>
           <dd className="kpi__value">
             {age === null ? (
               "—"
@@ -361,7 +393,8 @@ export function CompanyPage() {
           <dd className="kpi__detail">
             {creation && creation.method !== "first-seen" ? (
               <span>
-                création {creation.method === "manual" ? "le" : "vers le"}{" "}
+                {refounded ? "refondation" : "création"}{" "}
+                {creation.method === "manual" ? "le" : "vers le"}{" "}
                 <ImperialDate date={creation.creation} pti /> ·
               </span>
             ) : null}
@@ -423,7 +456,7 @@ export function CompanyPage() {
               id: "chiffre",
               label: "CA publié",
               color: "var(--ivoire)",
-              points: visible.map((p) => ({ date: p.date, value: p.chiffre })),
+              points: pageLine((p) => p.chiffre),
             },
             ...(projection
               ? [
@@ -452,9 +485,15 @@ export function CompanyPage() {
               derniers jours se maintient
             </span>
           ) : null}
+          {refounded ? (
+            <span>
+              Chaque refondation remet l'âge et le CA publié à zéro : la courbe repart, les
+              indicateurs portent sur la vie en cours.
+            </span>
+          ) : null}
           <span>
-            Source : rapport « Corporations », {company.points.length} relevés depuis le{" "}
-            <ImperialDate date={company.firstSeen} />.
+            Source : rapport « Corporations », {allPoints.length} relevés depuis le{" "}
+            <ImperialDate date={firstLife.firstSeen} />.
           </span>
         </p>
       </section>
@@ -569,7 +608,7 @@ export function CompanyPage() {
                 label: "Rang",
                 color,
                 kind: "step",
-                points: visible.map((p) => ({ date: p.date, value: p.rank })),
+                points: pageLine((p) => p.rank),
               },
             ]}
           />
@@ -590,7 +629,7 @@ export function CompanyPage() {
                 id: "capital",
                 label: "Capital",
                 color: "var(--ivoire)",
-                points: visible.map((p) => ({ date: p.date, value: p.capital })),
+                points: pageLine((p) => p.capital),
               },
             ]}
           />
@@ -764,10 +803,10 @@ export function CompanyPage() {
           </dl>
         </section>
         <CompanyTimeline
-          company={company}
-          events={market.events.get(company.id) ?? []}
+          lives={lives}
+          events={lives.flatMap((life) => market.events.get(life.id) ?? [])}
           marketEvents={market.marketEvents}
-          ratings={ratings}
+          ratings={lives.flatMap((life) => market.ratings.get(life.id) ?? [])}
           isAdmin={isAdmin}
         />
       </div>
@@ -775,7 +814,7 @@ export function CompanyPage() {
       <section className="company__history" aria-labelledby="historique">
         <div className="section-head">
           <h2 id="historique">Derniers relevés</h2>
-          <p>{company.points.length} relevés au total</p>
+          <p>{allPoints.length} relevés au total</p>
         </div>
         <div className="cote__scroll">
           <table className="history">
@@ -811,6 +850,9 @@ export function CompanyPage() {
                 <tr key={p.date}>
                   <th scope="row">
                     <ImperialDate date={p.date} />
+                    {lifeStarts.has(p.date) ? (
+                      <small className="history__life"> refondation</small>
+                    ) : null}
                   </th>
                   <td className="num">{p.rank}</td>
                   <td className="num">

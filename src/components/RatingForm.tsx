@@ -182,7 +182,9 @@ export function RatingForm({
     setError(null);
     try {
       await change(async (source) => {
-        if (district !== company.district) await source.updateCompany(company.id, { district });
+        // The district belongs to the corporation's page, shared by all its lives.
+        if (district !== company.district)
+          await source.updateProfile(company.profileId, { district });
         await source.publishRating({
           companyId: company.id,
           date: asOf,

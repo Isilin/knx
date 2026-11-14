@@ -2,29 +2,48 @@
  * Imports the historical Google Sheet export into KNX's dataset format.
  *
  *   node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
- *     --report "data/source/releves/2026-11-13.txt=2026-11-13"
+ *     --report "data/source/releves/2026-11-13.txt=2026-11-13" \
+ *     --versions data/source/versions \
+ *     --backfill supabase/backfill/20261117_corporations_detruites.sql
  *
  * Writes `public/data/history.json` (local data source) and `supabase/seed.sql`.
  * Reads values only (formula results); the sheet's formulas are re-implemented in `src/domain`.
+ *
+ * `--versions`: a folder of past versions of the sheet (`.xlsx`, exported by
+ * `scripts/sheet-versions.gs`). The columns of destroyed corporations, deleted from the sheet, are
+ * recovered from them. `--backfill`: also writes the SQL that adds those recovered corporations to
+ * a Supabase base already filled (the seed would replace it whole).
  */
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import ExcelJS from "exceljs";
+import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { basename, dirname, join, resolve } from "node:path";
 import { isIsoDate } from "../src/domain/dates.ts";
-import { parseAmount } from "../src/domain/numbers.ts";
 import { isRefounding } from "../src/domain/identity.ts";
 import { inferGroups } from "../src/domain/market.ts";
 import { parseReport } from "../src/domain/report.ts";
 import type {
   CompanyMeta,
+  CompanyProfile,
   Consortium,
   ConsortiumColor,
   Dataset,
+  IsoDate,
   MarketEvent,
   ReportRow,
   Snapshot,
   SnapshotSource,
 } from "../src/domain/types.ts";
+import { toBackfillSql, type RecoveredLife } from "./backfill-sql.ts";
+import {
+  columnTrack,
+  mergeTracks,
+  removedColumns,
+  typedCreations,
+  withoutRenamedColumns,
+  formerNamesOf,
+  type MergedRow,
+  type SheetVersion,
+} from "./sheet-merge.ts";
+import { readWorkbook } from "./sheet-workbook.ts";
 import { toSeedSql } from "./seed-sql.ts";
 
 /**
@@ -46,92 +65,27 @@ const MARKET_EVENTS: MarketEvent[] = [
 /**
  * Corporations kept out of KNX's displays: run by the game masters for their own building
  * needs, not real businesses. The reports still list them. On Supabase, the flag is
- * `companies.hidden` (migration 20261116000000_corporations_masquees.sql).
+ * `company_profiles.hidden` (migration 20261118000000_fiches_vies.sql).
  */
 const HIDDEN_COMPANIES = new Set(["MJ Immo"]);
 
-const SHEETS = {
-  chiffre: "Chiffre quotidien",
-  capital: "Capital",
-  employees: "Nb Employés",
-  age: "Âge",
-} as const;
-
-type Cell = ExcelJS.CellValue;
-
-function resultOf(value: Cell): Cell {
-  if (value && typeof value === "object" && !(value instanceof Date)) {
-    if ("result" in value) return (value.result ?? null) as Cell;
-    if ("richText" in value) return value.richText.map((part) => part.text).join("");
-    if ("error" in value) return null;
-  }
-  return value;
-}
-
-function isFormula(value: Cell): boolean {
-  return Boolean(
-    value && typeof value === "object" && ("formula" in value || "sharedFormula" in value),
-  );
-}
-
-function toIso(value: Cell): string | null {
-  const v = resultOf(value);
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  return null;
-}
-
-function toNumber(value: Cell): number | null {
-  const v = resultOf(value);
-  if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : null;
-  if (typeof v === "string") return parseAmount(v);
-  return null;
-}
-
-function findSheet(workbook: ExcelJS.Workbook, name: string): ExcelJS.Worksheet {
-  const normalized = name.normalize("NFC");
-  const sheet = workbook.worksheets.find((ws) => ws.name.normalize("NFC") === normalized);
-  if (!sheet) throw new Error(`Onglet introuvable : ${name}`);
-  return sheet;
-}
-
-/** Maps company name → column index from a sheet's header row, skipping total columns. */
-function companyColumns(sheet: ExcelJS.Worksheet, firstColumn: number): Map<string, number> {
-  const columns = new Map<string, number>();
-  const header = sheet.getRow(1);
-  for (let c = firstColumn; c <= sheet.columnCount; c++) {
-    const name = resultOf(header.getCell(c).value);
-    if (typeof name === "string" && name.trim() !== "") columns.set(name.trim(), c);
-  }
-  return columns;
-}
-
-/** Reads one metric sheet as date → company → value. */
-function readMetric(
-  sheet: ExcelJS.Worksheet,
-  firstColumn: number,
-): Map<string, Map<string, number>> {
-  const columns = companyColumns(sheet, firstColumn);
-  const byDate = new Map<string, Map<string, number>>();
-  for (let r = 2; r <= sheet.rowCount; r++) {
-    const row = sheet.getRow(r);
-    const date = toIso(row.getCell(1).value);
-    if (!date) continue;
-    const values = byDate.get(date) ?? new Map<string, number>();
-    for (const [name, c] of columns) {
-      const value = toNumber(row.getCell(c).value);
-      if (value !== null) values.set(name, value);
-    }
-    byDate.set(date, values);
-  }
-  return byDate;
-}
+/**
+ * A corporation refounded under the same name is most often the same house: its new life joins
+ * the page of the former one. List here a namesake that has nothing to do with its predecessor,
+ * with the date of its first report: it gets a page of its own.
+ */
+const SEPARATE_NAMESAKES = new Map<string, IsoDate[]>([]);
 
 function parseArgs(argv: string[]): {
   workbook: string;
   reports: { path: string; date: string }[];
+  versions: string | null;
+  backfill: string | null;
 } {
   const reports: { path: string; date: string }[] = [];
   let workbook = "data/source/Données entreprises.xlsx";
+  let versions: string | null = null;
+  let backfill: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--report") {
@@ -142,60 +96,121 @@ function parseArgs(argv: string[]): {
       if (at < 1 || !isIsoDate(date))
         throw new Error(`--report attend chemin=AAAA-MM-JJ, reçu « ${spec} »`);
       reports.push({ path, date });
+    } else if (arg === "--versions") {
+      versions = argv[++i] ?? null;
+      if (!versions) throw new Error("--versions attend un dossier");
+    } else if (arg === "--backfill") {
+      backfill = argv[++i] ?? null;
+      if (!backfill) throw new Error("--backfill attend un fichier .sql");
     } else {
       workbook = arg;
     }
   }
-  return { workbook, reports };
+  if (backfill && !versions) throw new Error("--backfill demande --versions");
+  return { workbook, reports, versions, backfill };
+}
+
+/** Past versions of the sheet, oldest first; a file's stamp is its name up to the first `_`. */
+async function readVersions(folder: string): Promise<SheetVersion[]> {
+  const files = (await readdir(resolve(folder)))
+    .filter((f) => f.toLowerCase().endsWith(".xlsx"))
+    .sort();
+  const versions: SheetVersion[] = [];
+  for (const [index, file] of files.entries()) {
+    const stamp = basename(file, ".xlsx").split("_")[0];
+    process.stdout.write(`\r  version ${index + 1}/${files.length} : ${stamp}      `);
+    try {
+      versions.push({ stamp, data: await readWorkbook(join(resolve(folder), file)) });
+    } catch (error) {
+      console.warn(
+        `\n  ${file} ignorée : ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+  process.stdout.write("\n");
+  return versions;
 }
 
 interface NamedSnapshot {
   date: string;
   source: SnapshotSource;
-  rows: ReportRow[];
+  rows: (ReportRow & { archived?: boolean })[];
+}
+
+/** One life as the import follows it. */
+interface Life {
+  meta: CompanyMeta;
+  firstSeen: IsoDate;
+  last: ReportRow;
+  lastDate: IsoDate;
+  rows: number;
+  /** Reports read from a removed column. */
+  archived: number;
 }
 
 /**
- * Gives each corporation an id. The sheet has one column per name, but a name can carry several
- * corporations in turn: a closed one never reopens, so a name that comes back after an absence,
- * or whose figures fall back to zero (Paradox, 11 November 2026), starts a new corporation.
+ * Gives each life an id and each page an id. The sheet has one column per name, but a name can
+ * carry several lives in turn: a name that comes back after an absence, or whose figures fall back
+ * to zero (Paradox, 11 November 2026), opens a new life, on the page of the former one unless
+ * listed in SEPARATE_NAMESAKES.
  */
 function assignIdentities(
   named: readonly NamedSnapshot[],
-  overrides: ReadonlyMap<string, string>,
-): { companies: CompanyMeta[]; snapshots: Snapshot[] } {
+  creations: readonly { name: string; date: IsoDate }[],
+): { profiles: CompanyProfile[]; companies: CompanyMeta[]; snapshots: Snapshot[]; lives: Life[] } {
+  const profiles: CompanyProfile[] = [];
   const companies: CompanyMeta[] = [];
-  const current = new Map<string, { meta: CompanyMeta; last: ReportRow; lastDate: string }>();
-  const firstSeen = new Map<string, string>();
+  const lives: Life[] = [];
+  const pageOfName = new Map<string, CompanyProfile>();
+  const current = new Map<string, Life>();
   let previousDate: string | null = null;
 
   const snapshots = named.map((snapshot): Snapshot => {
-    const rows = snapshot.rows.map((row) => {
-      const life = current.get(row.name);
+    const rows = snapshot.rows.map(({ archived = false, ...row }) => {
+      let life = current.get(row.name);
       const continues =
         life !== undefined && life.lastDate === previousDate && !isRefounding(life.last, row);
       if (life && !continues) life.meta.closedOn ??= snapshot.date;
-      const meta: CompanyMeta = continues
-        ? life.meta
-        : {
-            id: String(companies.length + 1),
-            name: row.name,
-            formerNames: [],
+      if (!life || !continues) {
+        let page = pageOfName.get(row.name);
+        if (!page || SEPARATE_NAMESAKES.get(row.name)?.includes(snapshot.date)) {
+          page = {
+            id: String(profiles.length + 1),
             consortiumId: null,
             sector: null,
-            creationOverride: null,
-            closedOn: null,
             logoUrl: null,
             district: null,
             hidden: HIDDEN_COMPANIES.has(row.name),
           };
-      if (!continues) {
+          profiles.push(page);
+          pageOfName.set(row.name, page);
+        }
+        const meta: CompanyMeta = {
+          id: String(companies.length + 1),
+          profileId: page.id,
+          name: row.name,
+          formerNames: [],
+          creationOverride: null,
+          closedOn: null,
+        };
         companies.push(meta);
-        firstSeen.set(meta.id, snapshot.date);
+        life = {
+          meta,
+          firstSeen: snapshot.date,
+          last: row,
+          lastDate: snapshot.date,
+          rows: 0,
+          archived: 0,
+        };
+        lives.push(life);
       }
-      current.set(row.name, { meta, last: row, lastDate: snapshot.date });
+      life.last = row;
+      life.lastDate = snapshot.date;
+      life.rows++;
+      if (archived) life.archived++;
+      current.set(row.name, life);
       const { name: _name, ...figures } = row;
-      return { companyId: meta.id, ...figures };
+      return { companyId: life.meta.id, ...figures };
     });
     // Missing from this report: closed for good.
     for (const life of current.values())
@@ -204,14 +219,14 @@ function assignIdentities(
     return { date: snapshot.date, source: snapshot.source, rows };
   });
 
-  // A hand-typed creation date belongs to the first corporation of that name seen after it.
-  for (const [name, creation] of overrides) {
-    const lives = companies.filter((c) => c.name === name);
+  // A hand-typed creation date belongs to the first life of that name seen after it.
+  for (const { name, date } of creations) {
+    const ofName = lives.filter((l) => l.meta.name === name);
     const owner =
-      lives.find((c) => (firstSeen.get(c.id) ?? "") >= creation) ?? lives[lives.length - 1];
-    if (owner) owner.creationOverride = creation;
+      ofName.find((l) => l.firstSeen >= date && l.meta.creationOverride === null) ?? ofName.at(-1);
+    if (owner && owner.meta.creationOverride === null) owner.meta.creationOverride = date;
   }
-  return { companies, snapshots };
+  return { profiles, companies, snapshots, lives };
 }
 
 const HOUSE_COLORS: Record<string, ConsortiumColor> = {
@@ -221,12 +236,14 @@ const HOUSE_COLORS: Record<string, ConsortiumColor> = {
 };
 
 /** Seeds the consortium list from brand words shared by open corporations. */
-function seedConsortiums(companies: CompanyMeta[]): Consortium[] {
+function seedConsortiums(profiles: CompanyProfile[], companies: CompanyMeta[]): Consortium[] {
   const groups = inferGroups(companies.filter((c) => c.closedOn === null).map((c) => c.name));
+  const pages = new Map(profiles.map((p) => [p.id, p]));
   const consortiums: Consortium[] = [];
   for (const company of companies) {
     const name = groups.get(company.name);
-    if (!name) continue;
+    const page = pages.get(company.profileId);
+    if (!name || !page) continue;
     let consortium = consortiums.find((k) => k.name === name);
     if (!consortium) {
       consortium = {
@@ -236,74 +253,56 @@ function seedConsortiums(companies: CompanyMeta[]): Consortium[] {
       };
       consortiums.push(consortium);
     }
-    company.consortiumId = consortium.id;
+    page.consortiumId = consortium.id;
+  }
+  // Closed pages join the house their name starts with (Armacham Design), as the backfill does.
+  for (const company of companies) {
+    const page = pages.get(company.profileId);
+    if (!page || page.consortiumId !== null) continue;
+    const house = consortiums
+      .filter((k) => company.name.startsWith(`${k.name} `))
+      .sort((a, b) => b.name.length - a.name.length)[0];
+    if (house) page.consortiumId = house.id;
   }
   return consortiums;
 }
 
 async function main(): Promise<void> {
-  const { workbook: workbookPath, reports } = parseArgs(process.argv.slice(2));
-  const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.readFile(resolve(workbookPath));
+  const args = parseArgs(process.argv.slice(2));
+  const current = await readWorkbook(resolve(args.workbook));
+  const currentTracks = current.columns.map((name) => columnTrack(current, name));
 
-  const chiffreSheet = findSheet(workbook, SHEETS.chiffre);
-  const chiffre = readMetric(chiffreSheet, 3);
-  const capital = readMetric(findSheet(workbook, SHEETS.capital), 3);
-  const employees = readMetric(findSheet(workbook, SHEETS.employees), 3);
-
-  // Hand-typed creation dates in the « Âge » sheet (row 2 holds a date instead of a formula).
-  const ageSheet = findSheet(workbook, SHEETS.age);
-  const overrides = new Map<string, string>();
-  for (const [name, c] of companyColumns(ageSheet, 2)) {
-    const cell = ageSheet.getRow(2).getCell(c).value;
-    const iso = isFormula(cell) ? null : toIso(cell);
-    if (iso) overrides.set(name, iso);
+  let tracks = currentTracks;
+  let former = new Map<string, { names: string[]; lastDate: IsoDate }>();
+  if (args.versions) {
+    console.log(`Lecture des versions de ${args.versions}…`);
+    const versions = await readVersions(args.versions);
+    const removed = removedColumns(versions, current);
+    const { tracks: recovered, renamed } = withoutRenamedColumns(removed, currentTracks);
+    former = formerNamesOf(renamed);
+    tracks = [...currentTracks, ...recovered];
   }
 
-  // The sheet writes 0 both for a company listed at 0 and for one that does not exist yet
-  // (Metropolis before its creation). A row counts as present when the company published a
-  // figure, when its capital or staff were recorded that day, when it never published anything
-  // but 0 (Advenio: listed at 0 throughout), or when the zero comes after its first positive
-  // figure or its hand-typed creation date. Only leading zeros of a company that appears later
-  // are left out.
-  const firstPositive = new Map<string, string>();
-  const dates = [...chiffre.keys()].sort();
-  for (const date of dates) {
-    for (const [name, value] of chiffre.get(date) ?? []) {
-      if (value > 0 && !firstPositive.has(name)) firstPositive.set(name, date);
-    }
-  }
-  const isPresent = (name: string, date: string, value: number): boolean => {
-    if (value > 0) return true;
-    if (capital.get(date)?.has(name) || employees.get(date)?.has(name)) return true;
-    const since = firstPositive.get(name);
-    if (since === undefined) return true;
-    const created = overrides.get(name);
-    return date >= since || (created !== undefined && date >= created);
-  };
+  const merged = mergeTracks(tracks);
+  // Only the dates of the current sheet: an old version may hold a mistyped date since corrected.
+  const sheetDates = new Set(current.chiffre.keys());
+  const named: NamedSnapshot[] = [...merged.rows.keys()]
+    .filter((date) => sheetDates.has(date))
+    .sort()
+    .map((date) => ({
+      date,
+      source: "sheet",
+      rows: merged.rows.get(date) ?? [],
+    }));
 
-  const named: NamedSnapshot[] = dates.map((date) => {
-    const rows: ReportRow[] = [];
-    for (const [name, value] of chiffre.get(date) ?? []) {
-      if (!isPresent(name, date, value)) continue;
-      rows.push({
-        name,
-        rank: null,
-        chiffre: value,
-        capital: capital.get(date)?.get(name) ?? null,
-        employees: employees.get(date)?.get(name) ?? null,
-      });
-    }
-    return { date, source: "sheet", rows };
-  });
-
-  for (const report of reports) {
+  for (const report of args.reports) {
     const text = await readFile(resolve(report.path), "utf8");
     const parsed = parseReport(text);
     if (parsed.errors.length > 0) {
       for (const error of parsed.errors) console.error(`  ligne ${error.line} : ${error.reason}`);
       throw new Error(`Rapport ${report.path} illisible`);
     }
+    sheetDates.add(report.date);
     const existing = named.findIndex((s) => s.date === report.date);
     const snapshot: NamedSnapshot = { date: report.date, source: "paste", rows: parsed.rows };
     if (existing >= 0) named[existing] = snapshot;
@@ -311,11 +310,25 @@ async function main(): Promise<void> {
   }
   named.sort((a, b) => a.date.localeCompare(b.date));
 
-  const { companies, snapshots } = assignIdentities(named, overrides);
-  const consortiums = seedConsortiums(companies);
+  const { profiles, companies, snapshots, lives } = assignIdentities(named, typedCreations(tracks));
+  const consortiums = seedConsortiums(profiles, companies);
+
+  // Renamed columns: their former names go to the life that carried them.
+  const renamedLives: Life[] = [];
+  for (const [name, { names, lastDate }] of former) {
+    const ofName = lives.filter((l) => l.meta.name === name);
+    const owner = ofName.findLast((l) => l.firstSeen <= lastDate) ?? ofName[0];
+    if (!owner) continue;
+    owner.meta.formerNames = [
+      ...names,
+      ...owner.meta.formerNames.filter((n) => !names.includes(n)),
+    ];
+    renamedLives.push(owner);
+  }
 
   const dataset: Dataset = {
     generatedAt: new Date().toISOString(),
+    profiles,
     companies,
     consortiums,
     events: [],
@@ -332,10 +345,105 @@ async function main(): Promise<void> {
   await mkdir(dirname(sqlPath), { recursive: true });
   await writeFile(sqlPath, toSeedSql(dataset));
 
-  const rows = snapshots.reduce((sum, s) => sum + s.rows.length, 0);
-  console.log(
-    `${companies.length} entreprises (${companies.filter((c) => c.closedOn).length} fermées), ${consortiums.length} consortiums, ${snapshots.length} relevés (${snapshots[0]?.date} → ${snapshots.at(-1)?.date}), ${rows} lignes, ${overrides.size} dates de création saisies.`,
+  const rowCount = snapshots.reduce((sum, s) => sum + s.rows.length, 0);
+  const pagesWithLives = profiles.filter(
+    (p) => companies.filter((c) => c.profileId === p.id).length > 1,
   );
+  console.log(
+    `${profiles.length} fiches, ${companies.length} vies (${companies.filter((c) => c.closedOn).length} fermées, ${pagesWithLives.length} fiches à plusieurs vies), ${consortiums.length} consortiums, ${snapshots.length} relevés (${snapshots[0]?.date} → ${snapshots.at(-1)?.date}), ${rowCount} lignes, ${companies.filter((c) => c.creationOverride).length} dates de création saisies.`,
+  );
+
+  if (args.versions) {
+    report(tracks, merged, sheetDates, lives, pagesWithLives, companies);
+    console.log(`\nAnciens noms retrouvés (${renamedLives.length}) :`);
+    for (const life of renamedLives)
+      console.log(
+        `  ${life.meta.name} — anciennement ${life.meta.formerNames.join(", puis ")}${life.archived === life.rows ? " (récupérée)" : ""}`,
+      );
+  }
+
+  if (args.backfill) {
+    const recovered: RecoveredLife[] = [];
+    for (const life of lives) {
+      if (life.archived === 0) continue;
+      if (life.archived < life.rows || life.meta.closedOn === null) {
+        console.warn(
+          `  backfill : ${life.meta.name} (${life.firstSeen}) mêle colonnes actuelle et supprimée ou reste ouverte, à traiter à la main.`,
+        );
+        continue;
+      }
+      const rows = snapshots.flatMap((s) => {
+        const row = s.rows.find((r) => r.companyId === life.meta.id);
+        return row
+          ? [{ date: s.date, chiffre: row.chiffre, capital: row.capital, employees: row.employees }]
+          : [];
+      });
+      recovered.push({
+        name: life.meta.name,
+        formerNames: life.meta.formerNames,
+        closedOn: life.meta.closedOn,
+        creationOverride: life.meta.creationOverride,
+        rows,
+      });
+    }
+    // Lives already in the base: only their former names are added, to the open life.
+    const aliases = renamedLives.flatMap((life) => {
+      if (life.archived > 0) return [];
+      if (life.meta.closedOn !== null) {
+        console.warn(
+          `  backfill : anciens noms de ${life.meta.name}, vie fermée, à traiter à la main.`,
+        );
+        return [];
+      }
+      return [{ name: life.meta.name, formerNames: life.meta.formerNames }];
+    });
+    const path = resolve(args.backfill);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(path, toBackfillSql(recovered, aliases));
+    console.log(
+      `Backfill : ${recovered.length} vies récupérées, anciens noms de ${aliases.length} corporations → ${args.backfill}`,
+    );
+  }
+}
+
+/** What the version history brought back, for the operator to check before publishing it. */
+function report(
+  tracks: readonly ReturnType<typeof columnTrack>[],
+  merged: ReturnType<typeof mergeTracks>,
+  sheetDates: ReadonlySet<string>,
+  lives: readonly Life[],
+  pagesWithLives: readonly CompanyProfile[],
+  companies: readonly CompanyMeta[],
+): void {
+  const recovered = tracks.filter((t) => t.archived && (merged.used.get(t) ?? 0) > 0);
+  console.log(`\nColonnes récupérées dans l'historique (${recovered.length}) :`);
+  for (const t of recovered.sort((a, b) => a.name.localeCompare(b.name, "fr"))) {
+    const dates = [...t.cells.keys()].sort();
+    const how = t.reason === "replaced" ? "vidée puis recréée" : "supprimée";
+    console.log(
+      `  ${t.name} — ${merged.used.get(t)} relevés du ${dates[0]} au ${dates.at(-1)} ; ${how} entre ${t.source} et ${t.removedIn}${t.creation ? ` ; création saisie ${t.creation}` : ""}`,
+    );
+  }
+  const outside = new Set<string>();
+  for (const [date, rows] of merged.rows)
+    if (!sheetDates.has(date) && rows.some((r: MergedRow) => r.archived)) outside.add(date);
+  if (outside.size > 0)
+    console.log(
+      `\nDates absentes du tableur actuel, ignorées (coquilles corrigées depuis ?) :${[...outside].sort().join(", ")}`,
+    );
+  if (merged.collisions.length > 0) {
+    console.log(`\nChiffres en conflit (${merged.collisions.length}) — gardé / écarté :`);
+    for (const c of merged.collisions.slice(0, 40))
+      console.log(`  ${c.name} le ${c.date} : ${c.kept} / ${c.dropped}`);
+  }
+  console.log(`\nFiches à plusieurs vies (${pagesWithLives.length}) :`);
+  for (const page of pagesWithLives) {
+    const ofPage = lives.filter((l) => l.meta.profileId === page.id);
+    const name = companies.find((c) => c.profileId === page.id)?.name ?? page.id;
+    console.log(
+      `  ${name} — ${ofPage.map((l) => `${l.firstSeen} → ${l.meta.closedOn ?? "ouverte"}${l.archived === l.rows ? " (récupérée)" : ""}`).join(" ; ")}`,
+    );
+  }
 }
 
 await main();

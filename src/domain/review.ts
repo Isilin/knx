@@ -6,6 +6,7 @@ import {
   resolveReport,
   type IdentityDecisions,
   type IdentityProposals,
+  type Namesake,
   type RefoundingProposal,
   type RenameProposal,
   type ResolvedRows,
@@ -34,6 +35,7 @@ export type IdentityChoices = Readonly<Record<string, boolean>>;
 
 export const renameKey = (r: RenameProposal) => `rename:${r.companyId}:${r.to}`;
 export const refoundKey = (r: RefoundingProposal) => `refound:${r.companyId}`;
+export const linkKey = (n: Namesake) => `link:${n.name}`;
 
 /** Latest report strictly before `date`. */
 export function previousSnapshot(snapshots: readonly Snapshot[], date: IsoDate): Snapshot | null {
@@ -82,6 +84,9 @@ export function reviewReport(
     ),
     refoundings: new Set(
       proposals.refoundings.filter((r) => choices[refoundKey(r)] ?? true).map((r) => r.companyId),
+    ),
+    links: new Set(
+      proposals.namesakes.filter((n) => choices[linkKey(n)] ?? true).map((n) => n.name),
     ),
   };
   const resolved = resolveReport(rows, proposals, decisions);

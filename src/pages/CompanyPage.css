@@ -456,3 +456,9 @@
 .gauge__bar.is-down {
   background-color: var(--baisse);
 }
+
+/* First report of a new life in the reports table. */
+.history__life {
+  color: var(--gris);
+  font-size: 0.85em;
+}

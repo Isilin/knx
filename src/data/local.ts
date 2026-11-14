@@ -80,9 +80,11 @@ export function createLocalSource(): DataSource {
       await record({ type: "publish", request, newIds });
     },
     withdrawSnapshot: (date) => record({ type: "withdraw", date }),
-    updateCompany: (id, patch) => record({ type: "updateCompany", id, patch }),
+    updateCompany: (id, { creationOverride }) =>
+      record({ type: "updateCompany", id, patch: { creationOverride } }),
+    updateProfile: (id, patch) => record({ type: "updateProfile", id, patch }),
     async setLogo(id, logo) {
-      await record({ type: "setLogo", id, url: logo ? await blobToDataUrl(logo) : null });
+      await record({ type: "setProfileLogo", id, url: logo ? await blobToDataUrl(logo) : null });
     },
     saveConsortium: ({ id, name, color }) =>
       record({ type: "saveConsortium", consortium: { id: id ?? newId(), name, color } }),

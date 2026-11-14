@@ -19,15 +19,11 @@ import type { CompanyMeta, IsoDate, ReportRow } from "./types.ts";
 
 const blankMeta = (id: string): CompanyMeta => ({
   id,
+  profileId: id,
   name: id,
   formerNames: [],
-  consortiumId: null,
-  sector: null,
   creationOverride: null,
   closedOn: null,
-  logoUrl: null,
-  district: null,
-  hidden: false,
 });
 
 const CREATED: IsoDate = "2026-01-01";

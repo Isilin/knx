@@ -40,6 +40,7 @@ function writeMessage(error: { message: string; code?: string }, duplicate?: str
 function rowPayload(r: ResolvedRows["rows"][number]) {
   return {
     company_id: r.companyId,
+    profile_id: r.profileId ?? null,
     name: r.name,
     rank: r.rank,
     chiffre: r.chiffre,
@@ -60,9 +61,18 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     auth: { persistSession: true, detectSessionInUrl: true },
   });
 
-  /** Updates one corporation; RLS turns a refused update into zero rows, so check for one. */
-  async function updateCompanyRow(id: string, values: Record<string, unknown>): Promise<void> {
-    const { data, error } = await client.from("companies").update(values).eq("id", id).select("id");
+  /** Updates one row; RLS turns a refused update into zero rows, so check for one. */
+  async function updateRow(
+    table: "companies" | "company_profiles",
+    id: string,
+    values: Record<string, unknown>,
+  ): Promise<void> {
+    const { data, error } = await client.from(table).update(values).eq("id", id).select("id");
+    // Missing table: Postgres says 42P01, PostgREST's schema cache PGRST205.
+    if (error?.code === "42P01" || error?.code === "PGRST205")
+      throw new Error(
+        "table des fiches absente : exécuter la migration 20261118000000_fiches_vies.sql.",
+      );
     if (error) throw writeMessage(error);
     if (!data || data.length === 0)
       throw new Error("modification refusée ou corporation introuvable.");
@@ -90,17 +100,24 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       if (error) throw new Error(error.message);
     },
     async updateCompany(id, patch) {
+      if (patch.creationOverride === undefined) return;
+      await updateRow("companies", id, { creation_override: patch.creationOverride });
+    },
+    async updateProfile(id, patch) {
       const values: Record<string, unknown> = {};
       if (patch.consortiumId !== undefined)
         values.consortium_id = patch.consortiumId === null ? null : Number(patch.consortiumId);
       if (patch.sector !== undefined) values.sector = patch.sector;
       if (patch.district !== undefined) values.district = patch.district;
-      if (patch.creationOverride !== undefined) values.creation_override = patch.creationOverride;
       if (patch.hidden !== undefined) values.hidden = patch.hidden;
-      await updateCompanyRow(id, values);
+      await updateRow("company_profiles", id, values);
     },
     async setLogo(id, logo) {
-      const { data: row } = await client.from("companies").select("logo_url").eq("id", id).single();
+      const { data: row } = await client
+        .from("company_profiles")
+        .select("logo_url")
+        .eq("id", id)
+        .single();
       const previous = logoPath((row as { logo_url: string | null } | null)?.logo_url ?? null);
       let next: string | null = null;
       if (logo) {
@@ -112,7 +129,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         if (error) throw writeMessage(error);
         next = client.storage.from(LOGO_BUCKET).getPublicUrl(path).data.publicUrl;
       }
-      await updateCompanyRow(id, { logo_url: next });
+      await updateRow("company_profiles", id, { logo_url: next });
       // The former file is no longer referenced; failing to remove it only leaves a stray file.
       if (previous) await client.storage.from(LOGO_BUCKET).remove([previous]);
     },

@@ -4,6 +4,7 @@ import type {
   ConsortiumDraft,
   EventDraft,
   MarketEventDraft,
+  ProfilePatch,
   RatingDraft,
 } from "../domain/mutations.ts";
 import type {
@@ -19,6 +20,7 @@ export type {
   ConsortiumDraft,
   EventDraft,
   MarketEventDraft,
+  ProfilePatch,
   PublishRequest,
   RatingDraft,
   ResolvedRows,
@@ -64,10 +66,12 @@ export interface DataSource {
   publish(request: PublishRequest): Promise<void>;
   /** Withdraws the latest published report and undoes what its publication did. */
   withdrawSnapshot(date: IsoDate): Promise<void>;
-  /** Consortium, sector, typed creation date. */
+  /** Typed creation date of one life. */
   updateCompany(id: string, patch: CompanyPatch): Promise<void>;
-  /** Sets (already reduced to a small WebP) or removes a corporation's logo. */
-  setLogo(id: string, logo: Blob | null): Promise<void>;
+  /** Consortium, sector, hidden flag of a page: shared by all its lives. */
+  updateProfile(id: string, patch: ProfilePatch): Promise<void>;
+  /** Sets (already reduced to a small WebP) or removes a page's logo. */
+  setLogo(profileId: string, logo: Blob | null): Promise<void>;
   saveConsortium(draft: ConsortiumDraft): Promise<void>;
   deleteConsortium(id: string): Promise<void>;
   saveEvent(draft: EventDraft): Promise<void>;

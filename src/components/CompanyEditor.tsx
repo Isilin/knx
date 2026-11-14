@@ -15,13 +15,16 @@ type LogoChange =
   | { kind: "remove" };
 
 interface CompanyEditorProps {
+  /** The page's current life. */
   company: CompanySeries;
+  /** The life before it on the page, if the corporation was refounded. */
+  previousLife: CompanySeries | null;
   consortiums: readonly Consortium[];
   onClose: () => void;
 }
 
 /** The operator's form for what the game does not publish: logo, consortium, sector, founding. */
-export function CompanyEditor({ company, consortiums, onClose }: CompanyEditorProps) {
+export function CompanyEditor({ company, previousLife, consortiums, onClose }: CompanyEditorProps) {
   const { change } = useData();
   const id = useId();
   const [consortiumId, setConsortiumId] = useState(company.consortium?.id ?? "");
@@ -41,6 +44,8 @@ export function CompanyEditor({ company, consortiums, onClose }: CompanyEditorPr
     [logo],
   );
 
+  // A refounding comes after the previous life's last report.
+  const previousLifeEnd = previousLife?.latest.date ?? null;
   const estimate =
     company.creation && company.creation.method === "bounds"
       ? `vers le ${formatImperialDate(company.creation.creation)}`
@@ -65,14 +70,15 @@ export function CompanyEditor({ company, consortiums, onClose }: CompanyEditorPr
     setError(null);
     try {
       await change(async (source) => {
-        await source.updateCompany(company.id, {
+        await source.updateProfile(company.profileId, {
           consortiumId: consortiumId || null,
           sector: sector || null,
           district: district || null,
-          creationOverride: founded || null,
         });
-        if (logo.kind === "set") await source.setLogo(company.id, logo.blob);
-        if (logo.kind === "remove") await source.setLogo(company.id, null);
+        // The founding date is the current life's: a refounding restarts the age.
+        await source.updateCompany(company.id, { creationOverride: founded || null });
+        if (logo.kind === "set") await source.setLogo(company.profileId, logo.blob);
+        if (logo.kind === "remove") await source.setLogo(company.profileId, null);
       });
       onClose();
     } catch (e) {
@@ -175,10 +181,13 @@ export function CompanyEditor({ company, consortiums, onClose }: CompanyEditorPr
         </label>
 
         <label className="field">
-          <span className="label">Date de fondation</span>
+          <span className="label">
+            {company.life.index > 1 ? "Date de la refondation" : "Date de fondation"}
+          </span>
           <input
             type="date"
             value={founded}
+            min={previousLifeEnd ?? undefined}
             max={company.firstSeen}
             onChange={(e) => setFounded(e.target.value)}
           />

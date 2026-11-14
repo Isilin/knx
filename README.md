@@ -31,9 +31,15 @@ relevés saisis dans la page Relevés restent dans le navigateur.
 - `src/domain/` : parsing du rapport, estimation de l'âge, CA réel, indicateurs, contrôle des
   relevés. Tout le calcul vit là, testé.
 - `scripts/import-sheet.ts` : lit l'export `.xlsx` du tableur historique (valeurs uniquement) et
-  écrit `public/data/history.json` et `supabase/seed.sql`. Une corporation est suivie par un
-  identifiant : un nom absent puis revenu, ou dont le chiffre retombe à 0, devient une nouvelle
-  corporation (une fermeture est définitive).
+  écrit `public/data/history.json` et `supabase/seed.sql`.
+- **Fiches et vies.** Une vie (`companies`) va de la fondation d'une corporation à sa fermeture :
+  âge, CA moyen, CA réel, indicateurs et risque se calculent par vie, comme dans le jeu. Un nom
+  absent puis revenu, ou dont le chiffre retombe à 0, ouvre une nouvelle vie ; une vie fermée ne
+  rouvre pas. Une corporation détruite puis refondée sous le même nom garde sa **fiche**
+  (`company_profiles` : adresse, sceau, logo, consortium, secteur, masquage, historique) : la fiche
+  montre toutes ses vies sur une frise continue, coupée à chaque destruction, et ses indicateurs
+  portent sur la vie en cours. À la publication, une refondation ou un retour sous un ancien nom
+  est proposé au rattachement (coché par défaut) ; décoché, c'est une corporation distincte.
 - Fiche : logo, consortium, secteur et date de fondation se modifient depuis la page de la
   corporation (opérateurs) ; la liste des consortiums se gère sur la page Relevés. L'historique de
   chaque fiche mêle faits lus dans les relevés, renommages enregistrés à la publication et
@@ -63,6 +69,39 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
 
 `data/source/` est ignoré par git : on n'y versionne pas l'export brut.
 
+### Corporations détruites : l'historique des versions du tableur
+
+Les colonnes des corporations détruites ont été supprimées du tableur au fil du temps ; leurs
+relevés ne vivent plus que dans l'historique des versions. L'API Drive n'en liste que quelques
+révisions consolidées, mais l'export accepte tous les numéros de révision (une suite d'entiers,
+environ 12 700 en novembre 2026).
+
+1. Dans le tableur : Extensions → Apps Script, coller `scripts/sheet-versions.gs`, ajouter le
+   service **Drive API**, lancer `scanRevisions` et autoriser l'accès. Le script parcourt
+   « Chiffre quotidien » de 50 en 50 révisions, repère chaque colonne qui disparaît (ou est vidée
+   puis recréée), cherche par dichotomie la dernière révision où elle est intacte et n'exporte que
+   celles-là. Il s'arrête avant la coupure des 6 minutes et se relance seul (déclencheur) jusqu'à
+   « Terminé » ; `scanStatus` dit où il en est, `resetScan` repart de zéro.
+2. Télécharger le dossier Drive « KNX — révisions du tableur » et l'extraire dans
+   `data/source/versions/`.
+3. Relancer l'import avec les versions :
+
+```bash
+node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
+  --report "data/source/releves/2026-11-13.txt=2026-11-13" \
+  --versions data/source/versions \
+  --backfill supabase/backfill/20261117_corporations_detruites.sql
+```
+
+L'import compare chaque version à la suivante : une colonne disparue (ou vidée puis recréée sous
+le même nom, au moins trois chiffres perdus) est récupérée dans son dernier état, sans ses zéros
+de fin. Une colonne dont les chiffres continuent sous un autre nom est un renommage : l'ancien nom
+devient un ancien nom de la fiche (Hypercore, puis Kessler Distribution™ → NeuroCore Systems).
+Il affiche les colonnes récupérées, les chiffres en conflit, les fiches à plusieurs vies et les
+anciens noms : à relire avant de publier. Un homonyme sans lien avec son prédécesseur se déclare
+dans `SEPARATE_NAMESAKES` (`scripts/import-sheet.ts`). `--backfill` écrit le SQL qui ajoute ces
+vies et ces anciens noms à une base déjà remplie, sans toucher au reste.
+
 ## Brancher Supabase et Vercel
 
 1. Créer le projet sur Vercel (import du dépôt GitHub), puis ajouter l'intégration **Supabase**
@@ -74,13 +113,18 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
    `20261114100000_publication_envois_identite.sql`, `20261114200000_retrait_releve.sql`
    (retrait du dernier relevé depuis le journal), `20261115000000_evenements_marche.sql`
    (évènements de marché, dont la Faille ZD-385), `20261116000000_corporations_masquees.sql`
-   (corporations masquées, dont MJ Immo) et `20261117000000_notation_agence.sql` (notations
-   et quartier des corporations), puis `supabase/seed.sql` pour charger
-   l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
-   fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
-   11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le
-   registre, notations comprises : ne pas le relancer après des modifications faites depuis le
-   site.
+   (corporations masquées, dont MJ Immo), `20261117000000_notation_agence.sql` (notations et
+   quartier des corporations) et `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
+   vies), puis `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
+   seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
+   consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket
+   Storage `company-logos` ; `fiches_vies` crée une fiche par nom (les deux vies de Paradox
+   partagent la leur) et y déplace logo, consortium, secteur, quartier et masquage ; les
+   notations restent attachées à la vie notée. Le seed remplace tout le registre, notations
+   comprises : ne pas le relancer après des modifications faites depuis le site. Pour y ajouter
+   les corporations détruites retrouvées dans l'historique du tableur, exécuter une fois
+   `supabase/backfill/20261117_corporations_detruites.sql` (après une sauvegarde) : il refuse de
+   passer deux fois.
 3. Authentication → URL Configuration :
    - **Site URL** : l'adresse de production, par exemple `https://knx.vercel.app` (pas localhost :
      c'est l'adresse de repli quand une redirection n'est pas autorisée).
@@ -145,6 +189,9 @@ dans `docs/api-module-jeu.md`), ou avec `vercel dev`.
 vers `main` et chaque pull request.
 
 ## Plus tard
+
+- Rattacher ou détacher une vie d'une fiche depuis le site (aujourd'hui : à la publication, ou
+  dans `SEPARATE_NAMESAKES` pour l'historique).
 
 - Indices (général, par groupe, par secteur).
 - Module de jeu : envoyer le texte brut du rapport (`{ date, report }`) et le lire côté KNX ; corriger

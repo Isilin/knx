@@ -1,19 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 import { buildMarket } from "./market.ts";
-import { buildTimeline } from "./timeline.ts";
-import type { CompanyEvent, CompanyMeta, Dataset } from "./types.ts";
+import { testDataset, type TestCompany } from "./testing.ts";
+import { buildTimeline, lifeAt } from "./timeline.ts";
+import type { CompanyEvent, Dataset } from "./types.ts";
 
-const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): CompanyMeta => ({
+const meta = (id: string, name: string, extra: Partial<TestCompany> = {}): TestCompany => ({
   id,
   name,
-  formerNames: [],
-  consortiumId: null,
-  sector: null,
-  creationOverride: null,
-  closedOn: null,
-  logoUrl: null,
-  district: null,
-  hidden: false,
   ...extra,
 });
 
@@ -46,7 +39,7 @@ const events: CompanyEvent[] = [
   },
 ];
 
-const dataset: Dataset = {
+const dataset: Dataset = testDataset({
   generatedAt: "2026-11-13T00:00:00Z",
   consortiums: [],
   events,
@@ -62,7 +55,7 @@ const dataset: Dataset = {
     { date: "2026-11-11", source: "paste", rows: [row("2", 30, 0)] },
     { date: "2026-11-12", source: "paste", rows: [row("2", 30, 100)] },
   ],
-};
+});
 
 describe("buildTimeline", () => {
   const market = buildMarket(dataset);
@@ -105,5 +98,39 @@ describe("buildTimeline", () => {
     const closures = buildTimeline(former, [typed]).filter((e) => e.title === "Fermeture");
     expect(closures).toHaveLength(1);
     expect(closures[0]).toMatchObject({ date: "2026-11-05", origin: "manual" });
+  });
+});
+
+describe("buildTimeline across lives", () => {
+  // The same story, but the operator kept one page: Paradox destroyed, then refounded.
+  const market = buildMarket({
+    ...dataset,
+    companies: dataset.companies.map((c) => ({ ...c, profileId: "1" })),
+  });
+  const lives = market.lives.get("1")!;
+
+  it("tells the destruction and the refounding instead of a namesake", () => {
+    const titles = buildTimeline(lives, events).map((e) => [e.date, e.title]);
+    expect(titles).toContainEqual(["2026-11-11", "Destruction"]);
+    expect(titles).toContainEqual(["2026-11-09", "Refondation"]);
+    expect(titles).toContainEqual(["2026-11-11", "Premier relevé après la refondation"]);
+    expect(titles).toContainEqual(["2026-11-01", "Premier relevé KNX"]);
+    expect(titles.filter(([, t]) => t.startsWith("Meilleur rang"))).toEqual([
+      ["2026-11-01", "Meilleur rang : 5"],
+    ]);
+    expect(titles.some(([, t]) => t.includes("même nom"))).toBe(false);
+  });
+
+  it("keeps each entry with its life", () => {
+    const timeline = buildTimeline(lives, events);
+    expect(timeline.find((e) => e.founding)?.companyId).toBe("2");
+    expect(timeline.find((e) => e.title === "Destruction")?.companyId).toBe("1");
+  });
+
+  it("files an event under the life of its date", () => {
+    expect(lifeAt(lives, "2026-11-05").id).toBe("1");
+    expect(lifeAt(lives, "2026-11-12").id).toBe("2");
+    expect(lifeAt(lives, "2025-01-01").id).toBe("1");
+    expect(lifeAt(lives, "2026-11-09", true).id).toBe("2");
   });
 });
