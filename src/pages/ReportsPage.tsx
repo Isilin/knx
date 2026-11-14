@@ -1,5 +1,6 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { ConsortiumManager } from "../components/ConsortiumManager.tsx";
+import { MarketEventManager } from "../components/MarketEventManager.tsx";
 import { ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import { isIsoDate } from "../domain/dates.ts";
@@ -532,6 +533,7 @@ export function ReportsPage() {
           </div>
           <div className="reports__side">
             {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
+            {state.status === "ready" ? <MarketEventManager market={state.market} /> : null}
             {dataset ? <Journal dataset={dataset} /> : null}
             {source.kind === "supabase" ? <ApiKeysPanel /> : null}
           </div>

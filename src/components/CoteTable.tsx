@@ -4,6 +4,7 @@ import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.
 import type { CompanySeries } from "../domain/market.ts";
 import type { Consortium } from "../domain/types.ts";
 import { formatPercent } from "../domain/numbers.ts";
+import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
 import { Amount, Change, Estimated, GroupTag, groupColor, RankChange } from "./figures.tsx";
@@ -23,7 +24,8 @@ type SortKey =
   | "dynamics"
   | "activity"
   | "weight"
-  | "projection";
+  | "projection"
+  | "risk";
 
 interface Column {
   key: SortKey;
@@ -167,6 +169,26 @@ const COLUMNS: Record<SortKey, Column> = {
         </span>
       ),
   },
+  risk: {
+    key: "risk",
+    label: "Risque",
+    title:
+      "Profil de risque KNX sur cinq ans impériaux, de 1 (très faible) à 7 (critique), pour les corporations actives",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.risk?.profile ?? null,
+    render: (c) =>
+      c.risk?.profile ? (
+        <span
+          className="estimated"
+          title={`Profil de risque KNX : ${c.risk.profile}/7, ${RISK_LEVEL_LABELS[c.risk.profile]}`}
+        >
+          {c.risk.profile}
+        </span>
+      ) : (
+        <span className="amount--none">—</span>
+      ),
+  },
   weight: {
     key: "weight",
     label: "Poids",
@@ -198,6 +220,7 @@ const VARIANTS = {
     "activity",
     "weight",
     "projection",
+    "risk",
   ],
 } as const satisfies Record<string, readonly SortKey[]>;
 

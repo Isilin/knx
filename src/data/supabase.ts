@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { normalizeDataset } from "../domain/mutations.ts";
+import { cleanMarketEvent, normalizeDataset } from "../domain/mutations.ts";
 import type {
   ApiKey,
   CreatedApiKey,
@@ -139,6 +139,25 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async deleteEvent(id) {
       const { error } = await client.from("company_events").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async saveMarketEvent(draft) {
+      const { id, date, label, title, description, span } = cleanMarketEvent(draft);
+      const values = { occurred_on: date, label, title, description, span_days: span };
+      const { error } =
+        id === null
+          ? await client.from("market_events").insert(values)
+          : await client.from("market_events").update(values).eq("id", id);
+      // Missing table: Postgres says 42P01, PostgREST's schema cache PGRST205.
+      if (error)
+        throw error.code === "42P01" || error.code === "PGRST205"
+          ? new Error(
+              "table des évènements de marché absente : exécuter la migration 20261115000000_evenements_marche.sql.",
+            )
+          : writeMessage(error);
+    },
+    async deleteMarketEvent(id) {
+      const { error } = await client.from("market_events").delete().eq("id", id);
       if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {

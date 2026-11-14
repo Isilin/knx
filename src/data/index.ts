@@ -19,6 +19,8 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     deleteConsortium: async (id) => (await get()).deleteConsortium(id),
     saveEvent: async (draft) => (await get()).saveEvent(draft),
     deleteEvent: async (id) => (await get()).deleteEvent(id),
+    saveMarketEvent: async (draft) => (await get()).saveMarketEvent(draft),
+    deleteMarketEvent: async (id) => (await get()).deleteMarketEvent(id),
     session: async () => (await get()).session(),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>
@@ -66,6 +68,7 @@ export type {
   CreatedApiKey,
   DataSource,
   EventDraft,
+  MarketEventDraft,
   PendingSnapshot,
   PublishRequest,
   Session,

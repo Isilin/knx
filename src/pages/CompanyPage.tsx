@@ -13,6 +13,7 @@ import { CompanyEditor } from "../components/CompanyEditor.tsx";
 import { CompanyTimeline } from "../components/CompanyTimeline.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
+import { RiskPanel } from "../components/RiskPanel.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
@@ -21,7 +22,9 @@ import type { CreationEstimate } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
 import { smoothedRealDaily } from "../domain/market.ts";
+import { marketEventsBetween, marketMarkers } from "../domain/marketEvents.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
+import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import { sectorLabel } from "../domain/sectors.ts";
 import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
 import { useTween } from "../hooks/useTween.ts";
@@ -167,6 +170,7 @@ export function CompanyPage() {
     () => (company ? largestFlows(company.points, start) : []),
     [company, start],
   );
+  const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
   const periodChange =
     visible.length > 1 && visible[0].chiffre > 0
       ? visible[visible.length - 1].chiffre / visible[0].chiffre - 1
@@ -348,6 +352,30 @@ export function CompanyPage() {
             {rel ? <span className={`rel rel--${rel.tone}`}>{rel.label}</span> : "jamais active"}
           </dd>
         </div>
+        <div className="kpi">
+          <dt className="label">Profil de risque</dt>
+          <dd className="kpi__value">
+            {company.risk?.profile ? (
+              <a className="kpi__link" href="#risque">
+                <span className="estimated" title="Profil calculé par KNX">
+                  {company.risk.profile}
+                  <span className="amount__unit"> /7</span>
+                </span>
+              </a>
+            ) : (
+              "—"
+            )}
+          </dd>
+          <dd className="kpi__detail">
+            {company.status === "delisted"
+              ? "corporation fermée"
+              : company.status === "idle"
+                ? "à l'arrêt, non évaluée"
+                : company.risk?.profile
+                  ? `${RISK_LEVEL_LABELS[company.risk.profile]} · cinq ans impériaux`
+                  : `${company.risk?.measured ?? 0} indices mesurables sur 7`}
+          </dd>
+        </div>
       </dl>
 
       <section className="company__chart" aria-labelledby="ca">
@@ -366,6 +394,7 @@ export function CompanyPage() {
           label={`Chiffre d'affaires de ${company.name}`}
           formatValue={(v) => `${formatInteger(v)} ¢/j`}
           height={320}
+          markers={markers}
           series={[
             {
               id: "trend",
@@ -539,6 +568,7 @@ export function CompanyPage() {
             formatValue={(v) => `${formatInteger(v)} ¢`}
             height={200}
             zeroBased={false}
+            markers={markers}
             series={[
               {
                 id: "capital",
@@ -598,6 +628,11 @@ export function CompanyPage() {
                       sur {daysBetween(f.previousDate, f.date)} jour
                       {daysBetween(f.previousDate, f.date) > 1 ? "s" : ""}
                     </small>
+                    {marketEventsBetween(market.marketEvents, f.previousDate, f.date).map((e) => (
+                      <small key={e.id} className="flows__market" title={e.description ?? e.title}>
+                        {e.title}
+                      </small>
+                    ))}
                   </span>
                   <Estimated value={f.flow} noise={f.noise} signed />
                   <span
@@ -620,6 +655,33 @@ export function CompanyPage() {
           )}
         </section>
       </div>
+
+      {company.status !== "delisted" ? (
+        <section className="company__risk" aria-labelledby="risque">
+          <div className="section-head">
+            <h2 id="risque">Risque</h2>
+            <p>
+              {company.risk ? (
+                <>
+                  sept indices KNX sur cinq ans impériaux, du{" "}
+                  <ImperialDate date={company.risk.from} /> au{" "}
+                  <ImperialDate date={company.risk.to} />
+                </>
+              ) : (
+                "évalué pour les corporations actives"
+              )}
+            </p>
+          </div>
+          {company.risk ? (
+            <RiskPanel risk={company.risk} />
+          ) : (
+            <p className="company__empty">
+              Profil non établi : la corporation est à l'arrêt, ses chiffres ne décrivent plus une
+              activité.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       <div className="company__pair">
         <section aria-labelledby="scores">
@@ -656,6 +718,7 @@ export function CompanyPage() {
         <CompanyTimeline
           company={company}
           events={market.events.get(company.id) ?? []}
+          marketEvents={market.marketEvents}
           isAdmin={isAdmin}
         />
       </div>

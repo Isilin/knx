@@ -36,6 +36,7 @@ const dataset: Dataset = {
   companies,
   consortiums: [{ id: "k1", name: "Alpha", color: "cyan" }],
   events: [],
+  marketEvents: [],
   snapshots: [
     snapshot("2026-11-10", "sheet", [
       { name: "Alpha Corp", rank: null, chiffre: 1_000, capital: null, employees: null },
@@ -97,6 +98,7 @@ describe("identity", () => {
     generatedAt: "2026-11-13T00:00:00Z",
     consortiums: [],
     events: [],
+    marketEvents: [],
     companies: [
       meta("10", "Paradox", { closedOn: "2026-11-12" }),
       meta("11", "Paradox"),

@@ -48,6 +48,7 @@ const dataset: Dataset = {
   generatedAt: "2026-11-13T00:00:00Z",
   consortiums: [],
   events,
+  marketEvents: [],
   companies: [
     meta("1", "Paradox", { closedOn: "2026-11-11" }),
     meta("2", "Paradox", { creationOverride: "2026-11-09", formerNames: ["Old"] }),

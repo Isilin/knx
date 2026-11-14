@@ -37,7 +37,9 @@ relevés saisis dans la page Relevés restent dans le navigateur.
 - Fiche : logo, consortium, secteur et date de fondation se modifient depuis la page de la
   corporation (opérateurs) ; la liste des consortiums se gère sur la page Relevés. L'historique de
   chaque fiche mêle faits lus dans les relevés, renommages enregistrés à la publication et
-  évènements saisis.
+  évènements saisis. Les évènements de marché (une règle du jeu, une faille) se gèrent sur la page
+  Relevés : chacun s'affiche dans l'historique de toutes les corporations cotées à sa date et sur
+  les graphiques.
 
 ```bash
 node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
@@ -53,8 +55,9 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
    publique (`NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `…_PUBLISHABLE_KEY`). KNX les lit telles quelles.
 2. Dans l'éditeur SQL Supabase, exécuter dans l'ordre les fichiers de `supabase/migrations/` :
    `20261113000000_init.sql`, `20261113100000_userscript_api.sql` (clés et envois du module de
-   jeu), `20261114000000_fiche_identite_historique.sql` et
-   `20261114100000_publication_envois_identite.sql`, puis `supabase/seed.sql` pour charger
+   jeu), `20261114000000_fiche_identite_historique.sql`,
+   `20261114100000_publication_envois_identite.sql` et `20261115000000_evenements_marche.sql`
+   (évènements de marché, dont la Faille ZD-385), puis `supabase/seed.sql` pour charger
    l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
    fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
    11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le

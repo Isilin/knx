@@ -24,6 +24,13 @@
   text-transform: uppercase;
 }
 
+/* A market event is no one's input: grey frame, not the gold of what the operator typed. */
+.timeline__tag--market {
+  border-color: var(--filet-fort);
+  color: var(--gris);
+  cursor: help;
+}
+
 .timeline__note {
   color: var(--gris);
   font-size: var(--fs-sm);

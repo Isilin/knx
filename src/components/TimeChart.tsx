@@ -23,6 +23,16 @@ export interface ChartSeries {
   kind?: "line" | "estimate" | "trend" | "projection" | "step";
 }
 
+/** A dated event of the whole market, drawn as a vertical rule across the plot. */
+export interface ChartMarker {
+  id: string;
+  date: IsoDate;
+  /** Short text printed at the top of the rule. */
+  label: string;
+  /** Full name, in the tooltip of the first report after it. */
+  title: string;
+}
+
 interface TimeChartProps {
   series: ChartSeries[];
   label: string;
@@ -39,6 +49,8 @@ interface TimeChartProps {
   zeroBased?: boolean;
   /** Direct label drawn at the end of each line; `compact` on narrow charts (keep it short). */
   endLabel?: (series: ChartSeries, compact: boolean) => string;
+  /** Market events inside the plotted dates. */
+  markers?: readonly ChartMarker[];
 }
 
 const MARGIN = { top: 14, right: 72, bottom: 30, left: 0 };
@@ -63,6 +75,7 @@ export function TimeChart({
   pinned = [],
   zeroBased = true,
   endLabel,
+  markers = [],
 }: TimeChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const compactLabels = width < 640;
@@ -174,6 +187,22 @@ export function TimeChart({
   };
 
   const hoverDate = hover ? dates[hover.index] : null;
+  const first = dates[0];
+  const last = dates[dates.length - 1];
+  const plotRight = margin.left + geometry.innerWidth;
+  const rules = markers
+    .filter((m) => m.date >= first && m.date <= last)
+    .map((m) => {
+      const at = x(dateOf(m.date));
+      // Labels near the right edge read leftwards, off the end of the plot.
+      const flip = at + 8 + m.label.length * 7 > plotRight;
+      return { ...m, at, flip };
+    });
+  // A marker falls in the tooltip of the first report on or after it.
+  const previousDate = hover && hover.index > 0 ? dates[hover.index - 1] : null;
+  const tipMarkers = hoverDate
+    ? markers.filter((m) => m.date <= hoverDate && (previousDate === null || m.date > previousDate))
+    : [];
   const rows = hoverDate
     ? series
         .map((s) => ({ s, value: s.points.find((p) => p.date === hoverDate)?.value ?? null }))
@@ -233,6 +262,22 @@ export function TimeChart({
             </text>
           ))}
         </g>
+        {rules.length > 0 ? (
+          <g className="chart__markers" aria-hidden="true">
+            {rules.map((m) => (
+              <g key={m.id}>
+                <line x1={m.at} x2={m.at} y1={margin.top} y2={height - margin.bottom} />
+                <text
+                  x={m.flip ? m.at - 5 : m.at + 5}
+                  y={margin.top + 9}
+                  textAnchor={m.flip ? "end" : "start"}
+                >
+                  {m.label}
+                </text>
+              </g>
+            ))}
+          </g>
+        ) : null}
         {ordered.map((p) => {
           const strong =
             p.id === focusId || (!hasFocus && (pinned.length === 0 || pinned.includes(p.id)));
@@ -326,6 +371,11 @@ export function TimeChart({
               />
               <span>{s.label}</span>
               <b>{formatValue(value ?? 0)}</b>
+            </p>
+          ))}
+          {tipMarkers.map((m) => (
+            <p key={m.id} className="chart__tip-event">
+              {m.title}
             </p>
           ))}
         </div>

@@ -20,11 +20,28 @@ import type {
   Consortium,
   ConsortiumColor,
   Dataset,
+  MarketEvent,
   ReportRow,
   Snapshot,
   SnapshotSource,
 } from "../src/domain/types.ts";
 import { toSeedSql } from "./seed-sql.ts";
+
+/**
+ * Market events of the local data source. On Supabase they live in `market_events`, created by
+ * the migration 20261115000000_evenements_marche.sql; the seed leaves that table alone.
+ */
+const MARKET_EVENTS: MarketEvent[] = [
+  {
+    id: "1",
+    date: "2026-03-23",
+    label: "ZD-385",
+    title: "Faille ZD-385",
+    description:
+      "Une vulnérabilité zero-day dans les terminaux de trésorerie des corporations expose tout capital supérieur à 30 M¢ au piratage. En une heptade, la plupart des directions générales ramènent leurs coffres sous le seuil : les sorties de capital de cette période sont des mises à l'abri, pas des pertes.",
+    span: 7,
+  },
+];
 
 const SHEETS = {
   chiffre: "Chiffre quotidien",
@@ -293,6 +310,7 @@ async function main(): Promise<void> {
     companies,
     consortiums,
     events: [],
+    marketEvents: MARKET_EVENTS,
     snapshots,
   };
 

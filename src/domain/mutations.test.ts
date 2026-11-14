@@ -21,6 +21,7 @@ const base: Dataset = {
   companies: [meta("1", "Alpha"), meta("2", "Beta"), meta("3", "Gamma")],
   consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
   events: [],
+  marketEvents: [],
   snapshots: [
     {
       date: "2026-11-12",

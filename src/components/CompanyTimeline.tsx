@@ -5,7 +5,7 @@ import { ImperialDate } from "./figures.tsx";
 import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { buildTimeline, EVENT_LABELS, type TimelineEntry } from "../domain/timeline.ts";
-import type { CompanyEvent, EventDetails, EventKind } from "../domain/types.ts";
+import type { CompanyEvent, EventDetails, EventKind, MarketEvent } from "../domain/types.ts";
 import "./CompanyTimeline.css";
 
 const VISIBLE = 10;
@@ -231,15 +231,18 @@ function EntryTools({
 export function CompanyTimeline({
   company,
   events,
+  marketEvents,
   isAdmin,
 }: {
   company: CompanySeries;
   events: readonly CompanyEvent[];
+  /** Events of the whole market; those dated while the corporation was listed show. */
+  marketEvents: readonly MarketEvent[];
   isAdmin: boolean;
 }) {
   const [showAll, setShowAll] = useState(false);
   const [form, setForm] = useState<{ entry: TimelineEntry | null } | null>(null);
-  const entries = buildTimeline(company, events);
+  const entries = buildTimeline(company, events, marketEvents);
   const visible = showAll ? entries : entries.slice(0, VISIBLE);
 
   return (
@@ -279,6 +282,14 @@ export function CompanyTimeline({
                   {entry.title}
                 </span>
                 {entry.origin === "manual" ? <span className="timeline__tag">saisi</span> : null}
+                {entry.origin === "market" ? (
+                  <span
+                    className="timeline__tag timeline__tag--market"
+                    title="Évènement de toute la cote, géré depuis la page Relevés"
+                  >
+                    marché
+                  </span>
+                ) : null}
               </span>
               {entry.note ? <small className="timeline__note">{entry.note}</small> : null}
               {entry.link ? (

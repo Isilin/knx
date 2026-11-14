@@ -9,8 +9,10 @@ import {
   type EventDetails,
   type EventKind,
   type IsoDate,
+  type MarketEvent,
   type PublishRequest,
 } from "./types.ts";
+import { MAX_EVENT_SPAN } from "./marketEvents.ts";
 
 /** Fields of a corporation the operator edits by hand. */
 export interface CompanyPatch {
@@ -36,6 +38,28 @@ export interface EventDraft {
   note: string | null;
 }
 
+export interface MarketEventDraft {
+  /** null records a new event. */
+  id: string | null;
+  date: IsoDate;
+  label: string | null;
+  title: string;
+  description: string | null;
+  span: number;
+}
+
+/** Trims a market event and checks it, in the operator's words. */
+export function cleanMarketEvent<T extends MarketEventDraft | MarketEvent>(event: T): T {
+  const title = event.title.trim();
+  const label = event.label?.trim() || null;
+  const description = event.description?.trim() || null;
+  if (title === "") throw new Error("titre d'évènement vide");
+  if (label !== null && label.length > 24) throw new Error("étiquette de plus de 24 caractères");
+  if (!Number.isInteger(event.span) || event.span < 1 || event.span > MAX_EVENT_SPAN)
+    throw new Error(`durée entre 1 et ${MAX_EVENT_SPAN} jours`);
+  return { ...event, title, label, description };
+}
+
 /**
  * A change made in local mode. Operations are kept as a log and replayed over the imported
  * history at every load, so a regenerated history still shows them. They follow the same rules
@@ -48,7 +72,9 @@ export type LocalOp =
   | { type: "saveConsortium"; consortium: Consortium }
   | { type: "deleteConsortium"; id: string }
   | { type: "saveEvent"; event: CompanyEvent }
-  | { type: "deleteEvent"; id: string };
+  | { type: "deleteEvent"; id: string }
+  | { type: "saveMarketEvent"; event: MarketEvent }
+  | { type: "deleteMarketEvent"; id: string };
 
 const blank = (id: string, name: string): CompanyMeta => ({
   id,
@@ -96,6 +122,12 @@ export function normalizeDataset(raw: unknown): Dataset {
       ...e,
       details: e.details ?? {},
       note: e.note ?? null,
+    })),
+    marketEvents: (data.marketEvents ?? []).map((e) => ({
+      ...e,
+      label: e.label ?? null,
+      description: e.description ?? null,
+      span: Number.isInteger(e.span) && e.span > 0 ? e.span : 1,
     })),
     snapshots: data.snapshots,
   };
@@ -250,5 +282,20 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
     }
     case "deleteEvent":
       return { ...dataset, events: dataset.events.filter((e) => e.id !== op.id) };
+    case "saveMarketEvent": {
+      const event = cleanMarketEvent(op.event);
+      const exists = dataset.marketEvents.some((e) => e.id === event.id);
+      return {
+        ...dataset,
+        marketEvents: exists
+          ? dataset.marketEvents.map((e) => (e.id === event.id ? event : e))
+          : [...dataset.marketEvents, event],
+      };
+    }
+    case "deleteMarketEvent":
+      return {
+        ...dataset,
+        marketEvents: dataset.marketEvents.filter((e) => e.id !== op.id),
+      };
   }
 }
