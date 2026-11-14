@@ -49,6 +49,8 @@ interface TimeChartProps {
   zeroBased?: boolean;
   /** Direct label drawn at the end of each line; `compact` on narrow charts (keep it short). */
   endLabel?: (series: ChartSeries, compact: boolean) => string;
+  /** Muted note after the end label; left out on narrow charts. */
+  endNote?: (series: ChartSeries) => string;
   /** Market events inside the plotted dates. */
   markers?: readonly ChartMarker[];
 }
@@ -75,6 +77,7 @@ export function TimeChart({
   pinned = [],
   zeroBased = true,
   endLabel,
+  endNote,
   markers = [],
 }: TimeChartProps) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
@@ -224,6 +227,7 @@ export function TimeChart({
               id: p.id,
               color: p.color,
               text: endLabel(p, compactLabels),
+              note: endNote && !compactLabels ? endNote(p) : "",
               x: x(dateOf(last.date)),
               anchor,
               y: anchor,
@@ -321,6 +325,7 @@ export function TimeChart({
                     style={{ fill: l.color }}
                   >
                     {l.text}
+                    {l.note ? <tspan className="chart__label-note"> {l.note}</tspan> : null}
                   </text>
                 </g>
               );
@@ -388,6 +393,7 @@ interface EndLabel {
   id: string;
   color: string;
   text: string;
+  note: string;
   x: number;
   /** y of the line end. */
   anchor: number;
