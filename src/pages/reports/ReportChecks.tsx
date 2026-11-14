@@ -3,6 +3,7 @@ import type { Evidence } from "../../domain/identity.ts";
 import { formatImperialDate } from "../../domain/imperial.ts";
 import { formatPercent } from "../../domain/numbers.ts";
 import {
+  linkKey,
   refoundKey,
   renameKey,
   type IdentityChoices,
@@ -42,11 +43,15 @@ export function ReportChecks({
   onChoice: (key: string, value: boolean) => void;
 }) {
   const { proposals, diff, created, closed } = review;
-  const namesakes = new Map(proposals.namesakes.map((n) => [n.name, n.closedOn]));
+  const namesakes = new Set(proposals.namesakes.map((n) => n.name));
+  const refounded = new Set(proposals.refoundings.map((r) => r.name));
+  // Lives opened on an existing page are listed with their choice, not as new corporations.
+  const fresh = created.filter((name) => !namesakes.has(name) && !refounded.has(name));
   const clean =
     (diff?.outliers.length ?? 0) === 0 &&
     proposals.renames.length === 0 &&
-    proposals.refoundings.length === 0;
+    proposals.refoundings.length === 0 &&
+    proposals.namesakes.length === 0;
 
   return (
     <>
@@ -59,25 +64,14 @@ export function ReportChecks({
       <ul className="checks">
         <li>
           <span className="label">Nouvelles</span>
-          <span>
-            {created.length === 0
-              ? "aucune"
-              : list(
-                  created.map((name) => {
-                    const closedOn = namesakes.get(name);
-                    return closedOn
-                      ? `${name} (homonyme d'une corporation fermée le ${formatImperialDate(closedOn)} : nouvelle fiche)`
-                      : name;
-                  }),
-                )}
-          </span>
+          <span>{fresh.length === 0 ? "aucune" : list(fresh)}</span>
         </li>
         <li className={closed.length > 0 ? "is-warn" : undefined}>
           <span className="label">Fermetures</span>
           <span>
             {closed.length === 0
               ? "aucune"
-              : `${closed.length} : ${list(closed)}. Une fermeture est définitive.`}
+              : `${closed.length} : ${list(closed)}. Une vie fermée ne rouvre pas ; une refondation ouvre une nouvelle vie sur la même fiche.`}
           </span>
         </li>
         {proposals.renames.length > 0 ? (
@@ -114,8 +108,8 @@ export function ReportChecks({
                     onChange={(e) => onChoice(refoundKey(r), e.target.checked)}
                   />
                   <span>
-                    <strong>{r.name}</strong> a fermé puis rouvert sous le même nom : nouvelle
-                    fiche, historique repris à zéro
+                    <strong>{r.name}</strong> a été détruite puis refondée : même fiche, nouvelle
+                    vie (âge et CA moyen repartent de zéro)
                     <small>
                       CA <Amount value={r.before.chiffre} unit={false} /> →{" "}
                       <Amount value={r.after.chiffre} unit={false} />
@@ -127,6 +121,28 @@ export function ReportChecks({
                         </>
                       ) : null}
                     </small>
+                  </span>
+                </label>
+              ))}
+            </span>
+          </li>
+        ) : null}
+        {proposals.namesakes.length > 0 ? (
+          <li className="is-warn">
+            <span className="label">Retours</span>
+            <span className="choices">
+              {proposals.namesakes.map((n) => (
+                <label key={linkKey(n)} className="choice">
+                  <input
+                    type="checkbox"
+                    checked={choices[linkKey(n)] ?? true}
+                    onChange={(e) => onChoice(linkKey(n), e.target.checked)}
+                  />
+                  <span>
+                    <strong>{n.name}</strong> revient : rattachée à la fiche de la corporation
+                    fermée le {formatImperialDate(n.closedOn)}, nouvelle vie (âge et CA moyen
+                    repartent de zéro)
+                    <small>décoché : corporation distincte, nouvelle fiche</small>
                   </span>
                 </label>
               ))}

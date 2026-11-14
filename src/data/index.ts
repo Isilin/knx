@@ -15,6 +15,7 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     publish: async (request) => (await get()).publish(request),
     withdrawSnapshot: async (date) => (await get()).withdrawSnapshot(date),
     updateCompany: async (id, patch) => (await get()).updateCompany(id, patch),
+    updateProfile: async (id, patch) => (await get()).updateProfile(id, patch),
     setLogo: async (id, logo) => (await get()).setLogo(id, logo),
     saveConsortium: async (draft) => (await get()).saveConsortium(draft),
     deleteConsortium: async (id) => (await get()).deleteConsortium(id),

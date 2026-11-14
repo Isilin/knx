@@ -10,14 +10,11 @@ import type { CompanyMeta, ReportRow, Snapshot } from "./types.ts";
 
 const company = (id: string, name: string, closedOn: string | null = null): CompanyMeta => ({
   id,
+  profileId: `p${id}`,
   name,
   formerNames: [],
-  consortiumId: null,
-  sector: null,
   creationOverride: null,
   closedOn,
-  logoUrl: null,
-  hidden: false,
 });
 
 const line = (
@@ -103,17 +100,46 @@ describe("proposeIdentities", () => {
     ]);
     expect(proposals.refoundings.map((r) => r.companyId)).toEqual(["2"]);
     expect(proposals.namesakes).toEqual([
-      { name: "Metropolis", companyId: "5", closedOn: "2026-10-01" },
+      { name: "Metropolis", companyId: "5", profileId: "p5", closedOn: "2026-10-01" },
     ]);
 
+    // The refounded Paradox and the returning Metropolis open a new life on their own page.
     const resolved = resolveReport(rows, proposals, suggestedDecisions(proposals));
-    expect(resolved.rows.map((r) => [r.name, r.companyId])).toEqual([
-      ["Kessler Industries™", "1"],
-      ["Paradox", null],
-      ["Bar Industries", "4"],
-      ["Metropolis", null],
+    expect(resolved.rows.map((r) => [r.name, r.companyId, r.profileId ?? null])).toEqual([
+      ["Kessler Industries™", "1", null],
+      ["Paradox", null, "p2"],
+      ["Bar Industries", "4", null],
+      ["Metropolis", null, "p5"],
     ]);
     expect(resolved.closures).toEqual(["3", "2"]);
+
+    // Declined, the namesake is a distinct corporation on a page of its own.
+    const declined = resolveReport(rows, proposals, {
+      ...suggestedDecisions(proposals),
+      links: new Set(),
+    });
+    expect(declined.rows.find((r) => r.name === "Metropolis")).toMatchObject({
+      companyId: null,
+      profileId: null,
+    });
+  });
+
+  it("offers no page whose life is still open under another name", () => {
+    // Metropolis closed, but its page lives on as « Metro Two ».
+    const proposals = proposeIdentities({
+      ...input([line("Metropolis", 0, 3_340, 0)]),
+      companies: [...companies, { ...company("6", "Metro Two"), profileId: "p5" }],
+      snapshots: [
+        {
+          ...previous,
+          rows: [
+            ...previous.rows,
+            { companyId: "6", rank: 5, chiffre: 10, capital: 3_340, employees: 0 },
+          ],
+        },
+      ],
+    });
+    expect(proposals.namesakes).toEqual([]);
   });
 
   it("keeps a name-only match unchecked, and declines on request", () => {

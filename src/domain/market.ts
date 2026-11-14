@@ -7,6 +7,7 @@ import type { SectorId } from "./sectors.ts";
 import type {
   CompanyEvent,
   CompanyMeta,
+  CompanyProfile,
   Consortium,
   Dataset,
   IsoDate,
@@ -42,7 +43,10 @@ export interface CompanyPoint {
   otherFlowNoise: number | null;
 }
 
-/** `delisted`: closed, gone from the cote for good (a closed corporation never reopens). */
+/**
+ * `delisted`: closed, gone from the cote for good (a closed life never reopens; a refounding opens
+ * a new life on the same page).
+ */
 export type CompanyStatus = "active" | "idle" | "delisted";
 
 export interface CompanyScores {
@@ -54,7 +58,7 @@ export interface CompanyScores {
   weight: number | null;
 }
 
-/** Another corporation that carried the same name, before or after this one. */
+/** Another page whose corporation carried the same name, before or after this one. */
 export interface Namesake {
   slug: string;
   name: string;
@@ -63,11 +67,17 @@ export interface Namesake {
   closedOn: IsoDate | null;
 }
 
+/** One life of a corporation and every figure KNX derives from it. */
 export interface CompanySeries {
+  /** The life. */
   id: string;
+  /** The page it belongs to; every life of a page shares its slug, seal and page fields. */
+  profileId: string;
+  /** Rank of this life among the page's lives, from 1 (oldest), and their number. */
+  life: { index: number; count: number };
   name: string;
   slug: string;
-  /** Former names, oldest first. */
+  /** Names the page carried before its current name, across all its lives, oldest first. */
   formerNames: string[];
   consortium: Consortium | null;
   sector: SectorId | null;
@@ -108,17 +118,26 @@ export interface ReportFacts {
   idle: number;
   newcomers: string[];
   delisted: string[];
+  /** Pages whose life closed and a new one opened on this report. */
+  refounded: string[];
 }
 
 export interface Market {
   dates: IsoDate[];
   latestDate: IsoDate;
+  /** One corporation per page: its latest life. What the cote, the search and the counts list. */
   companies: CompanySeries[];
+  /** Every life of every page, for totals over the whole history. */
+  allLives: CompanySeries[];
+  /** Lives of each page, by page id, oldest first. */
+  lives: Map<string, CompanySeries[]>;
   consortiums: Consortium[];
   facts: ReportFacts;
+  /** Page slug → its latest life. */
   bySlug: Map<string, CompanySeries>;
+  /** Every life, by id. */
   byId: Map<string, CompanySeries>;
-  /** Slug of a former name → current slug, to keep old links working. */
+  /** Slug of a former name, or of an earlier life's own page, → current slug: old links work. */
   slugAliases: Map<string, string>;
   /** Recorded events, by corporation id, oldest first. */
   events: Map<string, CompanyEvent[]>;
@@ -239,62 +258,73 @@ function groupBy<T>(items: readonly T[], key: (item: T) => string): Map<string, 
   return groups;
 }
 
+/** A page, as the address and seal rules see it: its latest life and when it was first seen. */
+interface PageKey {
+  current: CompanySeries;
+  firstSeen: IsoDate;
+  /** First name the page ever carried. */
+  original: string;
+}
+
 /**
- * Gives every corporation a unique, readable address. Among namesakes, the open one (or the most
+ * Gives every page a unique, readable address. Among namesake pages, the open one (or the most
  * recent) keeps the plain name; earlier ones take the year they were first seen.
  */
-function assignSlugs(companies: CompanySeries[]): void {
+function assignSlugs(pages: readonly PageKey[]): void {
   const taken = new Set<string>();
-  const groups = groupBy(companies, (c) => slugify(c.name) || `corporation-${c.id}`);
+  const groups = groupBy(pages, (p) => slugify(p.current.name) || `corporation-${p.current.id}`);
   for (const [base, members] of groups) {
     members.sort(
       (a, b) =>
-        Number(a.status === "delisted") - Number(b.status === "delisted") ||
+        Number(a.current.status === "delisted") - Number(b.current.status === "delisted") ||
         b.firstSeen.localeCompare(a.firstSeen),
     );
-    members.forEach((c, index) => {
-      let slug = index === 0 ? base : `${base}-${c.firstSeen.slice(0, 4)}`;
-      if (taken.has(slug)) slug = `${base}-${c.id}`;
+    members.forEach((p, index) => {
+      let slug = index === 0 ? base : `${base}-${p.firstSeen.slice(0, 4)}`;
+      if (taken.has(slug)) slug = `${base}-${p.current.profileId}`;
       taken.add(slug);
-      c.slug = slug;
+      p.current.slug = slug;
     });
   }
 }
 
-/** Seals follow the first name a corporation carried; a later namesake gets its own. */
-function assignSealSeeds(companies: CompanySeries[]): void {
-  const groups = groupBy(companies, (c) => c.formerNames[0] ?? c.name);
-  for (const [original, members] of groups) {
+/** Seals follow the first name a page carried; a later namesake page gets its own. */
+function assignSealSeeds(pages: readonly PageKey[]): void {
+  for (const [original, members] of groupBy(pages, (p) => p.original)) {
     members.sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
-    members.forEach((c, index) => {
-      c.sealSeed = index === 0 ? original : `${original}·${c.firstSeen}`;
+    members.forEach((p, index) => {
+      p.current.sealSeed = index === 0 ? original : `${original}·${p.firstSeen}`;
     });
   }
 }
 
 /**
- * Derives every series, fact and score the interface reads from the raw dataset. Hidden
- * corporations get no series and count in no fact or share; ranks stay the ones of the full
- * report, as the game prints them.
+ * Derives every series, fact and score the interface reads from the raw dataset. Figures are per
+ * life: a refounded corporation starts again from zero, as in the game. Pages gather the lives
+ * for display. Hidden corporations get no series and count in no fact or share; ranks stay the
+ * ones of the full report, as the game prints them.
  */
 export function buildMarket(dataset: Dataset): Market {
   const snapshots = [...dataset.snapshots].sort((a, b) => a.date.localeCompare(b.date));
   if (snapshots.length === 0) throw new Error("Aucun relevé.");
   const consortiums = new Map(dataset.consortiums.map((c) => [c.id, c]));
   const metaById = new Map<string, CompanyMeta>(dataset.companies.map((c) => [c.id, c]));
+  const profileById = new Map<string, CompanyProfile>(dataset.profiles.map((p) => [p.id, p]));
+  const profileOf = (id: string) => profileById.get(metaById.get(id)?.profileId ?? "");
   const ranks = snapshots.map((s) => rankSnapshot(s, (id) => metaById.get(id)?.name ?? id));
   const latest = snapshots[snapshots.length - 1];
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const latestDay = toDayNumber(latest.date);
 
-  const shown = (id: string) => metaById.get(id)?.hidden !== true;
+  const shown = (id: string) => profileOf(id)?.hidden !== true;
   const ids = new Set<string>();
   for (const s of snapshots) for (const r of s.rows) if (shown(r.companyId)) ids.add(r.companyId);
 
-  const companies: CompanySeries[] = [];
+  const allLives: CompanySeries[] = [];
   for (const id of ids) {
     const meta = metaById.get(id);
     if (!meta) continue;
+    const profile = profileOf(id);
     const chiffres = snapshots.flatMap((s) => {
       const row = s.rows.find((r) => r.companyId === id);
       return row ? [{ date: s.date, chiffre: row.chiffre }] : [];
@@ -314,14 +344,16 @@ export function buildMarket(dataset: Dataset): Market {
       if (p.rank < bestRank.rank) bestRank = { rank: p.rank, date: p.date };
       if (p.chiffre > record.chiffre) record = { chiffre: p.chiffre, date: p.date };
     }
-    companies.push({
+    allLives.push({
       id,
+      profileId: meta.profileId,
+      life: { index: 1, count: 1 },
       name: meta.name,
       slug: "",
       formerNames: meta.formerNames,
-      consortium: meta.consortiumId ? (consortiums.get(meta.consortiumId) ?? null) : null,
-      sector: meta.sector,
-      logoUrl: meta.logoUrl,
+      consortium: profile?.consortiumId ? (consortiums.get(profile.consortiumId) ?? null) : null,
+      sector: profile?.sector ?? null,
+      logoUrl: profile?.logoUrl ?? null,
       closedOn: meta.closedOn,
       sealSeed: meta.name,
       namesakes: [],
@@ -350,33 +382,67 @@ export function buildMarket(dataset: Dataset): Market {
   }
 
   // Weight is a share of the whole market's real revenue over the same 30 days.
-  const totalRecent = companies.reduce((sum, c) => sum + Math.max(0, c.scores.weight ?? 0), 0);
-  for (const c of companies) {
+  const totalRecent = allLives.reduce((sum, c) => sum + Math.max(0, c.scores.weight ?? 0), 0);
+  for (const c of allLives) {
     c.scores.weight =
       c.scores.weight !== null && totalRecent > 0
         ? Math.max(0, c.scores.weight) / totalRecent
         : null;
   }
 
-  for (const c of companies) c.risk = assessRisk(c, latest.date);
+  for (const c of allLives) c.risk = assessRisk(c, latest.date);
 
-  assignSlugs(companies);
-  assignSealSeeds(companies);
-  for (const members of groupBy(companies, (c) => c.name).values()) {
-    if (members.length < 2) continue;
-    for (const c of members)
-      c.namesakes = members
-        .filter((other) => other !== c)
+  // Pages: lives oldest first; the latest one stands for the page.
+  const lives = groupBy(allLives, (c) => c.profileId);
+  const pages: PageKey[] = [];
+  for (const members of lives.values()) {
+    members.sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
+    const current = members[members.length - 1];
+    const original = members[0].formerNames[0] ?? members[0].name;
+    const formerNames: string[] = [];
+    for (const life of members)
+      for (const name of [...life.formerNames, life.name])
+        if (name !== current.name && !formerNames.includes(name)) formerNames.push(name);
+    members.forEach((life, index) => {
+      life.life = { index: index + 1, count: members.length };
+      life.formerNames = formerNames;
+    });
+    pages.push({
+      current,
+      firstSeen: members[0].firstSeen,
+      original,
+    });
+  }
+  assignSlugs(pages);
+  assignSealSeeds(pages);
+  for (const group of groupBy(pages, (p) => p.current.name).values()) {
+    if (group.length < 2) continue;
+    for (const page of group)
+      page.current.namesakes = group
+        .filter((other) => other !== page)
         .map((other) => ({
-          slug: other.slug,
-          name: other.name,
+          slug: other.current.slug,
+          name: other.current.name,
           firstSeen: other.firstSeen,
-          lastSeen: other.latest.date,
-          closedOn: other.closedOn,
+          lastSeen: other.current.latest.date,
+          closedOn: other.current.closedOn,
         }))
         .sort((a, b) => a.firstSeen.localeCompare(b.firstSeen));
   }
+  // Earlier lives answer to their page's address; their own former address stays an alias.
+  const legacySlugs: [string, string][] = [];
+  for (const members of lives.values()) {
+    const current = members[members.length - 1];
+    for (const life of members) {
+      if (life === current) continue;
+      legacySlugs.push([`${slugify(life.name)}-${life.firstSeen.slice(0, 4)}`, current.slug]);
+      life.slug = current.slug;
+      life.sealSeed = current.sealSeed;
+      life.namesakes = current.namesakes;
+    }
+  }
 
+  const companies = pages.map((p) => p.current);
   companies.sort((a, b) => {
     const order = { active: 0, idle: 1, delisted: 2 } as const;
     return order[a.status] - order[b.status] || a.latest.rank - b.latest.rank;
@@ -384,22 +450,28 @@ export function buildMarket(dataset: Dataset): Market {
 
   const bySlug = new Map(companies.map((c) => [c.slug, c]));
   const slugAliases = new Map<string, string>();
-  for (const c of companies)
-    for (const former of c.formerNames) {
-      const alias = slugify(former);
-      if (alias && !bySlug.has(alias) && !slugAliases.has(alias)) slugAliases.set(alias, c.slug);
-    }
+  const alias = (from: string, to: string) => {
+    if (from && !bySlug.has(from) && !slugAliases.has(from)) slugAliases.set(from, to);
+  };
+  for (const c of companies) for (const former of c.formerNames) alias(slugify(former), c.slug);
+  for (const [from, to] of legacySlugs) alias(from, to);
 
   const events = new Map<string, CompanyEvent[]>();
   for (const event of [...dataset.events].sort((a, b) => a.date.localeCompare(b.date)))
     events.set(event.companyId, [...(events.get(event.companyId) ?? []), event]);
 
-  const byId = new Map(companies.map((c) => [c.id, c]));
+  const byId = new Map(allLives.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
   const latestRows = latest.rows.filter((r) => shown(r.companyId));
   const latestIds = new Set(latestRows.map((r) => r.companyId));
   const previousIds = new Set(
     previous?.rows.filter((r) => shown(r.companyId)).map((r) => r.companyId) ?? [],
+  );
+  const arrived = previous ? [...latestIds].filter((id) => !previousIds.has(id)) : [];
+  const left = [...previousIds].filter((id) => !latestIds.has(id));
+  const pageOf = (id: string) => metaById.get(id)?.profileId;
+  const refoundedPages = new Set(
+    arrived.map(pageOf).filter((p) => p !== undefined && left.some((id) => pageOf(id) === p)),
   );
   const facts: ReportFacts = {
     date: latest.date,
@@ -408,8 +480,9 @@ export function buildMarket(dataset: Dataset): Market {
     listed: latestRows.length,
     active: latestRows.filter((r) => r.chiffre > 0).length,
     idle: latestRows.filter((r) => r.chiffre === 0).length,
-    newcomers: previous ? [...latestIds].filter((id) => !previousIds.has(id)).map(nameOf) : [],
-    delisted: [...previousIds].filter((id) => !latestIds.has(id)).map(nameOf),
+    newcomers: arrived.filter((id) => !refoundedPages.has(pageOf(id))).map(nameOf),
+    delisted: left.filter((id) => !refoundedPages.has(pageOf(id))).map(nameOf),
+    refounded: arrived.filter((id) => refoundedPages.has(pageOf(id))).map(nameOf),
   };
 
   const { bySlug: projections, ...projection } = projectMarket(companies, latest.date);
@@ -419,6 +492,8 @@ export function buildMarket(dataset: Dataset): Market {
     dates: snapshots.map((s) => s.date),
     latestDate: latest.date,
     companies,
+    allLives,
+    lives,
     consortiums: [...dataset.consortiums].sort((a, b) => a.name.localeCompare(b.name, "fr")),
     facts,
     bySlug,
@@ -445,4 +520,34 @@ export function smoothedRealDaily(
     const rate = rateBetween(points, day - window, day);
     return { date: p.date, value: rate === null ? null : Math.max(0, rate) };
   });
+}
+
+/**
+ * One chart line over every life of a page, oldest first. A gap (a null value on the day the
+ * earlier life closed) breaks the line where the corporation was destroyed: each life's figures
+ * start from zero again.
+ */
+export function acrossLives(
+  lives: readonly CompanySeries[],
+  values: (life: CompanySeries) => readonly { date: IsoDate; value: number | null }[],
+): { date: IsoDate; value: number | null }[] {
+  const out: { date: IsoDate; value: number | null }[] = [];
+  lives.forEach((life, index) => {
+    const before = index > 0 ? lives[index - 1] : null;
+    if (before) out.push({ date: before.closedOn ?? life.firstSeen, value: null });
+    out.push(...values(life));
+  });
+  return out;
+}
+
+/** Chart rules at each refounding of a page: where a new life starts. */
+export function refoundingMarkers(
+  lives: readonly CompanySeries[],
+): { id: string; date: IsoDate; label: string; title: string }[] {
+  return lives.slice(1).map((life) => ({
+    id: `life-${life.id}`,
+    date: life.firstSeen,
+    label: "Refondation",
+    title: `Refondation (vie ${life.life.index}) : l'âge et le CA moyen repartent de zéro`,
+  }));
 }

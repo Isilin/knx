@@ -158,7 +158,7 @@ export function ReportsPage() {
           <div className="reports__side">
             {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
             {state.status === "ready" ? (
-              <HiddenCompanies registry={state.dataset.companies} market={state.market} />
+              <HiddenCompanies registry={state.dataset} market={state.market} />
             ) : null}
             {state.status === "ready" ? <MarketEventManager market={state.market} /> : null}
             {source.kind === "supabase" ? <ApiKeysPanel /> : null}

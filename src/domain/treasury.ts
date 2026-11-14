@@ -106,7 +106,7 @@ export interface MarketTreasuryPoint {
 /** Capital and headcount of the whole listing, on every report that published them. */
 export function marketTreasury(market: Market): MarketTreasuryPoint[] {
   const byDate = new Map<IsoDate, MarketTreasuryPoint>();
-  for (const company of market.companies) {
+  for (const company of market.allLives) {
     for (const p of company.points) {
       if (p.capital === null) continue;
       const entry = byDate.get(p.date) ?? { date: p.date, capital: 0, employees: 0, companies: 0 };

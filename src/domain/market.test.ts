@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vite-plus/test";
-import { buildMarket, inferGroups, slugify, smoothedRealDaily } from "./market.ts";
-import type { CompanyMeta, Dataset, ReportRow, Snapshot } from "./types.ts";
+import {
+  acrossLives,
+  buildMarket,
+  inferGroups,
+  refoundingMarkers,
+  slugify,
+  smoothedRealDaily,
+} from "./market.ts";
+import { testDataset, type TestCompany } from "./testing.ts";
+import type { Dataset, ReportRow, Snapshot } from "./types.ts";
 
-const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): CompanyMeta => ({
+const meta = (id: string, name: string, extra: Partial<TestCompany> = {}): TestCompany => ({
   id,
   name,
-  formerNames: [],
-  consortiumId: null,
-  sector: null,
-  creationOverride: null,
-  closedOn: null,
-  logoUrl: null,
-  hidden: false,
   ...extra,
 });
 
@@ -32,7 +33,7 @@ function snapshot(date: string, source: Snapshot["source"], rows: ReportRow[]): 
   };
 }
 
-const dataset: Dataset = {
+const dataset: Dataset = testDataset({
   generatedAt: "2026-11-13T00:00:00Z",
   companies,
   consortiums: [{ id: "k1", name: "Alpha", color: "cyan" }],
@@ -52,7 +53,7 @@ const dataset: Dataset = {
       { name: "Epsilon", rank: 4, chiffre: 0, capital: 3, employees: 0 },
     ]),
   ],
-};
+});
 
 describe("buildMarket", () => {
   const market = buildMarket(dataset);
@@ -95,12 +96,15 @@ describe("buildMarket", () => {
 
 describe("hidden corporations", () => {
   // Alpha Bank and Epsilon are game-master companies: printed by the game, kept off KNX.
-  const market = buildMarket({
-    ...dataset,
-    companies: companies.map((c) =>
-      c.name === "Alpha Bank" || c.name === "Epsilon" ? { ...c, hidden: true } : c,
-    ),
-  });
+  const market = buildMarket(
+    testDataset({
+      ...dataset,
+      profiles: [],
+      companies: companies.map((c) =>
+        c.name === "Alpha Bank" || c.name === "Epsilon" ? { ...c, hidden: true } : c,
+      ),
+    }),
+  );
 
   it("get no series and no address", () => {
     expect(market.companies.map((c) => c.name)).toEqual(["Gamma", "Alpha Corp", "Delta"]);
@@ -126,22 +130,26 @@ describe("hidden corporations", () => {
 
   it("take no share of the market", () => {
     // Twelve days of reports, every creation date known: each open company earns a share.
-    const later = buildMarket({
-      ...dataset,
-      companies: companies.map((c) => ({
-        ...c,
-        creationOverride: "2026-10-01",
-        hidden: c.name === "Alpha Bank",
-      })),
-      snapshots: [
-        ...dataset.snapshots,
-        snapshot("2026-11-22", "paste", [
-          { name: "Gamma", rank: 1, chiffre: 1_150, capital: 5, employees: 3 },
-          { name: "Alpha Corp", rank: 2, chiffre: 1_000, capital: 5, employees: 1 },
-          { name: "Alpha Bank", rank: 3, chiffre: 800, capital: 5, employees: 1 },
-        ]),
-      ],
-    });
+    const later = buildMarket(
+      testDataset({
+        ...dataset,
+        profiles: [],
+        companies: companies.map((c) => ({
+          ...c,
+          creationOverride: "2026-10-01",
+          hidden: c.name === "Alpha Bank",
+        })),
+        snapshots: [
+          ...dataset.snapshots,
+          snapshot("2026-11-22", "paste", [
+            { name: "Gamma", rank: 1, chiffre: 1_150, capital: 5, employees: 3 },
+            { name: "Alpha Corp", rank: 2, chiffre: 1_000, capital: 5, employees: 1 },
+            { name: "Alpha Bank", rank: 3, chiffre: 800, capital: 5, employees: 1 },
+          ]),
+        ],
+      }),
+    );
+
     const weights = later.companies.flatMap((c) =>
       c.scores.weight === null ? [] : [c.scores.weight],
     );
@@ -152,37 +160,39 @@ describe("hidden corporations", () => {
 
 describe("identity", () => {
   // Paradox closed on the 12th; a new Paradox opened the same day. Beta was renamed Bêta Prime.
-  const market = buildMarket({
-    generatedAt: "2026-11-13T00:00:00Z",
-    consortiums: [],
-    events: [],
-    marketEvents: [],
-    companies: [
-      meta("10", "Paradox", { closedOn: "2026-11-12" }),
-      meta("11", "Paradox"),
-      meta("12", "Bêta Prime", { formerNames: ["Beta"] }),
-    ],
-    snapshots: [
-      {
-        date: "2026-11-10",
-        source: "paste",
-        rows: [
-          { companyId: "10", rank: 1, chiffre: 57_894, capital: 785_352, employees: 2 },
-          { companyId: "12", rank: 2, chiffre: 4_000, capital: 50_000, employees: 1 },
-        ],
-      },
-      {
-        date: "2026-11-12",
-        source: "paste",
-        rows: [
-          { companyId: "12", rank: 1, chiffre: 4_010, capital: 50_100, employees: 1 },
-          { companyId: "11", rank: 2, chiffre: 0, capital: 3_340, employees: 0 },
-        ],
-      },
-    ],
-  });
+  const market = buildMarket(
+    testDataset({
+      generatedAt: "2026-11-13T00:00:00Z",
+      consortiums: [],
+      events: [],
+      marketEvents: [],
+      companies: [
+        meta("10", "Paradox", { closedOn: "2026-11-12" }),
+        meta("11", "Paradox"),
+        meta("12", "Bêta Prime", { formerNames: ["Beta"] }),
+      ],
+      snapshots: [
+        {
+          date: "2026-11-10",
+          source: "paste",
+          rows: [
+            { companyId: "10", rank: 1, chiffre: 57_894, capital: 785_352, employees: 2 },
+            { companyId: "12", rank: 2, chiffre: 4_000, capital: 50_000, employees: 1 },
+          ],
+        },
+        {
+          date: "2026-11-12",
+          source: "paste",
+          rows: [
+            { companyId: "12", rank: 1, chiffre: 4_010, capital: 50_100, employees: 1 },
+            { companyId: "11", rank: 2, chiffre: 0, capital: 3_340, employees: 0 },
+          ],
+        },
+      ],
+    }),
+  );
 
-  it("keeps namesakes apart, the open one under the plain address", () => {
+  it("keeps namesake pages apart, the open one under the plain address", () => {
     const current = market.bySlug.get("paradox")!;
     const former = market.bySlug.get("paradox-2026")!;
     expect(current.id).toBe("11");
@@ -198,6 +208,103 @@ describe("identity", () => {
     expect(beta.points).toHaveLength(2);
     expect(beta.sealSeed).toBe("Beta");
     expect(market.slugAliases.get("beta")).toBe("beta-prime");
+  });
+});
+
+describe("lives", () => {
+  // Paradox was destroyed on the 12th and refounded under the same name: one page, two lives.
+  const market = buildMarket(
+    testDataset({
+      generatedAt: "2026-11-13T00:00:00Z",
+      consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
+      events: [],
+      marketEvents: [],
+      companies: [
+        meta("10", "Paradox", {
+          closedOn: "2026-11-12",
+          creationOverride: "2026-01-01",
+          profileId: "p",
+          consortiumId: "k1",
+        }),
+        meta("11", "Paradox", { profileId: "p" }),
+        meta("12", "Seven"),
+      ],
+      snapshots: [
+        {
+          date: "2026-11-01",
+          source: "paste",
+          rows: [
+            { companyId: "10", rank: 1, chiffre: 57_000, capital: 785_000, employees: 2 },
+            { companyId: "12", rank: 2, chiffre: 4_000, capital: 50_000, employees: 1 },
+          ],
+        },
+        {
+          date: "2026-11-10",
+          source: "paste",
+          rows: [
+            { companyId: "10", rank: 1, chiffre: 57_894, capital: 785_352, employees: 2 },
+            { companyId: "12", rank: 2, chiffre: 4_000, capital: 50_000, employees: 1 },
+          ],
+        },
+        {
+          date: "2026-11-12",
+          source: "paste",
+          rows: [
+            { companyId: "12", rank: 1, chiffre: 4_010, capital: 50_100, employees: 1 },
+            { companyId: "11", rank: 2, chiffre: 0, capital: 3_340, employees: 0 },
+          ],
+        },
+      ],
+    }),
+  );
+
+  it("lists the page once, under its latest life", () => {
+    const page = market.bySlug.get("paradox")!;
+    expect(page.id).toBe("11");
+    expect(market.companies.filter((c) => c.name === "Paradox")).toHaveLength(1);
+    expect(market.lives.get("p")?.map((l) => l.id)).toEqual(["10", "11"]);
+    expect(page.life).toEqual({ index: 2, count: 2 });
+    expect(market.allLives).toHaveLength(3);
+  });
+
+  it("restarts the game figures with each life", () => {
+    const [first, second] = market.lives.get("p")!;
+    expect(first.creation?.creation).toBe("2026-01-01");
+    expect(first.points.map((p) => p.date)).toEqual(["2026-11-01", "2026-11-10"]);
+    expect(second.points.map((p) => p.date)).toEqual(["2026-11-12"]);
+    expect(second.creation?.creation).not.toBe("2026-01-01");
+    expect(second.status).toBe("idle");
+  });
+
+  it("shares the address, seal and page fields, without namesakes", () => {
+    const [first, second] = market.lives.get("p")!;
+    expect(first.slug).toBe("paradox");
+    expect(first.sealSeed).toBe(second.sealSeed);
+    expect(second.namesakes).toEqual([]);
+    expect(second.consortium?.name).toBe("Maison");
+    expect(market.slugAliases.get("paradox-2026")).toBe("paradox");
+  });
+
+  it("reports a refounding instead of an arrival and a departure", () => {
+    expect(market.facts.refounded).toEqual(["Paradox"]);
+    expect(market.facts.newcomers).toEqual([]);
+    expect(market.facts.delisted).toEqual([]);
+  });
+
+  it("draws one line over the lives, broken at the destruction", () => {
+    const lives = market.lives.get("p")!;
+    const line = acrossLives(lives, (life) =>
+      life.points.map((p) => ({ date: p.date, value: p.chiffre })),
+    );
+    expect(line).toEqual([
+      { date: "2026-11-01", value: 57_000 },
+      { date: "2026-11-10", value: 57_894 },
+      { date: "2026-11-12", value: null },
+      { date: "2026-11-12", value: 0 },
+    ]);
+    expect(refoundingMarkers(lives).map((m) => [m.date, m.label])).toEqual([
+      ["2026-11-12", "Refondation"],
+    ]);
   });
 });
 

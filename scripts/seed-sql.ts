@@ -1,15 +1,15 @@
 import type { Dataset } from "../src/domain/types.ts";
 
-function text(value: string): string {
+export function text(value: string): string {
   return `'${value.replaceAll("'", "''")}'`;
 }
 
-function nullable(value: number | string | null | undefined): string {
+export function nullable(value: number | string | null | undefined): string {
   if (value === null || value === undefined) return "null";
   return typeof value === "number" ? String(value) : text(value);
 }
 
-function textArray(values: readonly string[]): string {
+export function textArray(values: readonly string[]): string {
   return values.length === 0 ? "'{}'::text[]" : `array[${values.map(text).join(", ")}]`;
 }
 
@@ -21,7 +21,7 @@ export function toSeedSql(dataset: Dataset): string {
   const out: string[] = [
     "-- Généré par scripts/import-sheet.ts ; ne pas modifier à la main.",
     "begin;",
-    "truncate public.company_events, public.snapshot_rows, public.snapshots, public.companies, public.consortiums restart identity cascade;",
+    "truncate public.company_events, public.snapshot_rows, public.snapshots, public.companies, public.company_profiles, public.consortiums restart identity cascade;",
     "",
   ];
 
@@ -37,11 +37,20 @@ export function toSeedSql(dataset: Dataset): string {
   }
 
   out.push(
-    "insert into public.companies (id, name, aliases, consortium_id, sector, creation_override, closed_on, hidden) overriding system value values",
+    "insert into public.company_profiles (id, consortium_id, sector, logo_url, hidden) overriding system value values",
+    dataset.profiles
+      .map(
+        (p) =>
+          `  (${Number(p.id)}, ${nullable(p.consortiumId === null ? null : Number(p.consortiumId))}, ${nullable(p.sector)}, ${nullable(p.logoUrl)}, ${p.hidden})`,
+      )
+      .join(",\n") + ";",
+    "select setval(pg_get_serial_sequence('public.company_profiles', 'id'), (select max(id) from public.company_profiles));",
+    "",
+    "insert into public.companies (id, profile_id, name, aliases, creation_override, closed_on) overriding system value values",
     dataset.companies
       .map(
         (c) =>
-          `  (${Number(c.id)}, ${text(c.name)}, ${textArray(c.formerNames)}, ${nullable(c.consortiumId === null ? null : Number(c.consortiumId))}, ${nullable(c.sector)}, ${nullable(c.creationOverride)}, ${nullable(c.closedOn)}, ${c.hidden})`,
+          `  (${Number(c.id)}, ${Number(c.profileId)}, ${text(c.name)}, ${textArray(c.formerNames)}, ${nullable(c.creationOverride)}, ${nullable(c.closedOn)})`,
       )
       .join(",\n") + ";",
     "select setval(pg_get_serial_sequence('public.companies', 'id'), (select max(id) from public.companies));",

@@ -1,23 +1,17 @@
 import { describe, expect, it } from "vite-plus/test";
 import { applyOp, normalizeDataset, planWithdrawal } from "./mutations.ts";
-import type { CompanyMeta, Dataset } from "./types.ts";
+import { testDataset, type TestCompany } from "./testing.ts";
+import type { Dataset } from "./types.ts";
 
-const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): CompanyMeta => ({
+const meta = (id: string, name: string, extra: Partial<TestCompany> = {}): TestCompany => ({
   id,
   name,
-  formerNames: [],
-  consortiumId: null,
-  sector: null,
-  creationOverride: null,
-  closedOn: null,
-  logoUrl: null,
-  hidden: false,
   ...extra,
 });
 
 const figures = { rank: null, chiffre: 100, capital: 5_000, employees: 1 };
 
-const base: Dataset = {
+const base: Dataset = testDataset({
   generatedAt: "2026-11-13T00:00:00Z",
   companies: [meta("1", "Alpha"), meta("2", "Beta"), meta("3", "Gamma")],
   consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
@@ -34,7 +28,7 @@ const base: Dataset = {
       ],
     },
   ],
-};
+});
 
 const publish = (dataset: Dataset, replace = false) =>
   applyOp(dataset, {
@@ -65,7 +59,9 @@ describe("publish", () => {
     expect(after.companies.find((c) => c.id === "n1")).toMatchObject({
       name: "Gamma",
       closedOn: null,
+      profileId: "n1",
     });
+    expect(after.profiles.map((p) => p.id)).toEqual(["1", "2", "3", "n1"]);
     expect(after.events).toEqual([
       expect.objectContaining({
         companyId: "2",
@@ -99,6 +95,51 @@ describe("publish", () => {
       }),
     ).toThrow("porte déjà le nom");
   });
+
+  const refound = (dataset: Dataset, closures: string[]) =>
+    applyOp(dataset, {
+      type: "publish",
+      newIds: ["n1"],
+      request: {
+        date: "2026-11-13",
+        source: "paste",
+        replace: false,
+        closures,
+        rows: [{ companyId: null, profileId: "3", name: "Gamma", ...figures }],
+      },
+    });
+
+  it("opens a new life on an existing page", () => {
+    const after = refound(base, ["3"]);
+    expect(after.companies.find((c) => c.id === "n1")).toMatchObject({
+      name: "Gamma",
+      profileId: "3",
+    });
+    expect(after.companies.find((c) => c.id === "3")?.closedOn).toBe("2026-11-13");
+    expect(after.profiles).toHaveLength(3);
+  });
+
+  it("refuses a second open life on a page", () => {
+    expect(() =>
+      applyOp(base, {
+        type: "publish",
+        newIds: ["n1"],
+        request: {
+          date: "2026-11-13",
+          source: "paste",
+          replace: false,
+          closures: [],
+          rows: [{ companyId: null, profileId: "1", name: "Alpha Bis", ...figures }],
+        },
+      }),
+    ).toThrow("deux vies ouvertes");
+  });
+
+  it("withdraws a refounding: the new life goes, the page and its old life stay", () => {
+    const withdrawn = applyOp(refound(base, ["3"]), { type: "withdraw", date: "2026-11-13" });
+    expect(withdrawn.companies).toEqual(base.companies);
+    expect(withdrawn.profiles).toEqual(base.profiles);
+  });
 });
 
 describe("withdraw", () => {
@@ -119,6 +160,7 @@ describe("withdraw", () => {
     const withdrawn = applyOp(published, { type: "withdraw", date: "2026-11-13" });
     expect(withdrawn.snapshots).toEqual(base.snapshots);
     expect(withdrawn.companies).toEqual(base.companies);
+    expect(withdrawn.profiles).toEqual(base.profiles);
     expect(withdrawn.events).toEqual([]);
     // The module can send that day again.
     expect(publish(withdrawn).snapshots).toHaveLength(2);
@@ -173,15 +215,27 @@ describe("withdraw", () => {
 });
 
 describe("profile edits", () => {
-  it("updates a corporation and detaches it when its consortium goes", () => {
+  it("updates a page and detaches it when its consortium goes", () => {
     const edited = applyOp(base, {
-      type: "updateCompany",
+      type: "updateProfile",
       id: "1",
       patch: { consortiumId: "k1", sector: "banque" },
     });
-    expect(edited.companies[0]).toMatchObject({ consortiumId: "k1", sector: "banque" });
+    expect(edited.profiles[0]).toMatchObject({ consortiumId: "k1", sector: "banque" });
     const removed = applyOp(edited, { type: "deleteConsortium", id: "k1" });
-    expect(removed.companies[0].consortiumId).toBeNull();
+    expect(removed.profiles[0].consortiumId).toBeNull();
+  });
+
+  it("sends page fields of an older life edit to its page", () => {
+    const edited = applyOp(base, {
+      type: "updateCompany",
+      id: "2",
+      patch: { consortiumId: "k1", creationOverride: "2026-01-01" },
+    });
+    expect(edited.profiles[1].consortiumId).toBe("k1");
+    expect(edited.companies[1].creationOverride).toBe("2026-01-01");
+    const logo = applyOp(edited, { type: "setLogo", id: "2", url: "data:logo" });
+    expect(logo.profiles[1].logoUrl).toBe("data:logo");
   });
 
   it("refuses duplicate consortium names", () => {
@@ -204,14 +258,30 @@ describe("normalizeDataset", () => {
     ).toThrow("migration");
   });
 
-  it("shows a corporation unless it is flagged hidden", () => {
-    const { companies } = normalizeDataset({
+  it("gives a page to each life served without one, with its page fields", () => {
+    const { profiles, companies } = normalizeDataset({
       companies: [
         { id: "1", name: "Alpha" },
         { id: "2", name: "MJ Immo", hidden: true },
       ],
       snapshots: [],
     });
-    expect(companies.map((c) => c.hidden)).toEqual([false, true]);
+    expect(companies.map((c) => c.profileId)).toEqual(["1", "2"]);
+    expect(profiles.map((p) => p.hidden)).toEqual([false, true]);
+  });
+
+  it("keeps the pages it is given", () => {
+    const { profiles, companies } = normalizeDataset({
+      profiles: [{ id: "p", consortiumId: null, sector: "banque", logoUrl: null, hidden: false }],
+      companies: [
+        { id: "1", profileId: "p", name: "Paradox", closedOn: "2026-11-11" },
+        { id: "2", profileId: "p", name: "Paradox" },
+      ],
+      snapshots: [],
+    });
+    expect(profiles).toEqual([
+      { id: "p", consortiumId: null, sector: "banque", logoUrl: null, hidden: false },
+    ]);
+    expect(companies.map((c) => c.profileId)).toEqual(["p", "p"]);
   });
 });

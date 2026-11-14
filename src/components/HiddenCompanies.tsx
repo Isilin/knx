@@ -1,27 +1,40 @@
 import { useState, type FormEvent } from "react";
 import { useData } from "../data/DataProvider.tsx";
 import type { Market } from "../domain/market.ts";
-import type { CompanyMeta } from "../domain/types.ts";
+import type { CompanyMeta, Dataset } from "../domain/types.ts";
 import "./HiddenCompanies.css";
 
 const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, "fr");
 
+/** The life that names a page: its open one, else the last closed. */
+function latestLife(lives: readonly CompanyMeta[]): CompanyMeta {
+  return lives.reduce((a, b) =>
+    a.closedOn === null ? a : b.closedOn === null || b.closedOn > a.closedOn ? b : a,
+  );
+}
+
 /**
  * Corporations kept out of every display (MJ Immo, run by the game masters): show one again, or
- * hide a listed one. Hidden corporations are absent from the market, so they come from the
- * registry.
+ * hide a listed one. The flag belongs to the page, so it covers every life. Hidden corporations
+ * are absent from the market, so they come from the registry.
  */
 export function HiddenCompanies({
   registry,
   market,
 }: {
-  registry: readonly CompanyMeta[];
+  registry: Pick<Dataset, "profiles" | "companies">;
   market: Market;
 }) {
   const { change } = useData();
   const [choice, setChoice] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const hidden = registry.filter((c) => c.hidden).sort(byName);
+  const hidden = registry.profiles
+    .filter((p) => p.hidden)
+    .flatMap((p) => {
+      const lives = registry.companies.filter((c) => c.profileId === p.id);
+      return lives.length === 0 ? [] : [{ ...latestLife(lives), profileId: p.id }];
+    })
+    .sort(byName);
   const listed = market.companies.filter((c) => c.status !== "delisted").sort(byName);
 
   const run = async (write: Parameters<typeof change>[0]) => {
@@ -37,7 +50,7 @@ export function HiddenCompanies({
 
   const hide = async (event: FormEvent) => {
     event.preventDefault();
-    if (choice && (await run((s) => s.updateCompany(choice, { hidden: true })))) setChoice("");
+    if (choice && (await run((s) => s.updateProfile(choice, { hidden: true })))) setChoice("");
   };
 
   return (
@@ -51,7 +64,7 @@ export function HiddenCompanies({
       ) : (
         <ul>
           {hidden.map((c) => (
-            <li key={c.id} className="hidden-company">
+            <li key={c.profileId} className="hidden-company">
               <span className="hidden-company__name">
                 {c.name}
                 {c.closedOn ? <small> · fermée</small> : null}
@@ -59,7 +72,7 @@ export function HiddenCompanies({
               <button
                 type="button"
                 className="linklike"
-                onClick={() => void run((s) => s.updateCompany(c.id, { hidden: false }))}
+                onClick={() => void run((s) => s.updateProfile(c.profileId, { hidden: false }))}
               >
                 réafficher
               </button>
@@ -73,7 +86,7 @@ export function HiddenCompanies({
           <select value={choice} required onChange={(e) => setChoice(e.target.value)}>
             <option value="">Choisir…</option>
             {listed.map((c) => (
-              <option key={c.id} value={c.id}>
+              <option key={c.profileId} value={c.profileId}>
                 {c.name}
               </option>
             ))}
