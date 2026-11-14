@@ -4,7 +4,12 @@
   "installCommand": "corepack enable pnpm && pnpm install --frozen-lockfile",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist",
-  "rewrites": [{ "source": "/((?!assets/|data/|favicon\\.svg).*)", "destination": "/index.html" }],
+  "rewrites": [
+    { "source": "/((?!api/|assets/|data/|favicon\\.svg).*)", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/v1/*.ts": { "maxDuration": 10 }
+  },
   "headers": [
     {
       "source": "/data/(.*)",

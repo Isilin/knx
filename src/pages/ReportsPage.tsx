@@ -1,12 +1,17 @@
 import { useMemo, useState, type FormEvent } from "react";
-import { Amount, Change, ImperialDate } from "../components/figures.tsx";
+import { ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
-import { daysBetween, isIsoDate } from "../domain/dates.ts";
+import { isIsoDate } from "../domain/dates.ts";
 import { formatImperialDate } from "../domain/imperial.ts";
-import { assignRanks, diffReport } from "../domain/diff.ts";
-import { formatPercent, parseAmount } from "../domain/numbers.ts";
+import { assignRanks } from "../domain/diff.ts";
+import { parseAmount } from "../domain/numbers.ts";
 import { parseReport } from "../domain/report.ts";
+import { creationLookup, previousSnapshot, reviewReport } from "../domain/review.ts";
 import type { Dataset, SnapshotRow, SnapshotSource } from "../domain/types.ts";
+import { ApiKeysPanel } from "./reports/ApiKeysPanel.tsx";
+import { PendingReview } from "./reports/PendingReview.tsx";
+import { ReportChecks } from "./reports/ReportChecks.tsx";
+import { usePending } from "./reports/usePending.ts";
 import "./ReportsPage.css";
 
 function todayLocal(): string {
@@ -126,7 +131,7 @@ function Journal({ dataset }: { dataset: Dataset }) {
     sheet: "tableur",
     form: "formulaire",
     paste: "rapport collé",
-    userscript: "userscript",
+    userscript: "module du jeu",
   };
   return (
     <section className="journal" aria-labelledby="journal">
@@ -147,14 +152,14 @@ function Journal({ dataset }: { dataset: Dataset }) {
   );
 }
 
-/** `A, B, C et 12 autres` */
-function list(names: readonly string[], limit = 8): string {
-  if (names.length === 0) return "aucune";
-  if (names.length <= limit) return names.join(", ");
-  return `${names.slice(0, limit).join(", ")} et ${names.length - limit} autres`;
-}
-
-function Editor({ dataset }: { dataset: Dataset | null }) {
+function Editor({
+  dataset,
+  pendingDates,
+}: {
+  dataset: Dataset | null;
+  /** Dates holding a report sent by the in-game module, not yet reviewed. */
+  pendingDates: ReadonlySet<string>;
+}) {
   const { publish, source, state } = useData();
   const market = state.status === "ready" ? state.market : null;
   const [date, setDate] = useState(todayLocal);
@@ -164,14 +169,10 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
   const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const previous = useMemo(() => {
-    if (!dataset) return null;
-    return (
-      [...dataset.snapshots]
-        .filter((s) => s.date < date)
-        .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
-    );
-  }, [dataset, date]);
+  const previous = useMemo(
+    () => (dataset ? previousSnapshot(dataset.snapshots, date) : null),
+    [dataset, date],
+  );
 
   const [formRows, setFormRows] = useState<FormRow[]>(() =>
     (previous?.rows ?? []).map((r, i) => ({
@@ -183,7 +184,9 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
     })),
   );
 
-  const exists = dataset?.snapshots.some((s) => s.date === date) ?? false;
+  const published = dataset?.snapshots.some((s) => s.date === date) ?? false;
+  const pendingHere = !published && pendingDates.has(date);
+  const exists = published || pendingHere;
 
   const parsed = useMemo((): { rows: SnapshotRow[]; errors: string[] } => {
     if (mode === "paste") {
@@ -218,23 +221,16 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
     return { rows: assignRanks(rows), errors };
   }, [mode, text, formRows]);
 
-  const diff = useMemo(() => {
-    if (!previous || parsed.rows.length === 0) return null;
-    const gap = daysBetween(previous.date, date);
-    const creations = new Map(
-      (market?.companies ?? []).map((c) => [
-        c.name,
-        c.creation && c.creation.method !== "first-seen" ? c.creation.creation : null,
-      ]),
-    );
-    return diffReport(previous.rows, parsed.rows, {
-      gap,
-      ageOn: (name) => {
-        const creation = creations.get(name);
-        return creation ? daysBetween(creation, date) : null;
-      },
-    });
-  }, [previous, parsed.rows, market, date]);
+  const review = useMemo(
+    () =>
+      reviewReport(
+        dataset?.snapshots ?? [],
+        creationLookup(market?.companies ?? []),
+        date,
+        parsed.rows,
+      ),
+    [dataset, market, date, parsed.rows],
+  );
   const canPublish =
     parsed.rows.length > 0 && parsed.errors.length === 0 && (!exists || replace) && !busy;
 
@@ -408,61 +404,12 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
                 </ul>
               </div>
             ) : null}
-            {diff ? (
-              <ul className="checks">
-                <li>
-                  <span className="label">Nouvelles</span>
-                  <span>{list(diff.newcomers)}</span>
-                </li>
-                <li className={diff.missing.length > 5 ? "is-warn" : undefined}>
-                  <span className="label">Absentes</span>
-                  <span>
-                    {diff.missing.length === 0
-                      ? "aucune"
-                      : `${diff.missing.length} : ${list(diff.missing)} (seront marquées radiées)`}
-                  </span>
-                </li>
-                {diff.renames.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">Renommages ?</span>
-                    <span>{diff.renames.map((r) => `${r.from} → ${r.to}`).join(" · ")}</span>
-                  </li>
-                ) : null}
-                {diff.outliers.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">À vérifier</span>
-                    <span>
-                      {diff.outliers.map((o) => (
-                        <span key={`${o.name}-${o.field}`} className="outlier">
-                          <strong>{o.name}</strong> ·{" "}
-                          {o.field === "chiffre" ? "chiffre" : "capital"}{" "}
-                          <Amount value={o.before} unit={false} /> →{" "}
-                          <Amount value={o.after} unit={false} /> <Change ratio={o.ratio} />
-                          <small>{o.reason}</small>
-                        </span>
-                      ))}
-                    </span>
-                  </li>
-                ) : null}
-                {diff.rankMismatches.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">Rangs</span>
-                    <span>
-                      Ordre incohérent avec le chiffre pour {diff.rankMismatches.join(", ")}.
-                    </span>
-                  </li>
-                ) : null}
-              </ul>
-            ) : null}
-            {parsed.rows.length > 0 &&
-            parsed.errors.length === 0 &&
-            diff &&
-            diff.outliers.length === 0 &&
-            diff.renames.length === 0 ? (
-              <p className="note note--ok">
-                Aucune anomalie détectée. Variation moyenne du chiffre :{" "}
-                {formatPercent(average(previous?.rows ?? [], parsed.rows))}.
-              </p>
+            {review.diff ? (
+              <ReportChecks
+                diff={review.diff}
+                averageChange={review.averageChange}
+                showClean={parsed.errors.length === 0}
+              />
             ) : null}
           </>
         )}
@@ -474,7 +421,16 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
               checked={replace}
               onChange={(e) => setReplace(e.target.checked)}
             />
-            Un relevé existe déjà pour le <ImperialDate date={date} /> : le remplacer.
+            {pendingHere ? (
+              <>
+                Un envoi du jeu attend validation pour le <ImperialDate date={date} /> : publier
+                cette saisie à sa place.
+              </>
+            ) : (
+              <>
+                Un relevé existe déjà pour le <ImperialDate date={date} /> : le remplacer.
+              </>
+            )}
           </label>
         ) : null}
 
@@ -489,18 +445,12 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
   );
 }
 
-function average(previous: readonly SnapshotRow[], next: readonly SnapshotRow[]): number {
-  const before = new Map(previous.map((r) => [r.name, r.chiffre]));
-  const ratios = next.flatMap((r) => {
-    const old = before.get(r.name);
-    return old && old > 0 && r.chiffre > 0 ? [r.chiffre / old - 1] : [];
-  });
-  return ratios.length === 0 ? 0 : ratios.reduce((a, b) => a + b, 0) / ratios.length;
-}
-
 export function ReportsPage() {
   const { state, session, source } = useData();
   const dataset = state.status === "ready" ? state.dataset : null;
+  const isAdmin = session?.state === "signed-in" && session.isAdmin;
+  const { pending, error: pendingError, refresh } = usePending(isAdmin);
+  const pendingDates = useMemo(() => new Set(pending.map((p) => p.date)), [pending]);
 
   return (
     <div className="reports">
@@ -508,8 +458,9 @@ export function ReportsPage() {
         <div>
           <h1>Relevés</h1>
           <p>
-            Chaque jour, le rapport « Corporations » du jeu devient un relevé KNX. Collez-le tel
-            quel ou saisissez-le à la main ; un envoi direct depuis le jeu viendra plus tard.
+            Chaque jour, le rapport « Corporations » du jeu devient un relevé KNX. Le module de jeu
+            l'envoie directement pour validation ; sinon, collez-le tel quel ou saisissez-le à la
+            main.
           </p>
         </div>
         {source.kind === "supabase" && session?.state === "signed-in" ? (
@@ -535,8 +486,23 @@ export function ReportsPage() {
         </p>
       ) : (
         <div className="reports__grid">
-          <Editor key={dataset?.snapshots.length ?? 0} dataset={dataset} />
-          {dataset ? <Journal dataset={dataset} /> : null}
+          <div className="reports__main">
+            <PendingReview
+              pending={pending}
+              error={pendingError}
+              dataset={dataset}
+              onChanged={refresh}
+            />
+            <Editor
+              key={dataset?.snapshots.length ?? 0}
+              dataset={dataset}
+              pendingDates={pendingDates}
+            />
+          </div>
+          <div className="reports__side">
+            {dataset ? <Journal dataset={dataset} /> : null}
+            {source.kind === "supabase" ? <ApiKeysPanel /> : null}
+          </div>
         </div>
       )}
     </div>

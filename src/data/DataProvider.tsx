@@ -22,6 +22,8 @@ interface DataContextValue {
   session: Session | null;
   reload: () => void;
   publish: (request: PublishRequest) => Promise<void>;
+  /** Publishes a report sent by the in-game module, then reloads the market. */
+  publishPending: (id: number) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextValue | null>(null);
@@ -77,9 +79,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [source],
   );
 
+  const publishPending = useCallback(
+    async (id: number) => {
+      await source.publishPending(id);
+      setVersion((v) => v + 1);
+    },
+    [source],
+  );
+
   const value = useMemo(
-    () => ({ source, state, session, reload, publish }),
-    [source, state, session, reload, publish],
+    () => ({ source, state, session, reload, publish, publishPending }),
+    [source, state, session, reload, publish, publishPending],
   );
   return <DataContext value={value}>{children}</DataContext>;
 }
