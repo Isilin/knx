@@ -181,7 +181,21 @@ function evidenceText(evidence: readonly Evidence[]): string {
   return parts.join(" · ");
 }
 
-function Editor({ dataset }: { dataset: Dataset | null }) {
+interface PublishStatus {
+  tone: "ok" | "error";
+  text: string;
+}
+
+function Editor({
+  dataset,
+  status,
+  setStatus,
+}: {
+  dataset: Dataset | null;
+  /** Kept by the page: a successful publication reloads the data and remounts the editor. */
+  status: PublishStatus | null;
+  setStatus: (status: PublishStatus | null) => void;
+}) {
   const { publish, source, state } = useData();
   const market = state.status === "ready" ? state.market : null;
   const [date, setDate] = useState(todayLocal);
@@ -189,7 +203,6 @@ function Editor({ dataset }: { dataset: Dataset | null }) {
   const [text, setText] = useState("");
   const [replace, setReplace] = useState(false);
   const [choices, setChoices] = useState<Record<string, boolean>>({});
-  const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState(false);
 
   const nameOf = useMemo(() => {
@@ -649,6 +662,7 @@ function average(previous: readonly DiffRow[], next: readonly DiffRow[]): number
 export function ReportsPage() {
   const { state, session, source } = useData();
   const dataset = state.status === "ready" ? state.dataset : null;
+  const [status, setStatus] = useState<PublishStatus | null>(null);
 
   return (
     <div className="reports">
@@ -683,7 +697,12 @@ export function ReportsPage() {
         </p>
       ) : (
         <div className="reports__grid">
-          <Editor key={dataset?.snapshots.length ?? 0} dataset={dataset} />
+          <Editor
+            key={dataset?.snapshots.length ?? 0}
+            dataset={dataset}
+            status={status}
+            setStatus={setStatus}
+          />
           <div className="reports__side">
             {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
             {dataset ? <Journal dataset={dataset} /> : null}
