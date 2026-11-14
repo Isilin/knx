@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useData } from "../data/DataProvider.tsx";
+import type { RatingWatch } from "../domain/agency.ts";
 import { formatDecimal, formatScore2 } from "../domain/numbers.ts";
 import {
   AXIS_LABELS,
@@ -99,10 +100,13 @@ function HistoryRow({
 /** The Agence's latest rating of a corporation, criterion by criterion, and its history. */
 export function RatingPanel({
   ratings,
+  watch,
   isAdmin,
 }: {
   /** Oldest first; at least one. */
   ratings: readonly CompanyRating[];
+  /** What changed since the latest rating. */
+  watch: RatingWatch | null;
   isAdmin: boolean;
 }) {
   const latest = ratings[ratings.length - 1];
@@ -126,6 +130,25 @@ export function RatingPanel({
           {latest.rationale ? <p className="rating__rationale">{latest.rationale}</p> : null}
         </div>
       </div>
+
+      {watch && (watch.watched || watch.stale) ? (
+        <div className={`rating-watch${watch.watched ? "" : " rating-watch--stale"}`}>
+          <h3 className="label">{watch.watched ? "Sous surveillance" : "À revoir"}</h3>
+          <p className="rating-watch__lead">
+            {watch.watched
+              ? "Depuis cette notation, des éléments justifient un nouvel examen par l'Agence. La note publiée reste valable jusque-là."
+              : "La notation a plus d'un trimestre : l'Agence la révise à ce rythme."}
+          </p>
+          <ul>
+            {watch.reasons.map((reason) => (
+              <li key={`${reason.kind}-${reason.date ?? ""}-${reason.text}`}>
+                {reason.date ? <ImperialDate date={reason.date} /> : <span />}
+                <span>{reason.text}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className="rating__axes">
         {AXES.map((axis) => {

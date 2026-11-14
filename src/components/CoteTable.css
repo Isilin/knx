@@ -193,3 +193,21 @@
     width: 100%;
   }
 }
+
+/* Agence rating: the badge, with an orange mark when the rating is under watch. */
+.cote__rating {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-2);
+}
+
+.cote__watch {
+  width: 6px;
+  height: 6px;
+  background: var(--alerte);
+}
+
+.chip--grade {
+  gap: var(--s-2);
+}

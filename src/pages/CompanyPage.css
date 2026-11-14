@@ -176,7 +176,21 @@
 
 .company__rating {
   display: inline-flex;
+  align-items: center;
+  gap: var(--s-3);
   text-decoration: none;
+}
+
+.company__watch {
+  color: var(--alerte);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.company__watch--stale {
+  color: var(--gris);
 }
 
 /* Reached from the risk tile and the rating badge: land below the sticky header. */

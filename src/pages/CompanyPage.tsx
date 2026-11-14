@@ -256,6 +256,11 @@ export function CompanyPage() {
                   category={latestRating.category}
                   confidence={latestRating.confidence}
                 />
+                {company.watch?.watched ? (
+                  <span className="company__watch">sous surveillance</span>
+                ) : company.watch?.stale ? (
+                  <span className="company__watch company__watch--stale">à revoir</span>
+                ) : null}
               </a>
             ) : null}
           </div>
@@ -691,7 +696,7 @@ export function CompanyPage() {
           />
         ) : null}
         {ratings.length > 0 ? (
-          <RatingPanel ratings={ratings} isAdmin={isAdmin} />
+          <RatingPanel ratings={ratings} watch={company.watch} isAdmin={isAdmin} />
         ) : ratingSlug === company.slug ? null : (
           <p className="company__empty">
             L'Agence impériale n'a pas encore noté cette corporation.
