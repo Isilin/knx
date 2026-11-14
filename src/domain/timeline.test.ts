@@ -72,7 +72,7 @@ describe("buildTimeline", () => {
       ["2026-11-12", "Changement de DG : Ada", "manual"],
       ["2026-11-11", "Premier relevé KNX", "auto"],
       ["2026-11-11", "Meilleur rang : 30", "auto"],
-      ["2026-11-11", "Une corporation du même nom a fermé (2026–2026)", "auto"],
+      ["2026-11-11", "Une corporation du même nom a fermé (an 393)", "auto"],
       ["2026-11-09", "Fondation", "manual"],
     ]);
     expect(timeline.find((e) => e.founding)?.title).toBe("Fondation");

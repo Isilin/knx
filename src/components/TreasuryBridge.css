@@ -1,0 +1,66 @@
+.bridge {
+  --bridge-row: 28px;
+  --bridge-bar: 12px;
+  display: grid;
+  gap: var(--s-3);
+}
+
+.bridge__step {
+  display: grid;
+  grid-template-columns: minmax(7.5rem, 11rem) minmax(0, 1fr) minmax(8.5rem, auto);
+  align-items: center;
+  gap: var(--s-4);
+  min-height: var(--bridge-row);
+}
+
+.bridge__label {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.bridge__value {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.bridge__track {
+  position: relative;
+  height: var(--bridge-bar);
+}
+
+.bridge__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--ivoire);
+}
+
+/* Estimated: violet dots on a faint violet wash, like every value KNX computes. */
+.bridge__bar--estimated {
+  background-color: color-mix(in srgb, var(--estime) 18%, transparent);
+  background-image: radial-gradient(circle, var(--estime) 1px, transparent 1.3px);
+  background-size: 4px 4px;
+}
+
+/* Hairline from the end of a bar down to the start of the next one. */
+.bridge__link {
+  position: absolute;
+  top: 100%;
+  width: 1px;
+  height: calc(var(--bridge-row) - var(--bridge-bar) + var(--s-3));
+  background: var(--filet-fort);
+}
+
+@media (max-width: 640px) {
+  .bridge__step {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-1) var(--s-4);
+  }
+  .bridge__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .bridge__link {
+    display: none;
+  }
+}

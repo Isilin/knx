@@ -2,6 +2,14 @@
   white-space: nowrap;
 }
 
+.idate {
+  white-space: nowrap;
+}
+
+.idate__pti {
+  color: var(--gris);
+}
+
 .amount__unit {
   color: var(--gris);
   font-size: 0.86em;

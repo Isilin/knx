@@ -1,15 +1,27 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { CoteTable } from "../components/CoteTable.tsx";
-import { Change, Estimated, groupColor, RankChange } from "../components/figures.tsx";
+import {
+  Amount,
+  Change,
+  Estimated,
+  groupColor,
+  ImperialDate,
+  RankChange,
+} from "../components/figures.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
+import { DynamicsKey, MarketMap } from "../components/MarketMap.tsx";
+import { RegimeChart } from "../components/RegimeChart.tsx";
+import { RegimeList } from "../components/RegimeList.tsx";
 import { TimeChart, type ChartSeries } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
-import { formatLongDate, formatShortDate } from "../domain/dates.ts";
+import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
 import { computeMovers } from "../domain/movers.ts";
-import { formatInteger } from "../domain/numbers.ts";
+import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
+import { groupByRegime, marketMap } from "../domain/regimes.ts";
+import { marketTreasury, type MarketTreasuryPoint } from "../domain/treasury.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
 import "./MarketPage.css";
@@ -70,13 +82,118 @@ function MoverRow({ company, kind }: { company: CompanySeries; kind: "performanc
   );
 }
 
+/** Capital and headcount of the whole listing, on the reports that publish them. */
+function TreasurySection({ points }: { points: MarketTreasuryPoint[] }) {
+  const [period, setPeriod] = useState<PeriodId>("all");
+  if (points.length === 0) return null;
+  const start = periodStart(period, points[points.length - 1].date);
+  // The latest report is always inside the period, so `visible` is never empty.
+  const visible = points.filter((p) => !start || p.date >= start);
+  const first = visible[0];
+  const last = visible[visible.length - 1];
+  const ratio = (to: number, from: number) => (visible.length > 1 && from ? to / from - 1 : null);
+  let steepest: { drop: number; date: string } | null = null;
+  for (let k = 1; k < visible.length; k++) {
+    const drop = visible[k].capital - visible[k - 1].capital;
+    if (drop < 0 && (!steepest || drop < steepest.drop)) steepest = { drop, date: visible[k].date };
+  }
+
+  return (
+    <section className="market__treasury" aria-labelledby="tresorerie">
+      <div className="section-head">
+        <h2 id="tresorerie">Trésorerie de la cote</h2>
+        <p>capital et effectifs publiés, toutes corporations cotées</p>
+        <div className="push">
+          <PeriodPicker value={period} onChange={setPeriod} />
+        </div>
+      </div>
+      <div className="treasury-pair">
+        <div>
+          <dl className="treasury-figure">
+            <dt className="label">Capital total</dt>
+            <dd className="treasury-figure__value">
+              <Amount value={last.capital} />
+            </dd>
+            <dd className="treasury-figure__detail">
+              <Change ratio={ratio(last.capital, first.capital)} /> depuis le{" "}
+              <ImperialDate date={first.date} />
+              {steepest ? (
+                <>
+                  {" "}
+                  · plus forte baisse sur un relevé : −{formatCompact(-steepest.drop)} ¢ le{" "}
+                  <ImperialDate date={steepest.date} />
+                </>
+              ) : null}
+            </dd>
+          </dl>
+          <TimeChart
+            label={`Capital total des corporations cotées, ${period === "all" ? "depuis le premier relevé du capital" : `${period} derniers ans impériaux`}`}
+            formatValue={(v) => `${formatInteger(v)} ¢`}
+            height={220}
+            series={[
+              {
+                id: "capital",
+                label: "Capital total",
+                color: "var(--ivoire)",
+                points: visible.map((p) => ({ date: p.date, value: p.capital })),
+              },
+            ]}
+          />
+        </div>
+        <div>
+          <dl className="treasury-figure">
+            <dt className="label">Effectif total</dt>
+            <dd className="treasury-figure__value">
+              {formatInteger(last.employees)}
+              <span className="fact__unit">employés</span>
+            </dd>
+            <dd className="treasury-figure__detail">
+              <Change ratio={ratio(last.employees, first.employees)} /> · {last.companies}{" "}
+              corporations, {formatDecimal(last.employees / last.companies)} employés par
+              corporation
+            </dd>
+          </dl>
+          <TimeChart
+            label="Effectif total des corporations cotées"
+            formatValue={(v) => `${formatInteger(v)} employés`}
+            height={220}
+            series={[
+              {
+                id: "employees",
+                label: "Effectif total",
+                color: "var(--ivoire)",
+                points: visible.map((p) => ({ date: p.date, value: p.employees })),
+              },
+            ]}
+          />
+        </div>
+      </div>
+      <p className="chart-note">
+        Sommes des valeurs publiées par le jeu pour les corporations cotées ce jour-là : une entrée
+        ou une radiation déplace aussi le total.{" "}
+        <span className="chart-note__source">
+          Source : rapport « Corporations », capital et effectifs relevés depuis le{" "}
+          <ImperialDate date={points[0].date} /> ({points.length} relevés).
+        </span>
+      </p>
+    </section>
+  );
+}
+
 export function MarketPage() {
   const market = useMarket();
   const { focused, setFocused } = useFocus();
   const { followed } = useFollowed();
-  const [period, setPeriod] = useState<PeriodId>("30");
+  const [period, setPeriod] = useState<PeriodId>("1");
   const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
+  const treasury = useMemo(() => marketTreasury(market), [market]);
+  const map = useMemo(() => marketMap(market), [market]);
+  const regimes = useMemo(() => groupByRegime(market), [market]);
+  // Changes of order near the top of the cote, soonest first.
+  const overtakes = market.projection.crossings
+    .filter((x) => x.passed.latest.rank <= 20)
+    .slice(0, 4);
   const { facts } = market;
 
   const top = useMemo(
@@ -103,21 +220,20 @@ export function MarketPage() {
 
   return (
     <div className="market">
-      <h1 className="sr-only">Marché du {formatLongDate(market.latestDate)}</h1>
+      <h1 className="sr-only">Marché du {formatImperialDate(market.latestDate)}</h1>
 
       <dl className="facts" aria-label="Faits du relevé">
         <Fact
           label="Relevé"
-          detail={`n° ${market.dates.length} depuis le ${formatShortDate(market.dates[0])}/${market.dates[0].slice(0, 4)}`}
+          detail={`${formatPti(facts.date)} · n° ${market.dates.length} depuis le ${formatImperialDate(market.dates[0])}`}
         >
-          {formatShortDate(facts.date)}
-          <span className="fact__year">{facts.date.slice(0, 4)}</span>
+          <ImperialDate date={facts.date} />
         </Fact>
         <Fact
           label="Écart"
           detail={
             facts.previousDate
-              ? `depuis le ${formatShortDate(facts.previousDate)}`
+              ? `depuis le ${formatImperialDate(facts.previousDate)}`
               : "premier relevé"
           }
         >
@@ -187,8 +303,7 @@ export function MarketPage() {
               : "Recette par jour estimée par KNX, lissée sur les 30 jours précédant chaque relevé."}{" "}
             <span className="chart-note__source">
               Source : rapport « Corporations », {market.dates.length} relevés du{" "}
-              {formatShortDate(market.dates[0])}/{market.dates[0].slice(0, 4)} au{" "}
-              {formatShortDate(market.latestDate)}/{market.latestDate.slice(0, 4)}.
+              <ImperialDate date={market.dates[0]} /> au <ImperialDate date={market.latestDate} />.
             </span>
           </p>
           <ol className="legend" aria-label="Légende">
@@ -244,6 +359,37 @@ export function MarketPage() {
               </ul>
             </>
           ) : null}
+          {overtakes.length > 0 ? (
+            <>
+              <h3 className="label">Dépassements attendus</h3>
+              <p className="movers__note">
+                si la recette des 30 derniers jours se maintient, d'ici le{" "}
+                <ImperialDate date={market.projection.horizon} />
+              </p>
+              <ul className="mover-list">
+                {overtakes.map((x) => (
+                  <li
+                    key={`${x.passer.slug}-${x.passed.slug}`}
+                    className={focused === x.passer.slug ? "is-focused" : undefined}
+                    onMouseEnter={() => setFocused(x.passer.slug)}
+                    onMouseLeave={() => setFocused(null)}
+                  >
+                    <Seal seed={x.passer.sealSeed} size={20} />
+                    <span className="mover__name">
+                      <Link to={`/corporations/${x.passer.slug}`}>{x.passer.name}</Link>
+                      <small>
+                        devant {x.passed.name} · rang {x.passer.latest.rank} →{" "}
+                        {x.passed.latest.rank}
+                      </small>
+                    </span>
+                    <span className="estimated" title="Projection KNX">
+                      ≈ {x.inDays} j
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </>
+          ) : null}
           <p className="movers__silent">
             <strong>{movers.silent.length}</strong> corporation{movers.silent.length > 1 ? "s" : ""}{" "}
             sans recette mesurable sur la période
@@ -252,10 +398,61 @@ export function MarketPage() {
         </aside>
       </div>
 
+      <section className="market__map" aria-labelledby="carte">
+        <div className="section-head">
+          <h2 id="carte">Carte du marché</h2>
+          <p>
+            surface : <span className="estimated">poids économique sur 30 jours</span> · couleur :{" "}
+            <span className="estimated">dynamique</span>
+          </p>
+          <div className="push">
+            <DynamicsKey />
+          </div>
+        </div>
+        <MarketMap tiles={map.tiles} />
+        <p className="chart-note">
+          Chaque surface est la part de la corporation dans les recettes estimées de tout le marché
+          sur les 30 derniers jours ; sa couleur, sa dynamique (30 derniers jours face aux 90
+          précédents). Les corporations sous 0,5 % sont regroupées dans « Autres ».
+          {map.silent.length > 0 ? (
+            <span className="chart-note__source">
+              Sans recette mesurable sur 30 jours, donc absentes de la carte :{" "}
+              {map.silent.map((c) => c.name).join(", ")}.
+            </span>
+          ) : null}
+        </p>
+      </section>
+
+      <section className="market__regimes" aria-labelledby="regimes">
+        <div className="section-head">
+          <h2 id="regimes">Régimes</h2>
+          <p>
+            <span className="estimated">activité</span> face à{" "}
+            <span className="estimated">dynamique</span>, taille selon le poids économique
+          </p>
+        </div>
+        <div className="regimes-pair">
+          <RegimeChart
+            companies={market.companies.filter((c) => c.status === "active")}
+            pinned={followed}
+          />
+          <RegimeList groups={regimes.groups} unplaced={regimes.unplaced} />
+        </div>
+        <p className="chart-note">
+          Activité : recettes des 30 derniers jours face à la moyenne historique de la corporation.
+          Dynamique : 30 derniers jours face aux 90 précédents. Deux indicateurs estimés par KNX, de
+          −100 à +100.
+        </p>
+      </section>
+
+      <TreasurySection points={treasury} />
+
       <section className="market__cote" aria-labelledby="cote">
         <div className="section-head">
           <h2 id="cote">La cote</h2>
-          <p>Relevé du {formatLongDate(facts.date)}</p>
+          <p>
+            Relevé du <ImperialDate date={facts.date} />
+          </p>
           <Link className="push backlink" to="/corporations">
             Vue analytique complète
           </Link>
@@ -263,7 +460,7 @@ export function MarketPage() {
         <CoteTable
           companies={market.companies}
           variant="compact"
-          caption={`La cote du ${formatLongDate(facts.date)}`}
+          caption={`La cote du ${formatImperialDate(facts.date)}`}
         />
       </section>
     </div>

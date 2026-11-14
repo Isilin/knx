@@ -158,10 +158,6 @@
   font-size: var(--fs-sm);
 }
 
-.colophon a {
-  color: var(--ivoire);
-}
-
 @media (max-width: 1100px) {
   .brand__name {
     display: none;

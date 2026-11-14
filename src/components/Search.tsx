@@ -1,5 +1,6 @@
 import { useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useNavigate } from "react-router";
+import { imperialYear } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { Seal } from "./Seal.tsx";
 import "./Search.css";
@@ -118,7 +119,7 @@ export function Search({ companies }: { companies: CompanySeries[] }) {
                 </span>
                 <small>
                   {company.status === "delisted"
-                    ? `fermée${company.namesakes.length > 0 ? ` · ${company.firstSeen.slice(0, 4)}` : ""}`
+                    ? `fermée${company.namesakes.length > 0 ? ` · an ${imperialYear(company.firstSeen)}` : ""}`
                     : `rang ${company.latest.rank}`}
                 </small>
               </li>

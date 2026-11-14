@@ -1,7 +1,7 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useData } from "../data/DataProvider.tsx";
-import { formatLongDate } from "../domain/dates.ts";
+import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { isSectorId, SECTORS, type SectorId } from "../domain/sectors.ts";
 import type { Consortium } from "../domain/types.ts";
@@ -41,7 +41,7 @@ export function CompanyEditor({ company, consortiums, onClose }: CompanyEditorPr
 
   const estimate =
     company.creation && company.creation.method === "bounds"
-      ? `vers le ${formatLongDate(company.creation.creation)}`
+      ? `vers le ${formatImperialDate(company.creation.creation)}`
       : null;
   const shown =
     logo.kind === "set" ? logo.preview : logo.kind === "remove" ? null : company.logoUrl;

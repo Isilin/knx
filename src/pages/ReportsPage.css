@@ -6,13 +6,6 @@
   border-top: 1px solid var(--filet);
 }
 
-.reports__side {
-  display: grid;
-  gap: var(--s-7);
-  align-content: start;
-  min-width: 0;
-}
-
 .reports__who {
   color: var(--gris);
   font-size: var(--fs-sm);
@@ -39,6 +32,11 @@
 
 .editor__date input {
   color-scheme: dark;
+}
+
+/* The picker speaks the real calendar; the imperial date beside the label is what players read. */
+.editor__ig .idate {
+  color: var(--ivoire);
 }
 
 .form-grid {
@@ -262,4 +260,197 @@
 
 .signin__hint {
   font-size: var(--fs-sm);
+}
+
+/* Main column: pending sends from the game, then the editor. Side column: consortiums, journal, keys. */
+.reports__main,
+.reports__side {
+  display: grid;
+  gap: var(--s-7);
+  align-content: start;
+  min-width: 0;
+}
+
+/* ---- Sends from the in-game module, awaiting review ---- */
+
+.pending {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.pending .section-head {
+  margin-bottom: 0;
+}
+
+.pending__card {
+  display: grid;
+  gap: var(--s-3);
+  padding-top: var(--s-4);
+  border-top: 1px solid var(--or);
+}
+
+.pending__card + .pending__card {
+  margin-top: var(--s-4);
+}
+
+.pending__head h3 {
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.pending__head h3 .idate {
+  color: var(--ivoire);
+}
+
+.pending__head p {
+  margin-top: var(--s-1);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.pending__head strong {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.pending__revoked,
+.pending__danger {
+  color: var(--alerte);
+}
+
+.pending__danger {
+  border-color: rgb(255 138 61 / 0.5);
+}
+
+.pending__rows summary {
+  width: fit-content;
+  color: var(--gris);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.pending__rows summary:hover {
+  color: var(--ivoire);
+}
+
+.pending__rows table {
+  width: 100%;
+  margin-top: var(--s-3);
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.pending__rows th,
+.pending__rows td {
+  padding: var(--s-1) var(--s-2);
+  border-bottom: 1px solid var(--filet);
+  text-align: right;
+}
+
+.pending__rows thead th {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.pending__rows th:nth-child(2) {
+  text-align: left;
+  font-weight: 400;
+}
+
+/* ---- Keys of the in-game module ---- */
+
+.keys {
+  display: grid;
+  gap: var(--s-4);
+  align-content: start;
+}
+
+.keys .section-head {
+  margin-bottom: 0;
+}
+
+.keys__intro {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.keys__form {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.keys__form .button {
+  justify-self: start;
+}
+
+.keys__list {
+  border-top: 1px solid var(--filet);
+}
+
+.keys__item {
+  display: grid;
+  gap: var(--s-1);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.keys__item p {
+  color: var(--gris);
+}
+
+.keys__item.is-revoked {
+  opacity: 0.55;
+}
+
+.keys__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-2);
+}
+
+.keys__name strong {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.keys code,
+.keys__secret code {
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  font-size: var(--fs-cap);
+  color: var(--gris);
+}
+
+.keys__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.keys__danger {
+  color: var(--alerte);
+  text-decoration-color: var(--alerte);
+}
+
+.keys__secret {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.keys__secret code {
+  display: block;
+  padding: var(--s-2);
+  border: 1px solid var(--filet-fort);
+  background: var(--laque);
+  color: var(--ivoire);
+  overflow-wrap: anywhere;
+  user-select: all;
 }

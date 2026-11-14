@@ -1,6 +1,7 @@
-import { formatLongDate } from "./dates.ts";
+import { formatImperialDate, imperialYear } from "./imperial.ts";
 import type { CompanySeries } from "./market.ts";
-import { formatInteger } from "./numbers.ts";
+import { formatCompact, formatInteger, formatPercent } from "./numbers.ts";
+import { largestFlows } from "./treasury.ts";
 import type { CompanyEvent, EventKind, IsoDate } from "./types.ts";
 
 export const EVENT_LABELS: Record<EventKind, string> = {
@@ -80,7 +81,7 @@ export function buildTimeline(
         key: "founding",
         date: creation.creation,
         title: "Fondation estimée",
-        note: "Déduite de l'historique du CA publié ; voir la méthodologie.",
+        note: "Déduite par KNX de l'historique du CA publié.",
         origin: "estimate",
       }),
     );
@@ -119,6 +120,22 @@ export function buildTimeline(
     }),
   );
 
+  // The largest flows outside revenue, when they moved at least a quarter of the capital.
+  const flows = largestFlows(company.points, null, Infinity);
+  const outflow = flows.find((f) => f.flow < 0 && (f.share ?? 0) <= -0.25);
+  const inflow = flows.find((f) => f.flow > 0 && (f.share ?? 0) >= 0.25);
+  for (const f of [outflow, inflow]) {
+    if (!f) continue;
+    list.push(
+      entry({
+        key: `flow-${f.date}`,
+        date: f.date,
+        title: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
+        origin: "estimate",
+      }),
+    );
+  }
+
   const typedClosure = events.some((e) => e.kind === "closed");
   if (company.status === "delisted" && !typedClosure)
     list.push(
@@ -127,13 +144,15 @@ export function buildTimeline(
         date: company.closedOn ?? company.latest.date,
         title: company.closedOn ? "Fermeture" : "Dernier relevé",
         note: company.closedOn
-          ? `Absente du rapport ; dernier relevé le ${formatLongDate(company.latest.date)}.`
+          ? `Absente du rapport ; dernier relevé le ${formatImperialDate(company.latest.date)}.`
           : null,
       }),
     );
 
   for (const other of company.namesakes) {
-    const years = `${other.firstSeen.slice(0, 4)}–${(other.closedOn ?? other.lastSeen).slice(0, 4)}`;
+    const from = imperialYear(other.firstSeen);
+    const to = imperialYear(other.closedOn ?? other.lastSeen);
+    const years = from === to ? `an ${from}` : `ans ${from} à ${to}`;
     if (other.firstSeen < company.firstSeen)
       list.push(
         entry({
@@ -150,10 +169,7 @@ export function buildTimeline(
           key: `namesake-${other.slug}`,
           date: other.firstSeen,
           title: "Une nouvelle corporation reprend le nom",
-          link: {
-            slug: other.slug,
-            label: `${other.name} (depuis ${other.firstSeen.slice(0, 4)})`,
-          },
+          link: { slug: other.slug, label: `${other.name} (depuis l'an ${from})` },
         }),
       );
   }

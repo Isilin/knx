@@ -1,20 +1,23 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { ConsortiumManager } from "../components/ConsortiumManager.tsx";
-import { Amount, Change } from "../components/figures.tsx";
+import { ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
-import { daysBetween, formatLongDate, formatShortDate } from "../domain/dates.ts";
-import { assignRanks, diffReport, type DiffRow } from "../domain/diff.ts";
-import {
-  proposeIdentities,
-  resolveReport,
-  type Evidence,
-  type IdentityDecisions,
-  type RefoundingProposal,
-  type RenameProposal,
-} from "../domain/identity.ts";
-import { formatPercent, parseAmount } from "../domain/numbers.ts";
+import { isIsoDate } from "../domain/dates.ts";
+import { formatImperialDate } from "../domain/imperial.ts";
+import { assignRanks } from "../domain/diff.ts";
+import { parseAmount } from "../domain/numbers.ts";
 import { parseReport } from "../domain/report.ts";
+import {
+  creationLookup,
+  previousSnapshot,
+  reviewReport,
+  type IdentityChoices,
+} from "../domain/review.ts";
 import type { Dataset, ReportRow, SnapshotSource } from "../domain/types.ts";
+import { ApiKeysPanel } from "./reports/ApiKeysPanel.tsx";
+import { PendingReview } from "./reports/PendingReview.tsx";
+import { ReportChecks } from "./reports/ReportChecks.tsx";
+import { usePending } from "./reports/usePending.ts";
 import "./ReportsPage.css";
 
 function todayLocal(): string {
@@ -134,7 +137,7 @@ function Journal({ dataset }: { dataset: Dataset }) {
     sheet: "tableur",
     form: "formulaire",
     paste: "rapport collé",
-    userscript: "userscript",
+    userscript: "module du jeu",
   };
   return (
     <section className="journal" aria-labelledby="journal">
@@ -145,7 +148,7 @@ function Journal({ dataset }: { dataset: Dataset }) {
       <ol>
         {recent.map((s) => (
           <li key={s.date}>
-            <time dateTime={s.date}>{formatLongDate(s.date)}</time>
+            <ImperialDate date={s.date} pti />
             <span>{s.rows.length} corporations</span>
             <span className="journal__source">{labels[s.source]}</span>
           </li>
@@ -155,32 +158,6 @@ function Journal({ dataset }: { dataset: Dataset }) {
   );
 }
 
-/** `A, B, C et 12 autres` */
-function list(names: readonly string[], limit = 8): string {
-  if (names.length === 0) return "aucune";
-  if (names.length <= limit) return names.join(", ");
-  return `${names.slice(0, limit).join(", ")} et ${names.length - limit} autres`;
-}
-
-const EVIDENCE: Record<Evidence, string> = {
-  name: "nom proche",
-  chiffre: "CA",
-  capital: "capital",
-  employees: "effectif",
-};
-
-/** `nom proche · mêmes CA, capital et effectif` */
-function evidenceText(evidence: readonly Evidence[]): string {
-  const parts: string[] = [];
-  if (evidence.includes("name")) parts.push(EVIDENCE.name);
-  const figures = evidence.filter((e) => e !== "name").map((e) => EVIDENCE[e]);
-  if (figures.length > 0)
-    parts.push(
-      `${figures.length > 1 ? "mêmes" : "même"} ${figures.length > 1 ? `${figures.slice(0, -1).join(", ")} et ${figures.at(-1)}` : figures[0]}`,
-    );
-  return parts.join(" · ");
-}
-
 interface PublishStatus {
   tone: "ok" | "error";
   text: string;
@@ -188,10 +165,13 @@ interface PublishStatus {
 
 function Editor({
   dataset,
+  pendingDates,
   status,
   setStatus,
 }: {
   dataset: Dataset | null;
+  /** Dates holding a report sent by the in-game module, not yet reviewed. */
+  pendingDates: ReadonlySet<string>;
   /** Kept by the page: a successful publication reloads the data and remounts the editor. */
   status: PublishStatus | null;
   setStatus: (status: PublishStatus | null) => void;
@@ -202,22 +182,17 @@ function Editor({
   const [mode, setMode] = useState<"paste" | "form">("paste");
   const [text, setText] = useState("");
   const [replace, setReplace] = useState(false);
-  const [choices, setChoices] = useState<Record<string, boolean>>({});
+  const [choices, setChoices] = useState<IdentityChoices>({});
   const [busy, setBusy] = useState(false);
 
+  const previous = useMemo(
+    () => (dataset ? previousSnapshot(dataset.snapshots, date) : null),
+    [dataset, date],
+  );
   const nameOf = useMemo(() => {
     const names = new Map(dataset?.companies.map((c) => [c.id, c.name]) ?? []);
     return (id: string) => names.get(id) ?? id;
   }, [dataset]);
-
-  const previous = useMemo(() => {
-    if (!dataset) return null;
-    return (
-      [...dataset.snapshots]
-        .filter((s) => s.date < date)
-        .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null
-    );
-  }, [dataset, date]);
 
   const [formRows, setFormRows] = useState<FormRow[]>(() =>
     (previous?.rows ?? []).map((r, i) => ({
@@ -229,7 +204,9 @@ function Editor({
     })),
   );
 
-  const exists = dataset?.snapshots.some((s) => s.date === date) ?? false;
+  const published = dataset?.snapshots.some((s) => s.date === date) ?? false;
+  const pendingHere = !published && pendingDates.has(date);
+  const exists = published || pendingHere;
 
   const parsed = useMemo((): { rows: ReportRow[]; errors: string[] } => {
     if (mode === "paste") {
@@ -264,96 +241,38 @@ function Editor({
     return { rows: assignRanks(rows), errors };
   }, [mode, text, formRows]);
 
-  /** Estimated days of activity on the report's date, by corporation. */
-  const ageOn = useMemo(() => {
-    const creations = new Map(
-      (market?.companies ?? []).map((c) => [
-        c.id,
-        c.creation && c.creation.method !== "first-seen" ? c.creation.creation : null,
-      ]),
-    );
-    return (id: string) => {
-      const creation = creations.get(id);
-      return creation ? daysBetween(creation, date) : null;
-    };
-  }, [market, date]);
-
-  const proposals = useMemo(() => {
-    if (!dataset || parsed.rows.length === 0) return null;
-    return proposeIdentities({
-      companies: dataset.companies,
-      snapshots: dataset.snapshots,
-      withEvents: new Set(dataset.events.map((e) => e.companyId)),
-      date,
-      rows: parsed.rows,
-      ageOn,
-    });
-  }, [dataset, parsed.rows, date, ageOn]);
-
-  const renameKey = (r: RenameProposal) => `rename:${r.companyId}:${r.to}`;
-  const refoundKey = (r: RefoundingProposal) => `refound:${r.companyId}`;
-  const resolved = useMemo(() => {
-    if (!proposals) return null;
-    const decisions: IdentityDecisions = {
-      renames: new Set(
-        proposals.renames
-          .filter((r) => choices[renameKey(r)] ?? r.suggested)
-          .map((r) => r.companyId),
+  const review = useMemo(
+    () =>
+      reviewReport(
+        dataset ?? { companies: [], snapshots: [], events: [] },
+        creationLookup(market?.companies ?? []),
+        date,
+        parsed.rows,
+        choices,
       ),
-      refoundings: new Set(
-        proposals.refoundings.filter((r) => choices[refoundKey(r)] ?? true).map((r) => r.companyId),
-      ),
-    };
-    return resolveReport(parsed.rows, proposals, decisions);
-  }, [proposals, parsed.rows, choices]);
-
-  const comparison = useMemo(() => {
-    if (!previous || !resolved) return null;
-    const before: DiffRow[] = previous.rows.map((r) => ({
-      ...r,
-      key: r.companyId,
-      name: nameOf(r.companyId),
-    }));
-    const after: DiffRow[] = resolved.rows.map((r) => ({
-      ...r,
-      key: r.companyId ?? `new:${r.name}`,
-    }));
-    return {
-      before,
-      after,
-      diff: diffReport(before, after, { gap: daysBetween(previous.date, date), ageOn }),
-    };
-  }, [previous, resolved, nameOf, date, ageOn]);
-  const diff = comparison?.diff ?? null;
-
-  const created = resolved?.rows.filter((r) => r.companyId === null).map((r) => r.name) ?? [];
-  const namesakes = new Map(proposals?.namesakes.map((n) => [n.name, n.closedOn]) ?? []);
-  const closures = resolved?.closures.map(nameOf) ?? [];
-  const toggle = (key: string, value: boolean) =>
-    setChoices((current) => ({ ...current, [key]: value }));
-
+    [dataset, market, date, parsed.rows, choices],
+  );
   const canPublish =
+    dataset !== null &&
     parsed.rows.length > 0 &&
     parsed.errors.length === 0 &&
-    resolved !== null &&
     (!exists || replace) &&
     !busy;
 
   const submit = async () => {
-    if (!resolved) return;
     setBusy(true);
     setStatus(null);
     try {
       await publish({
         date,
         source: mode === "paste" ? "paste" : "form",
-        rows: resolved.rows,
-        closures: resolved.closures,
+        rows: review.resolved.rows,
+        closures: review.resolved.closures,
         replace: exists && replace,
       });
       setStatus({
         tone: "ok",
-        text: `Relevé du ${formatLongDate(date)} publié : ${parsed.rows.length} corporations.`,
+        text: `Relevé du ${formatImperialDate(date)} publié : ${parsed.rows.length} corporations.`,
       });
       setText("");
       setReplace(false);
@@ -380,7 +299,15 @@ function Editor({
 
       <div className="editor__bar">
         <label className="field editor__date">
-          <span className="label">Date du relevé</span>
+          <span className="label">
+            Date du relevé
+            {isIsoDate(date) ? (
+              <span className="editor__ig">
+                {" · "}
+                <ImperialDate date={date} />
+              </span>
+            ) : null}
+          </span>
           <input
             type="date"
             value={date}
@@ -489,7 +416,7 @@ function Editor({
             <p className="preview__summary">
               <strong>{parsed.rows.length}</strong> corporations lues
               {previous
-                ? ` · comparées au relevé du ${formatLongDate(previous.date)}`
+                ? ` · comparées au relevé du ${formatImperialDate(previous.date)}`
                 : " · premier relevé"}
             </p>
             {parsed.errors.length > 0 ? (
@@ -504,126 +431,13 @@ function Editor({
                 </ul>
               </div>
             ) : null}
-            {proposals && !proposals.latest ? (
-              <p className="note">
-                Ce relevé est antérieur au dernier publié : ses lignes sont rattachées aux
-                corporations ouvertes à cette date, sans fermeture ni renommage.
-              </p>
-            ) : null}
-            {proposals && (diff || created.length > 0) ? (
-              <ul className="checks">
-                <li>
-                  <span className="label">Nouvelles</span>
-                  <span>
-                    {created.length === 0
-                      ? "aucune"
-                      : created
-                          .map((name) =>
-                            namesakes.has(name)
-                              ? `${name} (homonyme d'une corporation fermée le ${formatShortDate(namesakes.get(name) ?? "")} : nouvelle fiche)`
-                              : name,
-                          )
-                          .join(", ")}
-                  </span>
-                </li>
-                <li className={closures.length > 0 ? "is-warn" : undefined}>
-                  <span className="label">Fermetures</span>
-                  <span>
-                    {closures.length === 0
-                      ? "aucune"
-                      : `${closures.length} : ${list(closures)}. Une fermeture est définitive.`}
-                  </span>
-                </li>
-                {proposals.renames.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">Renommages</span>
-                    <span className="choices">
-                      {proposals.renames.map((r) => (
-                        <label key={renameKey(r)} className="choice">
-                          <input
-                            type="checkbox"
-                            checked={choices[renameKey(r)] ?? r.suggested}
-                            onChange={(e) => toggle(renameKey(r), e.target.checked)}
-                          />
-                          <span>
-                            <strong>{r.from}</strong> devient <strong>{r.to}</strong>
-                            <small>
-                              {evidenceText(r.evidence)} · décoché : {r.from} fermée, {r.to}{" "}
-                              nouvelle
-                            </small>
-                          </span>
-                        </label>
-                      ))}
-                    </span>
-                  </li>
-                ) : null}
-                {proposals.refoundings.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">Refondations</span>
-                    <span className="choices">
-                      {proposals.refoundings.map((r) => (
-                        <label key={refoundKey(r)} className="choice">
-                          <input
-                            type="checkbox"
-                            checked={choices[refoundKey(r)] ?? true}
-                            onChange={(e) => toggle(refoundKey(r), e.target.checked)}
-                          />
-                          <span>
-                            <strong>{r.name}</strong> a fermé puis rouvert sous le même nom :
-                            nouvelle fiche, historique repris à zéro
-                            <small>
-                              CA <Amount value={r.before.chiffre} unit={false} /> →{" "}
-                              <Amount value={r.after.chiffre} unit={false} />
-                              {r.before.capital !== null && r.after.capital !== null ? (
-                                <>
-                                  {" "}
-                                  · capital <Amount value={r.before.capital} unit={false} /> →{" "}
-                                  <Amount value={r.after.capital} unit={false} />
-                                </>
-                              ) : null}
-                            </small>
-                          </span>
-                        </label>
-                      ))}
-                    </span>
-                  </li>
-                ) : null}
-                {diff && diff.outliers.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">À vérifier</span>
-                    <span>
-                      {diff.outliers.map((o) => (
-                        <span key={`${o.name}-${o.field}`} className="outlier">
-                          <strong>{o.name}</strong> ·{" "}
-                          {o.field === "chiffre" ? "chiffre" : "capital"}{" "}
-                          <Amount value={o.before} unit={false} /> →{" "}
-                          <Amount value={o.after} unit={false} /> <Change ratio={o.ratio} />
-                          <small>{o.reason}</small>
-                        </span>
-                      ))}
-                    </span>
-                  </li>
-                ) : null}
-                {diff && diff.rankMismatches.length > 0 ? (
-                  <li className="is-warn">
-                    <span className="label">Rangs</span>
-                    <span>
-                      Ordre incohérent avec le chiffre pour {diff.rankMismatches.join(", ")}.
-                    </span>
-                  </li>
-                ) : null}
-              </ul>
-            ) : null}
-            {parsed.rows.length > 0 &&
-            parsed.errors.length === 0 &&
-            comparison &&
-            comparison.diff.outliers.length === 0 &&
-            proposals?.renames.length === 0 &&
-            proposals.refoundings.length === 0 ? (
-              <p className="note note--ok">
-                Aucune anomalie détectée. Variation moyenne du chiffre :{" "}
-                {formatPercent(average(comparison.before, comparison.after))}.
-              </p>
+            {review.diff ? (
+              <ReportChecks
+                review={review}
+                choices={choices}
+                onChoice={(key, value) => setChoices((current) => ({ ...current, [key]: value }))}
+                showClean={parsed.errors.length === 0}
+              />
             ) : null}
           </>
         )}
@@ -635,7 +449,16 @@ function Editor({
               checked={replace}
               onChange={(e) => setReplace(e.target.checked)}
             />
-            Un relevé existe déjà pour le {formatLongDate(date)} : le remplacer.
+            {pendingHere ? (
+              <>
+                Un envoi du jeu attend validation pour le <ImperialDate date={date} /> : publier
+                cette saisie à sa place.
+              </>
+            ) : (
+              <>
+                Un relevé existe déjà pour le <ImperialDate date={date} /> : le remplacer.
+              </>
+            )}
           </label>
         ) : null}
 
@@ -650,18 +473,12 @@ function Editor({
   );
 }
 
-function average(previous: readonly DiffRow[], next: readonly DiffRow[]): number {
-  const before = new Map(previous.map((r) => [r.key, r.chiffre]));
-  const ratios = next.flatMap((r) => {
-    const old = before.get(r.key);
-    return old && old > 0 && r.chiffre > 0 ? [r.chiffre / old - 1] : [];
-  });
-  return ratios.length === 0 ? 0 : ratios.reduce((a, b) => a + b, 0) / ratios.length;
-}
-
 export function ReportsPage() {
   const { state, session, source } = useData();
   const dataset = state.status === "ready" ? state.dataset : null;
+  const isAdmin = session?.state === "signed-in" && session.isAdmin;
+  const { pending, error: pendingError, refresh } = usePending(isAdmin);
+  const pendingDates = useMemo(() => new Set(pending.map((p) => p.date)), [pending]);
   const [status, setStatus] = useState<PublishStatus | null>(null);
 
   return (
@@ -670,8 +487,9 @@ export function ReportsPage() {
         <div>
           <h1>Relevés</h1>
           <p>
-            Chaque jour, le rapport « Corporations » du jeu devient un relevé KNX. Collez-le tel
-            quel ou saisissez-le à la main ; un envoi direct depuis le jeu viendra plus tard.
+            Chaque jour, le rapport « Corporations » du jeu devient un relevé KNX. Le module de jeu
+            l'envoie directement pour validation ; sinon, collez-le tel quel ou saisissez-le à la
+            main.
           </p>
         </div>
         {source.kind === "supabase" && session?.state === "signed-in" ? (
@@ -697,15 +515,25 @@ export function ReportsPage() {
         </p>
       ) : (
         <div className="reports__grid">
-          <Editor
-            key={dataset?.snapshots.length ?? 0}
-            dataset={dataset}
-            status={status}
-            setStatus={setStatus}
-          />
+          <div className="reports__main">
+            <PendingReview
+              pending={pending}
+              error={pendingError}
+              dataset={dataset}
+              onChanged={refresh}
+            />
+            <Editor
+              key={dataset?.snapshots.length ?? 0}
+              dataset={dataset}
+              pendingDates={pendingDates}
+              status={status}
+              setStatus={setStatus}
+            />
+          </div>
           <div className="reports__side">
             {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
             {dataset ? <Journal dataset={dataset} /> : null}
+            {source.kind === "supabase" ? <ApiKeysPanel /> : null}
           </div>
         </div>
       )}

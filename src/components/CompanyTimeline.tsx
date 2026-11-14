@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useData } from "../data/DataProvider.tsx";
-import { formatLongDate } from "../domain/dates.ts";
+import { ImperialDate } from "./figures.tsx";
+import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { buildTimeline, EVENT_LABELS, type TimelineEntry } from "../domain/timeline.ts";
 import type { CompanyEvent, EventDetails, EventKind } from "../domain/types.ts";
@@ -47,7 +48,9 @@ function EventForm({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     if (kind === "founding" && date > company.firstSeen) {
-      setError(`La fondation précède le premier relevé (${formatLongDate(company.firstSeen)}).`);
+      setError(
+        `La fondation précède le premier relevé (${formatImperialDate(company.firstSeen)}).`,
+      );
       return;
     }
     const details: EventDetails =
@@ -269,7 +272,7 @@ export function CompanyTimeline({
       <ol className="milestones timeline__list">
         {visible.map((entry) => (
           <li key={entry.key} className={`is-${entry.origin}`}>
-            <time dateTime={entry.date}>{formatLongDate(entry.date)}</time>
+            <ImperialDate date={entry.date} />
             <span className="timeline__body">
               <span className="timeline__title">
                 <span className={entry.origin === "estimate" ? "estimated" : undefined}>

@@ -1,6 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { normalizeDataset } from "../domain/mutations.ts";
-import type { DataSource, Session } from "./source.ts";
+import type {
+  ApiKey,
+  CreatedApiKey,
+  DataSource,
+  PendingSnapshot,
+  ResolvedRows,
+  Session,
+} from "./source.ts";
 
 const LOGO_BUCKET = "company-logos";
 
@@ -27,6 +34,18 @@ function writeMessage(error: { message: string; code?: string }, duplicate?: str
   if (error.code === "42501" || /row-level security/i.test(error.message))
     return new Error("modification réservée aux opérateurs.");
   return new Error(error.message);
+}
+
+/** A resolved report row, as the publication functions read it. */
+function rowPayload(r: ResolvedRows["rows"][number]) {
+  return {
+    company_id: r.companyId,
+    name: r.name,
+    rank: r.rank,
+    chiffre: r.chiffre,
+    capital: r.capital,
+    employees: r.employees,
+  };
 }
 
 /** Path of an uploaded logo inside the bucket, from its public URL. */
@@ -60,14 +79,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { error } = await client.rpc("publish_snapshot", {
         p_taken_on: request.date,
         p_source: request.source,
-        p_rows: request.rows.map((r) => ({
-          company_id: r.companyId,
-          name: r.name,
-          rank: r.rank,
-          chiffre: r.chiffre,
-          capital: r.capital,
-          employees: r.employees,
-        })),
+        p_rows: request.rows.map(rowPayload),
         p_closures: request.closures.map(Number),
         p_replace: request.replace,
       });
@@ -153,6 +165,37 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     onSessionChange(listener) {
       const { data } = client.auth.onAuthStateChange(() => listener());
       return () => data.subscription.unsubscribe();
+    },
+    async pending() {
+      const { data, error } = await client.rpc("pending_snapshots");
+      if (error) throw new Error(`Lecture des envois en attente impossible : ${error.message}`);
+      return data as PendingSnapshot[];
+    },
+    async publishPending(id, resolved) {
+      const { error } = await client.rpc("publish_pending_snapshot", {
+        p_id: id,
+        p_rows: resolved.rows.map(rowPayload),
+        p_closures: resolved.closures.map(Number),
+      });
+      if (error) throw new Error(error.message);
+    },
+    async rejectPending(id: number) {
+      const { error } = await client.rpc("reject_pending_snapshot", { p_id: id });
+      if (error) throw new Error(error.message);
+    },
+    async apiKeys() {
+      const { data, error } = await client.rpc("list_api_keys");
+      if (error) throw new Error(`Lecture des clés impossible : ${error.message}`);
+      return data as ApiKey[];
+    },
+    async createApiKey(name: string) {
+      const { data, error } = await client.rpc("create_api_key", { p_name: name });
+      if (error) throw new Error(error.message);
+      return data as CreatedApiKey;
+    },
+    async revokeApiKey(id: number) {
+      const { error } = await client.rpc("revoke_api_key", { p_id: id });
+      if (error) throw new Error(error.message);
     },
   };
 }

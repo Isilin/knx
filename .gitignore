@@ -32,3 +32,6 @@ dist-ssr
 
 # Source workbook (private data dump)
 data/source/
+
+# Vercel CLI (vercel link / vercel build)
+.vercel

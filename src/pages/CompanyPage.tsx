@@ -6,6 +6,7 @@ import {
   Estimated,
   GroupTag,
   groupColor,
+  ImperialDate,
   RankChange,
 } from "../components/figures.tsx";
 import { CompanyEditor } from "../components/CompanyEditor.tsx";
@@ -14,14 +15,44 @@ import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
+import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
-import { daysBetween, formatDuration, formatLongDate, formatShortDate } from "../domain/dates.ts";
+import { daysBetween } from "../domain/dates.ts";
+import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
 import { smoothedRealDaily } from "../domain/market.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
 import { sectorLabel } from "../domain/sectors.ts";
+import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
+
+/** Imperial age with small units, like the other figures: `91 ans 1 hept. 4 j`. */
+function AgeFigure({ age }: { age: ImperialAge }) {
+  const parts = [
+    { value: age.years, unit: age.years > 1 ? "ans" : "an" },
+    { value: age.heptades, unit: "hept." },
+    { value: age.days, unit: "j" },
+  ].filter((p) => p.value > 0);
+  const shown = parts.length > 0 ? parts : [{ value: 0, unit: "j" }];
+  const full = formatImperialAge(age);
+  return (
+    <span className="age" title={full}>
+      <span aria-hidden="true">
+        {shown.map((p, i) => (
+          <span key={p.unit}>
+            {i > 0 ? " " : null}
+            <span className="age__part">
+              {p.value}
+              <span className="amount__unit"> {p.unit}</span>
+            </span>
+          </span>
+        ))}
+      </span>
+      <span className="sr-only">{full}</span>
+    </span>
+  );
+}
 
 function reliability(creation: CreationEstimate): { label: string; tone: "high" | "mid" | "low" } {
   if (creation.method === "manual") return { label: "date saisie", tone: "high" };
@@ -84,7 +115,7 @@ export function CompanyPage() {
   const market = useMarket();
   const { session } = useData();
   const navigate = useNavigate();
-  const [period, setPeriod] = useState<PeriodId>("365");
+  const [period, setPeriod] = useState<PeriodId>("12");
   // Remembered per address, so moving to another corporation closes the form.
   const [editingSlug, setEditingSlug] = useState<string | null>(null);
   const isAdmin = session?.state === "signed-in" && session.isAdmin;
@@ -128,6 +159,14 @@ export function CompanyPage() {
       company ? smoothedRealDaily(company.points).filter((p) => !start || p.date >= start) : [],
     [company, start],
   );
+  const bridge = useMemo(
+    () => (company ? treasuryBridge(company.points, start) : null),
+    [company, start],
+  );
+  const flows = useMemo(
+    () => (company ? largestFlows(company.points, start) : []),
+    [company, start],
+  );
   const periodChange =
     visible.length > 1 && visible[0].chiffre > 0
       ? visible[visible.length - 1].chiffre / visible[0].chiffre - 1
@@ -151,11 +190,15 @@ export function CompanyPage() {
   }
 
   const { latest, creation } = company;
+  const projection = company.status === "active" ? company.projection : null;
+  const crossings = market.projection.crossings.filter(
+    (x) => x.passer.slug === company.slug || x.passed.slug === company.slug,
+  );
   const color = groupColor(company.consortium);
   const rel = creation ? reliability(creation) : null;
   const age =
     creation && creation.method !== "first-seen"
-      ? daysBetween(creation.creation, market.latestDate)
+      ? imperialAge(creation.creation, market.latestDate)
       : null;
   const history = [...company.points].reverse().slice(0, 12);
   const hasCapital = company.points.some((p) => p.capital !== null);
@@ -206,7 +249,7 @@ export function CompanyPage() {
             <GroupTag consortium={company.consortium} />
             {company.status === "delisted" ? (
               <span className="company__status">
-                Fermée · dernier relevé le {formatShortDate(latest.date)}
+                Fermée · dernier relevé le <ImperialDate date={latest.date} />
               </span>
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
@@ -215,7 +258,9 @@ export function CompanyPage() {
             {company.formerNames.length > 0 ? (
               <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
             ) : null}
-            <span>Suivie par KNX depuis le {formatLongDate(company.firstSeen)}</span>
+            <span>
+              Suivie par KNX depuis le <ImperialDate date={company.firstSeen} pti />
+            </span>
           </div>
         </div>
         <div className="company__actions">
@@ -286,15 +331,20 @@ export function CompanyPage() {
             {age === null ? (
               "—"
             ) : creation?.method === "manual" ? (
-              formatDuration(age)
+              <AgeFigure age={age} />
             ) : (
-              <span className="estimated">{formatDuration(age)}</span>
+              <span className="estimated">
+                <AgeFigure age={age} />
+              </span>
             )}
           </dd>
           <dd className="kpi__detail">
-            {creation && creation.method !== "first-seen"
-              ? `création ${creation.method === "manual" ? "le" : "vers le"} ${formatLongDate(creation.creation)} · `
-              : ""}
+            {creation && creation.method !== "first-seen" ? (
+              <span>
+                création {creation.method === "manual" ? "le" : "vers le"}{" "}
+                <ImperialDate date={creation.creation} pti /> ·
+              </span>
+            ) : null}
             {rel ? <span className={`rel rel--${rel.tone}`}>{rel.label}</span> : "jamais active"}
           </dd>
         </div>
@@ -330,6 +380,17 @@ export function CompanyPage() {
               color: "var(--ivoire)",
               points: visible.map((p) => ({ date: p.date, value: p.chiffre })),
             },
+            ...(projection
+              ? [
+                  {
+                    id: "projection",
+                    label: "CA publié projeté",
+                    color: "var(--estime)",
+                    kind: "projection" as const,
+                    points: projection.path,
+                  },
+                ]
+              : []),
           ]}
         />
         <p className="company__legend">
@@ -340,12 +401,111 @@ export function CompanyPage() {
             <i className="swatch swatch--estimate" /> CA réel estimé : recette par jour, moyenne des
             30 jours précédant chaque relevé (le détail par relevé figure plus bas)
           </span>
+          {projection ? (
+            <span>
+              <i className="swatch swatch--projection" /> CA publié projeté si la recette des 30
+              derniers jours se maintient
+            </span>
+          ) : null}
           <span>
             Source : rapport « Corporations », {company.points.length} relevés depuis le{" "}
-            {formatLongDate(company.firstSeen)}.
+            <ImperialDate date={company.firstSeen} />.
           </span>
         </p>
       </section>
+
+      {company.status === "active" ? (
+        <section className="company__projection" aria-labelledby="projection">
+          <div className="section-head">
+            <h2 id="projection">Projection</h2>
+            <p>
+              si la recette des 30 derniers jours se maintient, jusqu'au{" "}
+              <ImperialDate date={market.projection.horizon} />
+            </p>
+          </div>
+          {projection ? (
+            <>
+              <dl className="kpis kpis--projection">
+                <div className="kpi">
+                  <dt className="label">CA d'équilibre</dt>
+                  <dd className="kpi__value">
+                    <Estimated value={projection.equilibrium} />
+                  </dd>
+                  <dd className="kpi__detail">valeur vers laquelle tend le CA publié</dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">Dérive du CA publié</dt>
+                  <dd className="kpi__value">
+                    <Estimated
+                      value={projection.drift}
+                      unit={false}
+                      signed
+                      suffix={<span className="amount__unit"> ¢/j</span>}
+                    />
+                  </dd>
+                  <dd className="kpi__detail">par jour, au dernier relevé</dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">CA publié projeté</dt>
+                  <dd className="kpi__value">
+                    <Estimated value={projection.chiffre} />
+                  </dd>
+                  <dd className="kpi__detail">
+                    <Change
+                      ratio={latest.chiffre > 0 ? projection.chiffre / latest.chiffre - 1 : null}
+                      estimated
+                    />{" "}
+                    d'ici l'horizon
+                  </dd>
+                </div>
+                <div className="kpi">
+                  <dt className="label">Rang projeté</dt>
+                  <dd className="kpi__value">
+                    <span className="estimated" title="Projection KNX">
+                      {projection.rank}
+                    </span>
+                  </dd>
+                  <dd className="kpi__detail">
+                    {projection.rankChange ? (
+                      <RankChange value={projection.rankChange} />
+                    ) : (
+                      "inchangé"
+                    )}{" "}
+                    face au rang actuel ({latest.rank})
+                  </dd>
+                </div>
+              </dl>
+              {crossings.length > 0 ? (
+                <ol className="crossings">
+                  {crossings.map((x) => {
+                    const ahead = x.passer.slug === company.slug;
+                    const other = ahead ? x.passed : x.passer;
+                    return (
+                      <li key={other.slug}>
+                        <span>
+                          {ahead ? "Passe devant " : "Dépassée par "}
+                          <Link to={`/corporations/${other.slug}`}>{other.name}</Link>
+                        </span>
+                        <span className="estimated" title="Projection KNX">
+                          dans ≈ {x.inDays} jour{x.inDays > 1 ? "s" : ""}
+                        </span>
+                        <ImperialDate date={x.date} />
+                      </li>
+                    );
+                  })}
+                </ol>
+              ) : (
+                <p className="company__empty">Aucun changement de rang attendu d'ici l'horizon.</p>
+              )}
+            </>
+          ) : (
+            <p className="company__empty">
+              Projection indisponible : âge estimé inconnu ou recette des 30 derniers jours non
+              mesurable.
+            </p>
+          )}
+        </section>
+      ) : null}
 
       <div className="company__pair">
         <section aria-labelledby="rang">
@@ -388,6 +548,76 @@ export function CompanyPage() {
               },
             ]}
           />
+        </section>
+      </div>
+
+      <div className="company__pair company__pair--treasury">
+        <section aria-labelledby="tresorerie">
+          <div className="section-head">
+            <h2 id="tresorerie">Trésorerie</h2>
+            {bridge ? (
+              <p>
+                <Change
+                  ratio={
+                    bridge.start.capital > 0 ? bridge.end.capital / bridge.start.capital - 1 : null
+                  }
+                />{" "}
+                de capital sur la période
+              </p>
+            ) : null}
+          </div>
+          {bridge ? (
+            <>
+              <TreasuryBridge bridge={bridge} />
+              <p className="company__note">
+                Le capital est publié par le jeu ; le CA généré se déduit des chiffres publiés et de
+                l'âge estimé. Le reste, le flux hors CA, est ce que les recettes n'expliquent pas :
+                négatif quand de l'argent est sorti, positif quand il en est entré.
+              </p>
+            </>
+          ) : (
+            <p className="company__empty">
+              {hasCapital
+                ? "Trésorerie non ventilable sur la période : il faut deux relevés du capital avec un chiffre publié non nul."
+                : "Capital relevé depuis août 2025 seulement : aucun relevé pour cette corporation."}
+            </p>
+          )}
+        </section>
+        <section aria-labelledby="flux">
+          <div className="section-head">
+            <h2 id="flux">Principaux flux hors CA</h2>
+            <p>sur la période, entre deux relevés</p>
+          </div>
+          {flows.length > 0 ? (
+            <ol className="flows">
+              {flows.map((f) => (
+                <li key={f.date}>
+                  <span className="flows__date">
+                    <ImperialDate date={f.date} />
+                    <small>
+                      sur {daysBetween(f.previousDate, f.date)} jour
+                      {daysBetween(f.previousDate, f.date) > 1 ? "s" : ""}
+                    </small>
+                  </span>
+                  <Estimated value={f.flow} noise={f.noise} signed />
+                  <span
+                    className="flows__share"
+                    title="Part de l'argent disponible avant le flux : capital du relevé précédent plus CA généré entre les deux relevés"
+                  >
+                    {f.share === null ? (
+                      "—"
+                    ) : (
+                      <>
+                        <Change ratio={f.share} estimated /> du disponible
+                      </>
+                    )}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p className="company__empty">Aucun flux hors CA mesurable sur la période.</p>
+          )}
         </section>
       </div>
 
@@ -452,6 +682,13 @@ export function CompanyPage() {
                 <th scope="col" className="num secondary">
                   Capital
                 </th>
+                <th
+                  scope="col"
+                  className="num secondary"
+                  title="Variation du capital que les recettes n'expliquent pas, estimée par KNX"
+                >
+                  Hors CA est.
+                </th>
                 <th scope="col" className="num secondary">
                   Empl.
                 </th>
@@ -460,7 +697,9 @@ export function CompanyPage() {
             <tbody>
               {history.map((p) => (
                 <tr key={p.date}>
-                  <th scope="row">{formatLongDate(p.date)}</th>
+                  <th scope="row">
+                    <ImperialDate date={p.date} />
+                  </th>
                   <td className="num">{p.rank}</td>
                   <td className="num">
                     <Amount value={p.chiffre} unit={false} />
@@ -470,6 +709,9 @@ export function CompanyPage() {
                   </td>
                   <td className="num secondary">
                     <Amount value={p.capital} unit={false} />
+                  </td>
+                  <td className="num secondary">
+                    <Estimated value={p.otherFlow} noise={p.otherFlowNoise} unit={false} signed />
                   </td>
                   <td className="num secondary">{p.employees ?? "—"}</td>
                 </tr>
