@@ -143,6 +143,8 @@ export function removedColumns(versions: readonly SheetVersion[], current: Sheet
 export interface RenamedColumn {
   from: string;
   to: string;
+  /** Last version under the former name, and first version under the new one. */
+  source: string;
   removedIn: string;
   /** Last report of the column under its former name. */
   lastDate: IsoDate;
@@ -151,8 +153,9 @@ export interface RenamedColumn {
 /**
  * Drops removed columns that only changed name: at least 80 % of their published figures are
  * found, same date and same value, in a column of another name that outlived them (a current
- * column, or one removed later). A corporation renamed then destroyed keeps its history under
- * its last name.
+ * column, or one removed later). The new name is the first column to take the figures over: a
+ * column removed later before a current one (Hypercore → Kessler Distribution™, then
+ * NeuroCore Systems). A corporation renamed then destroyed keeps its history under its last name.
  */
 export function withoutRenamedColumns(
   removed: readonly Track[],
@@ -160,13 +163,14 @@ export function withoutRenamedColumns(
 ): { tracks: Track[]; renamed: RenamedColumn[] } {
   const tracks: Track[] = [];
   const renamed: RenamedColumn[] = [];
+  const candidates = [...[...removed].sort((a, b) => a.source.localeCompare(b.source)), ...others];
   for (const track of removed) {
     const positive = [...track.cells].filter(([, c]) => c.chiffre > 0);
     const outlives = (other: Track) => !other.archived || other.source > track.source;
     const match =
       positive.length === 0
         ? undefined
-        : [...others, ...removed].find((other) => {
+        : candidates.find((other) => {
             if (other === track || other.name === track.name || !outlives(other)) return false;
             const same = positive.filter(
               ([date, c]) => other.cells.get(date)?.chiffre === c.chiffre,
@@ -177,12 +181,32 @@ export function withoutRenamedColumns(
       renamed.push({
         from: track.name,
         to: match.name,
+        source: track.source,
         removedIn: track.removedIn ?? "",
         lastDate: positive[positive.length - 1][0],
       });
     else tracks.push(track);
   }
   return { tracks, renamed };
+}
+
+/** Sorts version stamps in time; the current sheet comes last. */
+export const stampKey = (stamp: string) => (stamp === CURRENT ? "￿" : stamp);
+
+/**
+ * One rename per former and new name, at its latest occurrence: a column can vanish from a
+ * version or two and come back before it is really renamed (InMeaBulla, early 2025).
+ */
+export function renameHops(renamed: readonly RenamedColumn[]): RenamedColumn[] {
+  const hops = new Map<string, RenamedColumn>();
+  for (const r of renamed) {
+    const key = `${r.from}\u0000${r.to}`;
+    const seen = hops.get(key);
+    if (!seen || stampKey(r.removedIn) > stampKey(seen.removedIn)) hops.set(key, r);
+  }
+  return [...hops.values()].sort((a, b) =>
+    stampKey(a.removedIn).localeCompare(stampKey(b.removedIn)),
+  );
 }
 
 /**
@@ -194,7 +218,9 @@ export function formerNamesOf(
   renamed: readonly RenamedColumn[],
 ): Map<string, { names: string[]; lastDate: IsoDate }> {
   const next = new Map<string, RenamedColumn>();
-  for (const r of [...renamed].sort((a, b) => a.removedIn.localeCompare(b.removedIn)))
+  for (const r of [...renamed].sort((a, b) =>
+    stampKey(a.removedIn).localeCompare(stampKey(b.removedIn)),
+  ))
     if (!next.has(r.from)) next.set(r.from, r);
   const out = new Map<string, { names: string[]; lastDate: IsoDate }>();
   for (const start of next.values()) {

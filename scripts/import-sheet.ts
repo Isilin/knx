@@ -4,14 +4,17 @@
  *   node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
  *     --report "data/source/releves/2026-11-13.txt=2026-11-13" \
  *     --versions data/source/versions \
- *     --backfill supabase/backfill/20261117_corporations_detruites.sql
+ *     --backfill supabase/backfill/20261117_corporations_detruites.sql \
+ *     --renames supabase/backfill/20261118_renommages.sql
  *
  * Writes `public/data/history.json` (local data source) and `supabase/seed.sql`.
  * Reads values only (formula results); the sheet's formulas are re-implemented in `src/domain`.
  *
  * `--versions`: a folder of past versions of the sheet (`.xlsx`, exported by
  * `scripts/sheet-versions.gs`). The columns of destroyed corporations, deleted from the sheet, are
- * recovered from them. `--backfill`: also writes the SQL that adds those recovered corporations to
+ * recovered from them, and renamed columns become former names and dated rename events.
+ * `--renames`: writes the SQL that adds those rename events to a filled Supabase base.
+ * `--backfill`: also writes the SQL that adds those recovered corporations to
  * a Supabase base already filled (the seed would replace it whole).
  */
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
@@ -20,7 +23,9 @@ import { isIsoDate } from "../src/domain/dates.ts";
 import { isRefounding } from "../src/domain/identity.ts";
 import { inferGroups } from "../src/domain/market.ts";
 import { parseReport } from "../src/domain/report.ts";
+import { formatImperialDate } from "../src/domain/imperial.ts";
 import type {
+  CompanyEvent,
   CompanyMeta,
   CompanyProfile,
   Consortium,
@@ -32,7 +37,7 @@ import type {
   Snapshot,
   SnapshotSource,
 } from "../src/domain/types.ts";
-import { toBackfillSql, type RecoveredLife } from "./backfill-sql.ts";
+import { toBackfillSql, toRenameEventsSql, type RecoveredLife } from "./backfill-sql.ts";
 import {
   columnTrack,
   mergeTracks,
@@ -40,7 +45,10 @@ import {
   typedCreations,
   withoutRenamedColumns,
   formerNamesOf,
+  renameHops,
+  type RenamedColumn,
   type MergedRow,
+  type SheetData,
   type SheetVersion,
 } from "./sheet-merge.ts";
 import { readWorkbook } from "./sheet-workbook.ts";
@@ -81,11 +89,13 @@ function parseArgs(argv: string[]): {
   reports: { path: string; date: string }[];
   versions: string | null;
   backfill: string | null;
+  renames: string | null;
 } {
   const reports: { path: string; date: string }[] = [];
   let workbook = "data/source/Données entreprises.xlsx";
   let versions: string | null = null;
   let backfill: string | null = null;
+  let renames: string | null = null;
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--report") {
@@ -102,12 +112,27 @@ function parseArgs(argv: string[]): {
     } else if (arg === "--backfill") {
       backfill = argv[++i] ?? null;
       if (!backfill) throw new Error("--backfill attend un fichier .sql");
+    } else if (arg === "--renames") {
+      renames = argv[++i] ?? null;
+      if (!renames) throw new Error("--renames attend un fichier .sql");
     } else {
       workbook = arg;
     }
   }
-  if (backfill && !versions) throw new Error("--backfill demande --versions");
-  return { workbook, reports, versions, backfill };
+  if ((backfill || renames) && !versions)
+    throw new Error("--backfill et --renames demandent --versions");
+  return { workbook, reports, versions, backfill, renames };
+}
+
+/** Last date a workbook published any figure. */
+function lastReportDate(data: SheetData): IsoDate {
+  return (
+    [...data.chiffre]
+      .filter(([, row]) => [...row.values()].some((v) => v > 0))
+      .map(([date]) => date)
+      .sort()
+      .at(-1) ?? ""
+  );
 }
 
 /** Past versions of the sheet, oldest first; a file's stamp is its name up to the first `_`. */
@@ -274,12 +299,17 @@ async function main(): Promise<void> {
 
   let tracks = currentTracks;
   let former = new Map<string, { names: string[]; lastDate: IsoDate }>();
+  let hops: RenamedColumn[] = [];
+  // Last dated report of each version: dates the moment a header changed.
+  const stampDates = new Map<string, IsoDate>([["current", lastReportDate(current)]]);
   if (args.versions) {
     console.log(`Lecture des versions de ${args.versions}…`);
     const versions = await readVersions(args.versions);
     const removed = removedColumns(versions, current);
     const { tracks: recovered, renamed } = withoutRenamedColumns(removed, currentTracks);
     former = formerNamesOf(renamed);
+    hops = renameHops(renamed);
+    for (const v of versions) stampDates.set(v.stamp, lastReportDate(v.data));
     tracks = [...currentTracks, ...recovered];
   }
 
@@ -326,12 +356,34 @@ async function main(): Promise<void> {
     renamedLives.push(owner);
   }
 
+  // Each rename, dated when the sheet's header changed, goes to the life that carries the names.
+  const events: CompanyEvent[] = [];
+  for (const hop of hops) {
+    const final = [...former].find(([, f]) => f.names.includes(hop.from))?.[0];
+    const owner = renamedLives.find((l) => l.meta.name === final);
+    const start = stampDates.get(hop.source);
+    const end = stampDates.get(hop.removedIn);
+    if (!owner || !end) continue;
+    events.push({
+      id: `sheet-renamed-${owner.meta.id}-${events.length + 1}`,
+      companyId: owner.meta.id,
+      date: end,
+      kind: "renamed",
+      details: { from: hop.from, to: hop.to },
+      note:
+        start && start !== end
+          ? `Relevé dans l'historique du tableur, entre le ${formatImperialDate(start)} et le ${formatImperialDate(end)}.`
+          : `Relevé dans l'historique du tableur le ${formatImperialDate(end)}.`,
+      origin: "auto",
+    });
+  }
+
   const dataset: Dataset = {
     generatedAt: new Date().toISOString(),
     profiles,
     companies,
     consortiums,
-    events: [],
+    events,
     marketEvents: MARKET_EVENTS,
     ratings: [],
     snapshots,
@@ -360,6 +412,21 @@ async function main(): Promise<void> {
       console.log(
         `  ${life.meta.name} — anciennement ${life.meta.formerNames.join(", puis ")}${life.archived === life.rows ? " (récupérée)" : ""}`,
       );
+  }
+
+  if (args.renames) {
+    const path = resolve(args.renames);
+    await mkdir(dirname(path), { recursive: true });
+    await writeFile(
+      path,
+      toRenameEventsSql(
+        events.map((e) => {
+          const owner = companies.find((c) => c.id === e.companyId)!;
+          return { ...e, name: owner.name, closedOn: owner.closedOn };
+        }),
+      ),
+    );
+    console.log(`Renommages : ${events.length} évènements → ${args.renames}`);
   }
 
   if (args.backfill) {

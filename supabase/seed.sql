@@ -191,6 +191,18 @@ insert into public.companies (id, profile_id, name, aliases, creation_override, 
   (91, 36, 'Paradox', '{}'::text[], null, null);
 select setval(pg_get_serial_sequence('public.companies', 'id'), (select max(id) from public.companies));
 
+insert into public.company_events (company_id, occurred_on, kind, details, note, origin) values
+  (75, '2026-03-30', 'renamed', '{"from":"Hypercore","to":"Kessler Distribution™"}'::jsonb, 'Relevé dans l''historique du tableur, entre le 3/385.4 et le 2/385.5.', 'auto'),
+  (41, '2026-04-17', 'renamed', '{"from":"Don''Expert","to":"Armacham Souvenir"}'::jsonb, 'Relevé dans l''historique du tableur, entre le 2/386.2 et le 3/386.3.', 'auto'),
+  (33, '2026-04-27', 'renamed', '{"from":"Au Coup d''Poêle","to":"Apothéca"}'::jsonb, 'Relevé dans l''historique du tableur, entre le 6/386.3 et le 6/386.4.', 'auto'),
+  (82, '2026-05-07', 'renamed', '{"from":"Sovereign Nidavellir","to":"Sovereign Muse"}'::jsonb, 'Relevé dans l''historique du tableur le 7/387.1.', 'auto'),
+  (10, '2026-06-21', 'renamed', '{"from":"Horizon et Style","to":"Place Horizon"}'::jsonb, 'Relevé dans l''historique du tableur, entre le 7/387.1 et le 7/388.3.', 'auto'),
+  (6, '2026-07-01', 'renamed', '{"from":"L''Antre Côte","to":"La Trame Fukyû"}'::jsonb, 'Relevé dans l''historique du tableur, entre le 7/388.3 et le 1/389.1.', 'auto'),
+  (76, '2026-07-01', 'renamed', '{"from":"Edge Logistics","to":"Kessler Industries™"}'::jsonb, 'Relevé dans l''historique du tableur le 1/389.1.', 'auto'),
+  (75, '2026-07-01', 'renamed', '{"from":"Kessler Distribution™","to":"NeuroCore Systems"}'::jsonb, 'Relevé dans l''historique du tableur le 1/389.1.', 'auto'),
+  (83, '2026-07-01', 'renamed', '{"from":"MilitariX","to":"L''Impact"}'::jsonb, 'Relevé dans l''historique du tableur le 1/389.1.', 'auto'),
+  (78, '2026-10-14', 'renamed', '{"from":"InMeaBulla","to":"Metropolis"}'::jsonb, 'Relevé dans l''historique du tableur le 7/392.2.', 'auto');
+
 insert into public.snapshots (taken_on, source) values ('2024-03-04', 'sheet');
 insert into public.snapshot_rows (snapshot_id, company_id, rank, chiffre, capital, employees)
 select s.id, v.company_id::bigint, v.rank::integer, v.chiffre::bigint, v.capital::bigint, v.employees::integer from (values
