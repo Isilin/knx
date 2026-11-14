@@ -88,7 +88,6 @@ function PendingCard({
           review={review}
           choices={choices}
           onChoice={(key, value) => setChoices((current) => ({ ...current, [key]: value }))}
-          showClean
         />
       ) : null}
 
@@ -170,43 +169,51 @@ function PendingCard({
   );
 }
 
-/** Reports sent by the in-game module: checked like a pasted report, published in one click. */
+/** Reports sent by the in-game module: checked against the cote, published in one click. */
 export function PendingReview({
   pending,
   error,
   dataset,
   onChanged,
 }: {
-  pending: PendingSnapshot[];
+  /** Null until the first fetch answers. */
+  pending: PendingSnapshot[] | null;
   error: string | null;
   dataset: Dataset | null;
   /** Refetch the pending list. */
   onChanged: () => void;
 }) {
+  const { source } = useData();
   const [notice, setNotice] = useState<string | null>(null);
-
-  if (error) {
-    return (
-      <p className="note note--error" role="alert">
-        Envois du jeu illisibles : {error}
-      </p>
-    );
-  }
-  if (pending.length === 0) {
-    return notice ? <p className="note note--ok">{notice}</p> : null;
-  }
 
   return (
     <section className="pending" aria-labelledby="pending">
       <div className="section-head">
         <h2 id="pending">Envois du jeu en attente</h2>
-        <p>
-          {pending.length} relevé{pending.length > 1 ? "s" : ""} envoyé
-          {pending.length > 1 ? "s" : ""} par le module, à valider avant publication
-        </p>
+        {pending && pending.length > 0 ? (
+          <p>
+            {pending.length} relevé{pending.length > 1 ? "s" : ""} envoyé
+            {pending.length > 1 ? "s" : ""} par le module, à valider avant publication
+          </p>
+        ) : null}
       </div>
       {notice ? <p className="note note--ok">{notice}</p> : null}
-      {pending.map((item) => (
+      {error ? (
+        <p className="note note--error" role="alert">
+          Envois du jeu illisibles : {error}
+        </p>
+      ) : pending === null ? (
+        <p className="pending__empty" role="status">
+          Lecture des envois…
+        </p>
+      ) : pending.length === 0 ? (
+        <p className="pending__empty">
+          {source.kind === "local"
+            ? "Mode local : les envois du module du jeu passent par Supabase, aucun n'arrive ici."
+            : "Aucun envoi à valider. Le prochain rapport « Corporations » envoyé par le module du jeu apparaîtra ici."}
+        </p>
+      ) : null}
+      {(pending ?? []).map((item) => (
         <PendingCard
           key={`${item.id}-${item.receivedAt}`}
           item={item}

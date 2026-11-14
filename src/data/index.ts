@@ -13,6 +13,7 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     kind: "supabase",
     load: async () => (await get()).load(),
     publish: async (request) => (await get()).publish(request),
+    withdrawSnapshot: async (date) => (await get()).withdrawSnapshot(date),
     updateCompany: async (id, patch) => (await get()).updateCompany(id, patch),
     setLogo: async (id, logo) => (await get()).setLogo(id, logo),
     saveConsortium: async (draft) => (await get()).saveConsortium(draft),

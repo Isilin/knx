@@ -43,6 +43,7 @@ export interface EventDraft {
  */
 export type LocalOp =
   | { type: "publish"; request: PublishRequest; newIds: string[] }
+  | { type: "withdraw"; date: IsoDate }
   | { type: "updateCompany"; id: string; patch: CompanyPatch }
   | { type: "setLogo"; id: string; url: string | null }
   | { type: "saveConsortium"; consortium: Consortium }
@@ -189,6 +190,85 @@ function applyPublish(
   };
 }
 
+/** What withdrawing a published report undoes. */
+export interface Withdrawal {
+  date: IsoDate;
+  /** Lines of the report, removed with it. */
+  rows: number;
+  /** Corporations that appeared with this report (no other line, no event): removed. */
+  created: string[];
+  /** Renames this report recorded: each corporation takes back its former name. */
+  renamed: CompanyEvent[];
+  /** Corporations this report closed: reopened. */
+  reopened: string[];
+}
+
+/**
+ * Plans the withdrawal of a published report. Only the latest one can go: nothing has followed
+ * its closures and renames, so undoing them rewrites no later history. Same rules as the
+ * Supabase function withdraw_snapshot.
+ */
+export function planWithdrawal(dataset: Dataset, date: IsoDate): Withdrawal {
+  const snapshot = dataset.snapshots.find((s) => s.date === date);
+  if (!snapshot) throw new Error(`aucun relevé publié le ${date}`);
+  if (dataset.snapshots.some((s) => s.date > date))
+    throw new Error("seul le dernier relevé publié peut être retiré");
+
+  const elsewhere = new Set(
+    dataset.snapshots.filter((s) => s.date !== date).flatMap((s) => s.rows.map((r) => r.companyId)),
+  );
+  const withEvents = new Set(dataset.events.map((e) => e.companyId));
+  return {
+    date,
+    rows: snapshot.rows.length,
+    created: snapshot.rows
+      .map((r) => r.companyId)
+      .filter((id) => !elsewhere.has(id) && !withEvents.has(id)),
+    renamed: dataset.events.filter(
+      (e) =>
+        e.date === date && e.kind === "renamed" && e.origin === "auto" && e.details.from != null,
+    ),
+    reopened: dataset.companies.filter((c) => c.closedOn === date).map((c) => c.id),
+  };
+}
+
+function applyWithdraw(dataset: Dataset, date: IsoDate): Dataset {
+  const plan = planWithdrawal(dataset, date);
+  const created = new Set(plan.created);
+  const formerName = new Map(plan.renamed.map((e) => [e.companyId, e.details.from ?? ""]));
+  const undone = new Set(plan.renamed.map((e) => e.id));
+
+  const companies = dataset.companies
+    .filter((c) => !created.has(c.id))
+    .map((c) => {
+      let next = c;
+      const from = formerName.get(c.id);
+      if (from !== undefined)
+        next = {
+          ...next,
+          name: from,
+          formerNames:
+            next.formerNames.at(-1) === from ? next.formerNames.slice(0, -1) : next.formerNames,
+        };
+      return next.closedOn === date ? { ...next, closedOn: null } : next;
+    });
+
+  const open = new Set<string>();
+  for (const c of companies) {
+    if (c.closedOn !== null) continue;
+    if (open.has(c.name))
+      throw new Error(`deux corporations ouvertes porteraient le nom « ${c.name} »`);
+    open.add(c.name);
+  }
+
+  return {
+    ...dataset,
+    companies,
+    events: dataset.events.filter((e) => !undone.has(e.id)),
+    snapshots: dataset.snapshots.filter((s) => s.date !== date),
+  };
+}
+
 function requireCompany(dataset: Dataset, id: string): void {
   if (!dataset.companies.some((c) => c.id === id)) throw new Error("corporation introuvable");
 }
@@ -198,6 +278,8 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
   switch (op.type) {
     case "publish":
       return applyPublish(dataset, op.request, op.newIds);
+    case "withdraw":
+      return applyWithdraw(dataset, op.date);
     case "updateCompany": {
       requireCompany(dataset, op.id);
       const { consortiumId } = op.patch;

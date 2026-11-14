@@ -29,21 +29,17 @@ function evidenceText(evidence: readonly Evidence[]): string {
 }
 
 /**
- * The checks shown before any report is published, typed by hand or sent by the in-game module:
- * who is new, who closes, likely renames and refoundings to confirm, suspicious figures and rank
- * disorder.
+ * The checks shown before a report sent by the in-game module is published: who is new, who
+ * closes, likely renames and refoundings to confirm, suspicious figures and rank disorder.
  */
 export function ReportChecks({
   review,
   choices,
   onChoice,
-  showClean,
 }: {
   review: ReportReview;
   choices: IdentityChoices;
   onChoice: (key: string, value: boolean) => void;
-  /** Say « no anomaly » when nothing is flagged (off while the report still has errors). */
-  showClean: boolean;
 }) {
   const { proposals, diff, created, closed } = review;
   const namesakes = new Map(proposals.namesakes.map((n) => [n.name, n.closedOn]));
@@ -159,7 +155,7 @@ export function ReportChecks({
           </li>
         ) : null}
       </ul>
-      {showClean && diff && clean ? (
+      {diff && clean ? (
         <p className="note note--ok">
           Aucune anomalie détectée. Variation moyenne du chiffre :{" "}
           {formatPercent(review.averageChange)}.

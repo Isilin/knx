@@ -9,7 +9,7 @@ import {
 } from "react";
 import { buildMarket, type Market } from "../domain/market.ts";
 import type { Dataset } from "../domain/types.ts";
-import { createDataSource, type DataSource, type PublishRequest, type Session } from "./index.ts";
+import { createDataSource, type DataSource, type Session } from "./index.ts";
 
 type LoadState =
   | { status: "loading" }
@@ -21,7 +21,6 @@ interface DataContextValue {
   state: LoadState;
   session: Session | null;
   reload: () => void;
-  publish: (request: PublishRequest) => Promise<void>;
   /** Runs a write against the source, then reloads the data in the background. */
   change: (write: (source: DataSource) => Promise<void>) => Promise<void>;
 }
@@ -79,14 +78,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     [source],
   );
 
-  const publish = useCallback(
-    (request: PublishRequest) => change((s) => s.publish(request)),
-    [change],
-  );
-
   const value = useMemo(
-    () => ({ source, state, session, reload, publish, change }),
-    [source, state, session, reload, publish, change],
+    () => ({ source, state, session, reload, change }),
+    [source, state, session, reload, change],
   );
   return <DataContext value={value}>{children}</DataContext>;
 }
