@@ -98,6 +98,15 @@
   text-decoration: none;
 }
 
+/* The end labels carry the rank at the cote; narrow layouts lose them, the legend takes over. */
+.legend__note {
+  display: none;
+  flex: none;
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+  font-variant-numeric: tabular-nums;
+}
+
 .movers {
   padding: var(--s-6) 0 var(--s-6) var(--s-6);
   border-left: 1px solid var(--filet);
@@ -247,6 +256,9 @@
   }
   .legend {
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  }
+  .legend__note {
+    display: inline;
   }
 }
 

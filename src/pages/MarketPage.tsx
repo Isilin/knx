@@ -17,9 +17,10 @@ import { RegimeList } from "../components/RegimeList.tsx";
 import { TimeChart, type ChartMarker, type ChartSeries } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
 import { formatImperialDate, formatPti } from "../domain/imperial.ts";
-import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
+import type { CompanySeries } from "../domain/market.ts";
 import { marketMarkers } from "../domain/marketEvents.ts";
 import { computeMovers } from "../domain/movers.ts";
+import { revenueRace } from "../domain/race.ts";
 import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
 import { groupByRegime, marketMap } from "../domain/regimes.ts";
 import { marketTreasury, type MarketTreasuryPoint } from "../domain/treasury.ts";
@@ -193,8 +194,8 @@ export function MarketPage() {
   const market = useMarket();
   const { focused, setFocused } = useFocus();
   const { followed } = useFollowed();
-  const [period, setPeriod] = useState<PeriodId>("1");
-  const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
+  // Three imperial years by default: one year can hold only a couple of reports.
+  const [period, setPeriod] = useState<PeriodId>("3");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
   const treasury = useMemo(() => marketTreasury(market), [market]);
   const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
@@ -206,27 +207,33 @@ export function MarketPage() {
     .slice(0, 4);
   const { facts } = market;
 
-  const top = useMemo(
-    () => market.companies.filter((c) => c.status === "active").slice(0, 10),
-    [market],
+  const race = useMemo(
+    () =>
+      revenueRace(
+        market.companies,
+        periodStart(period, market.latestDate) ?? market.dates[0],
+        market.latestDate,
+      ),
+    [market, period],
   );
-  const series = useMemo<ChartSeries[]>(() => {
-    const start = periodStart(period, market.latestDate);
-    return top.map((c) => {
-      const values =
-        metric === "chiffre"
-          ? c.points.map((p) => ({ date: p.date, value: p.chiffre }))
-          : smoothedRealDaily(c.points);
-      return {
-        id: c.slug,
-        label: c.name,
-        color: groupColor(c.consortium),
-        points: values.filter((p) => !start || p.date >= start),
-      };
-    });
-  }, [top, period, metric, market.latestDate]);
+  const series = useMemo<ChartSeries[]>(
+    () =>
+      race.map(({ company, points }) => ({
+        id: company.slug,
+        label: company.name,
+        color: groupColor(company.consortium),
+        points,
+      })),
+    [race],
+  );
+  const raceSpan =
+    period === "all"
+      ? "depuis le premier relevé"
+      : period === "1"
+        ? "sur la dernière année impériale"
+        : `sur les ${period} dernières années impériales`;
 
-  const pinned = followed.filter((slug) => top.some((c) => c.slug === slug));
+  const pinned = followed.filter((slug) => race.some((e) => e.company.slug === slug));
 
   return (
     <div className="market">
@@ -268,57 +275,51 @@ export function MarketPage() {
       </dl>
 
       <div className="market__main">
-        <section className="market__chart" aria-labelledby="top10">
+        <section className="market__chart" aria-labelledby="course">
           <div className="section-head">
-            <h2 id="top10">Les dix premières</h2>
-            <div className="segmented" role="group" aria-label="Mesure">
-              <button
-                type="button"
-                aria-pressed={metric === "chiffre"}
-                onClick={() => setMetric("chiffre")}
-              >
-                CA publié
-              </button>
-              <button
-                type="button"
-                aria-pressed={metric === "real"}
-                onClick={() => setMetric("real")}
-              >
-                <span className="estimated">CA réel, moyenne 30 j</span>
-              </button>
-            </div>
+            <h2 id="course">La course aux recettes</h2>
+            <p>
+              <span className="estimated">recette réelle cumulée</span> {raceSpan}
+            </p>
             <div className="push">
               <PeriodPicker value={period} onChange={setPeriod} />
             </div>
           </div>
           <TimeChart
             series={series}
-            label={`${metric === "chiffre" ? "CA publié" : "CA réel estimé, moyenne sur 30 jours,"} des dix premières corporations, ${period === "all" ? "tout l'historique" : `${period} derniers jours`}`}
-            formatValue={(v) => `${formatInteger(v)} ¢/j`}
+            label={`Recette réelle estimée, cumulée ${raceSpan}, des dix corporations qui ont le plus encaissé`}
+            formatValue={(v) => `${formatInteger(v)} ¢`}
             focusId={focused}
             onFocus={setFocused}
             pinned={pinned}
             height={470}
-            zeroBased={metric === "real"}
             markers={markers}
             endLabel={(s, compact) => {
-              const company = top.find((c) => c.slug === s.id);
-              if (compact) return company ? String(company.latest.rank) : "";
-              const name = s.label.length > 19 ? `${s.label.slice(0, 18)}…` : s.label;
-              return company ? `${company.latest.rank}  ${name}` : name;
+              const index = race.findIndex((e) => e.company.slug === s.id);
+              if (compact) return String(index + 1);
+              const total = race[index]?.total ?? 0;
+              // Whole millions past ten: the label column is narrow.
+              const amount = formatCompact(total >= 1e7 ? Math.round(total / 1e6) * 1e6 : total);
+              const name = s.label.length > 15 ? `${s.label.slice(0, 14)}…` : s.label;
+              return `${amount}  ${name}`;
+            }}
+            endNote={(s) => {
+              const company = race.find((e) => e.company.slug === s.id)?.company;
+              return company ? `n° ${company.latest.rank}` : "";
             }}
           />
           <p className="chart-note">
-            {metric === "chiffre"
-              ? "Moyenne quotidienne depuis la création, telle que publiée par le jeu : elle bouge lentement chez les corporations anciennes."
-              : "Recette par jour estimée par KNX, lissée sur les 30 jours précédant chaque relevé."}{" "}
+            Ce que chaque corporation a réellement encaissé depuis le début de la période,
+            reconstitué par KNX à partir du CA cumulé de chaque relevé : toutes partent de zéro, la
+            pente dit qui encaisse le plus vite. Courent les dix plus fortes recettes de la période,
+            quel que soit leur rang à la cote (n°), qui suit leur moyenne depuis la création.{" "}
             <span className="chart-note__source">
               Source : rapport « Corporations », {market.dates.length} relevés du{" "}
               <ImperialDate date={market.dates[0]} /> au <ImperialDate date={market.latestDate} />.
             </span>
           </p>
           <ol className="legend" aria-label="Légende">
-            {top.map((c) => (
+            {race.map(({ company: c }, index) => (
               <li
                 key={c.slug}
                 className={`${focused === c.slug ? "is-focused" : ""} ${focused && focused !== c.slug ? "is-dim" : ""}`}
@@ -326,8 +327,9 @@ export function MarketPage() {
                 onMouseLeave={() => setFocused(null)}
               >
                 <i style={{ background: groupColor(c.consortium) }} aria-hidden="true" />
-                <span className="legend__rank">{c.latest.rank}</span>
+                <span className="legend__rank">{index + 1}</span>
                 <Link to={`/corporations/${c.slug}`}>{c.name}</Link>
+                <span className="legend__note">n° {c.latest.rank}</span>
               </li>
             ))}
           </ol>

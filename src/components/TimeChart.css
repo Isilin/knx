@@ -188,6 +188,11 @@
   font-weight: 600;
 }
 
+.chart__labels .chart__label-note {
+  fill: var(--gris);
+  font-weight: 400;
+}
+
 .chart__grid--over text {
   paint-order: stroke;
   stroke: var(--laque);
