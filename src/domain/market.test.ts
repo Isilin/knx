@@ -39,6 +39,7 @@ const dataset: Dataset = testDataset({
   consortiums: [{ id: "k1", name: "Alpha", color: "cyan" }],
   events: [],
   marketEvents: [],
+  ratings: [],
   snapshots: [
     snapshot("2026-11-10", "sheet", [
       { name: "Alpha Corp", rank: null, chiffre: 1_000, capital: null, employees: null },

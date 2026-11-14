@@ -191,6 +191,7 @@
   gap: var(--s-7);
 }
 
+.market__agency,
 .market__treasury {
   padding: var(--s-7) 0 var(--s-6);
   border-bottom: 1px solid var(--filet);

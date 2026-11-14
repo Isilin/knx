@@ -44,6 +44,7 @@ const dataset: Dataset = testDataset({
   consortiums: [],
   events,
   marketEvents: [],
+  ratings: [],
   companies: [
     meta("1", "Paradox", { closedOn: "2026-11-11" }),
     meta("2", "Paradox", { creationOverride: "2026-11-09", formerNames: ["Old"] }),

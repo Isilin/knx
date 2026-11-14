@@ -18,12 +18,13 @@ export type TestCompany = Partial<CompanyMeta> &
 
 /** Test helper: a dataset whose lives carry their page fields. */
 export function testDataset(
-  raw: Omit<Dataset, "profiles" | "companies"> & {
+  raw: Omit<Dataset, "profiles" | "companies" | "ratings"> & {
     companies: TestCompany[];
     profiles?: CompanyProfile[];
+    ratings?: Dataset["ratings"];
   },
 ): Dataset {
-  return normalizeDataset({ profiles: [], ...raw });
+  return normalizeDataset({ profiles: [], ratings: [], ...raw });
 }
 
 /** A dataset written by company name, the way tests read best. */
@@ -50,6 +51,7 @@ export function datasetByName(named: NamedDataset): Dataset {
     consortiums: [],
     events: [],
     marketEvents: [],
+    ratings: [],
     snapshots: named.snapshots.map((s) => ({
       date: s.date,
       source: s.source,

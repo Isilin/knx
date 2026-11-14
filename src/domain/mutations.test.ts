@@ -17,6 +17,7 @@ const base: Dataset = testDataset({
   consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
   events: [],
   marketEvents: [],
+  ratings: [],
   snapshots: [
     {
       date: "2026-11-12",
@@ -280,7 +281,14 @@ describe("normalizeDataset", () => {
       snapshots: [],
     });
     expect(profiles).toEqual([
-      { id: "p", consortiumId: null, sector: "banque", logoUrl: null, hidden: false },
+      {
+        id: "p",
+        consortiumId: null,
+        sector: "banque",
+        district: null,
+        logoUrl: null,
+        hidden: false,
+      },
     ]);
     expect(companies.map((c) => c.profileId)).toEqual(["p", "p"]);
   });

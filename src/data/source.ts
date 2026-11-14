@@ -5,6 +5,7 @@ import type {
   EventDraft,
   MarketEventDraft,
   ProfilePatch,
+  RatingDraft,
 } from "../domain/mutations.ts";
 import type {
   Dataset,
@@ -21,6 +22,7 @@ export type {
   MarketEventDraft,
   ProfilePatch,
   PublishRequest,
+  RatingDraft,
   ResolvedRows,
 };
 
@@ -77,6 +79,10 @@ export interface DataSource {
   /** Events of the whole market (game rules, breaches). */
   saveMarketEvent(draft: MarketEventDraft): Promise<void>;
   deleteMarketEvent(id: string): Promise<void>;
+  /** Publishes a rating of the Agence impériale de notation; a rating is never edited. */
+  publishRating(draft: RatingDraft): Promise<void>;
+  /** Withdraws a published rating. */
+  deleteRating(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;

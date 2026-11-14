@@ -65,7 +65,7 @@ const MARKET_EVENTS: MarketEvent[] = [
 /**
  * Corporations kept out of KNX's displays: run by the game masters for their own building
  * needs, not real businesses. The reports still list them. On Supabase, the flag is
- * `company_profiles.hidden` (migration 20261117000000_fiches_vies.sql).
+ * `company_profiles.hidden` (migration 20261118000000_fiches_vies.sql).
  */
 const HIDDEN_COMPANIES = new Set(["MJ Immo"]);
 
@@ -179,6 +179,7 @@ function assignIdentities(
             consortiumId: null,
             sector: null,
             logoUrl: null,
+            district: null,
             hidden: HIDDEN_COMPANIES.has(row.name),
           };
           profiles.push(page);
@@ -332,6 +333,7 @@ async function main(): Promise<void> {
     consortiums,
     events: [],
     marketEvents: MARKET_EVENTS,
+    ratings: [],
     snapshots,
   };
 

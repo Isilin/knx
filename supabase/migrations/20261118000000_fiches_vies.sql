@@ -1,11 +1,12 @@
 -- KNX — une fiche, plusieurs vies.
--- À exécuter après 20261116000000_corporations_masquees.sql.
+-- À exécuter après 20261117000000_notation_agence.sql.
 --
 -- Une corporation détruite puis refondée sous le même nom est, pour le jeu, une nouvelle
 -- entreprise : son âge et son chiffre moyen repartent de zéro. Pour la cité, c'est la même maison.
 -- `companies` reste une vie (tous les calculs restent par vie) ; une fiche (`company_profiles`)
 -- regroupe les vies et porte ce qui ne change pas avec elles : logo, consortium, secteur,
--- masquage. Une fiche a au plus une vie ouverte.
+-- quartier, masquage. Une fiche a au plus une vie ouverte. Les notations de l'Agence restent
+-- attachées à la vie notée : elles reposent sur son âge et son chiffre.
 
 -- 1. Les fiches.
 create table public.company_profiles (
@@ -17,6 +18,7 @@ create table public.company_profiles (
       'boutique-specialisee', 'usine-production', 'technopole', 'atelier-personnalisation'
     )
   ),
+  district text check (district in ('cv', 'bv', 'hv')),
   logo_url text,
   hidden boolean not null default false,
   created_at timestamptz not null default now()
@@ -45,13 +47,16 @@ declare
   v_profile bigint;
 begin
   for r in select name from public.companies group by name loop
-    insert into public.company_profiles (consortium_id, sector, logo_url, hidden)
+    insert into public.company_profiles (consortium_id, sector, district, logo_url, hidden)
     values (
       (select c.consortium_id from public.companies c
        where c.name = r.name and c.consortium_id is not null
        order by c.closed_on desc nulls first, c.id desc limit 1),
       (select c.sector from public.companies c
        where c.name = r.name and c.sector is not null
+       order by c.closed_on desc nulls first, c.id desc limit 1),
+      (select c.district from public.companies c
+       where c.name = r.name and c.district is not null
        order by c.closed_on desc nulls first, c.id desc limit 1),
       (select c.logo_url from public.companies c
        where c.name = r.name and c.logo_url is not null
@@ -76,11 +81,12 @@ comment on column public.companies.profile_id is
 alter table public.companies
   drop column consortium_id,
   drop column sector,
+  drop column district,
   drop column logo_url,
   drop column hidden;
 
--- 4. Jeu de données complet v5 : les fiches, et la fiche de chaque vie. Les champs de fiche
--- restent aussi sur chaque vie pour un site pas encore redéployé.
+-- 4. Jeu de données complet v6 : v5 (notations, quartier) plus les fiches, et la fiche de chaque
+-- vie. Les champs de fiche restent aussi sur chaque vie pour un site pas encore redéployé.
 create or replace function public.market_dataset() returns jsonb
 language sql stable security invoker set search_path = public as $$
   select jsonb_build_object(
@@ -90,6 +96,7 @@ language sql stable security invoker set search_path = public as $$
         'id', p.id::text,
         'consortiumId', p.consortium_id::text,
         'sector', p.sector,
+        'district', p.district,
         'logoUrl', p.logo_url,
         'hidden', p.hidden
       ) order by p.id)
@@ -105,6 +112,7 @@ language sql stable security invoker set search_path = public as $$
         'closedOn', c.closed_on,
         'consortiumId', p.consortium_id::text,
         'sector', p.sector,
+        'district', p.district,
         'logoUrl', p.logo_url,
         'hidden', p.hidden
       ) order by c.name, c.id)
@@ -141,6 +149,24 @@ language sql stable security invoker set search_path = public as $$
         'span', m.span_days
       ) order by m.occurred_on, m.id)
       from public.market_events m
+    ), '[]'::jsonb),
+    'ratings', coalesce((
+      select jsonb_agg(jsonb_build_object(
+        'id', r.id::text,
+        'companyId', r.company_id::text,
+        'date', r.rated_on,
+        'method', r.method,
+        'category', r.category,
+        'confidence', r.confidence,
+        'outlook', r.outlook,
+        'score', r.score,
+        'axes', r.axes,
+        'criteria', r.criteria,
+        'inputs', r.inputs,
+        'district', r.district,
+        'rationale', r.rationale
+      ) order by r.rated_on, r.id)
+      from public.company_ratings r
     ), '[]'::jsonb),
     'snapshots', coalesce((
       select jsonb_agg(jsonb_build_object(

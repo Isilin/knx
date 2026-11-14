@@ -3,6 +3,7 @@ import { Link } from "react-router";
 import { useData } from "../data/DataProvider.tsx";
 import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
+import { DISTRICT_LABELS, isDistrict, type District } from "../domain/rating.ts";
 import { isSectorId, SECTORS, type SectorId } from "../domain/sectors.ts";
 import type { Consortium } from "../domain/types.ts";
 import { toLogoBlob } from "../lib/image.ts";
@@ -28,6 +29,7 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
   const id = useId();
   const [consortiumId, setConsortiumId] = useState(company.consortium?.id ?? "");
   const [sector, setSector] = useState<SectorId | "">(company.sector ?? "");
+  const [district, setDistrict] = useState<District | "">(company.district ?? "");
   const [founded, setFounded] = useState(
     company.creation?.method === "manual" ? company.creation.creation : "",
   );
@@ -71,6 +73,7 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
         await source.updateProfile(company.profileId, {
           consortiumId: consortiumId || null,
           sector: sector || null,
+          district: district || null,
         });
         // The founding date is the current life's: a refounding restarts the age.
         await source.updateCompany(company.id, { creationOverride: founded || null });
@@ -159,6 +162,22 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
               </option>
             ))}
           </select>
+        </label>
+
+        <label className="field">
+          <span className="label">Quartier</span>
+          <select
+            value={district}
+            onChange={(e) => setDistrict(isDistrict(e.target.value) ? e.target.value : "")}
+          >
+            <option value="">Non renseigné</option>
+            {(Object.keys(DISTRICT_LABELS) as District[]).map((d) => (
+              <option key={d} value={d}>
+                {DISTRICT_LABELS[d]}
+              </option>
+            ))}
+          </select>
+          <small className="profile-editor__hint">Critère « Localisation » de la notation.</small>
         </label>
 
         <label className="field">

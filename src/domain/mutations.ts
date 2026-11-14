@@ -1,3 +1,4 @@
+import { EMPTY_INPUTS, isDistrict, type CompanyRating, type District } from "./rating.ts";
 import { isSectorId, type SectorId } from "./sectors.ts";
 import {
   CONSORTIUM_COLORS,
@@ -19,6 +20,7 @@ import { MAX_EVENT_SPAN } from "./marketEvents.ts";
 export interface ProfilePatch {
   consortiumId?: string | null;
   sector?: SectorId | null;
+  district?: District | null;
   hidden?: boolean;
 }
 
@@ -29,6 +31,9 @@ export interface CompanyPatch {
 
 /** A life patch as logged before pages existed: page fields went with it. */
 type LegacyCompanyPatch = CompanyPatch & ProfilePatch;
+
+/** A rating about to be published: frozen as computed, never edited afterwards. */
+export type RatingDraft = Omit<CompanyRating, "id">;
 
 export interface ConsortiumDraft {
   /** null creates a consortium. */
@@ -87,7 +92,9 @@ export type LocalOp =
   | { type: "saveEvent"; event: CompanyEvent }
   | { type: "deleteEvent"; id: string }
   | { type: "saveMarketEvent"; event: MarketEvent }
-  | { type: "deleteMarketEvent"; id: string };
+  | { type: "deleteMarketEvent"; id: string }
+  | { type: "saveRating"; rating: CompanyRating }
+  | { type: "deleteRating"; id: string };
 
 const blank = (id: string, name: string, profileId: string): CompanyMeta => ({
   id,
@@ -103,6 +110,7 @@ const blankProfile = (id: string): CompanyProfile => ({
   consortiumId: null,
   sector: null,
   logoUrl: null,
+  district: null,
   hidden: false,
 });
 
@@ -153,6 +161,7 @@ export function normalizeDataset(raw: unknown): Dataset {
     consortiumId: p.consortiumId ?? null,
     sector: isSectorId(p.sector) ? p.sector : null,
     logoUrl: p.logoUrl ?? null,
+    district: isDistrict(p.district) ? p.district : null,
     hidden: p.hidden === true,
   });
   // A base served before pages existed (or a life without its page) gets one page per life,
@@ -184,6 +193,13 @@ export function normalizeDataset(raw: unknown): Dataset {
       ...e,
       details: e.details ?? {},
       note: e.note ?? null,
+    })),
+    ratings: (data.ratings ?? []).map((r) => ({
+      ...r,
+      score: Number(r.score),
+      inputs: { ...EMPTY_INPUTS, ...r.inputs },
+      district: isDistrict(r.district) ? r.district : null,
+      rationale: r.rationale ?? null,
     })),
     marketEvents: (data.marketEvents ?? []).map((e) => ({
       ...e,
@@ -390,6 +406,7 @@ function updateProfile(dataset: Dataset, id: string, patch: ProfilePatch): Datas
   const fields: ProfilePatch = {};
   if (patch.consortiumId !== undefined) fields.consortiumId = patch.consortiumId;
   if (patch.sector !== undefined) fields.sector = patch.sector;
+  if (patch.district !== undefined) fields.district = patch.district;
   if (patch.hidden !== undefined) fields.hidden = patch.hidden;
   return {
     ...dataset,
@@ -481,5 +498,15 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
         ...dataset,
         marketEvents: dataset.marketEvents.filter((e) => e.id !== op.id),
       };
+    case "saveRating": {
+      const { rating } = op;
+      requireCompany(dataset, rating.companyId);
+      if (!(rating.score >= 0 && rating.score <= 5)) throw new Error("score hors de l'échelle 0–5");
+      if (dataset.ratings.some((r) => r.companyId === rating.companyId && r.date === rating.date))
+        throw new Error("une notation existe déjà à cette date : retirez-la d'abord");
+      return { ...dataset, ratings: [...dataset.ratings, rating] };
+    }
+    case "deleteRating":
+      return { ...dataset, ratings: dataset.ratings.filter((r) => r.id !== op.id) };
   }
 }

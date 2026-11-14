@@ -1,6 +1,8 @@
+import { watchRating, type RatingWatch } from "./agency.ts";
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
 import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
+import type { CompanyRating, District } from "./rating.ts";
 import { rateBetween } from "./revenue.ts";
 import { assessRisk, type CompanyRisk } from "./risk.ts";
 import type { SectorId } from "./sectors.ts";
@@ -81,6 +83,7 @@ export interface CompanySeries {
   formerNames: string[];
   consortium: Consortium | null;
   sector: SectorId | null;
+  district: District | null;
   logoUrl: string | null;
   closedOn: IsoDate | null;
   /** Seed of the guilloché seal: stable across renames, distinct between namesakes. */
@@ -103,6 +106,10 @@ export interface CompanySeries {
   projection: CompanyProjection | null;
   /** KNX risk profile over the last five imperial years; null unless the company is active. */
   risk: CompanyRisk | null;
+  /** Latest rating of the Agence impériale de notation, if any. */
+  rating: CompanyRating | null;
+  /** What changed since that rating; null when not rated. */
+  watch: RatingWatch | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -143,6 +150,8 @@ export interface Market {
   events: Map<string, CompanyEvent[]>;
   /** Events of the whole market, oldest first. */
   marketEvents: MarketEvent[];
+  /** Published ratings, by corporation id, oldest first. */
+  ratings: Map<string, CompanyRating[]>;
   /** Horizon of the projections and the changes of order expected before it. */
   projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
 }
@@ -353,6 +362,7 @@ export function buildMarket(dataset: Dataset): Market {
       formerNames: meta.formerNames,
       consortium: profile?.consortiumId ? (consortiums.get(profile.consortiumId) ?? null) : null,
       sector: profile?.sector ?? null,
+      district: profile?.district ?? null,
       logoUrl: profile?.logoUrl ?? null,
       closedOn: meta.closedOn,
       sealSeed: meta.name,
@@ -376,6 +386,8 @@ export function buildMarket(dataset: Dataset): Market {
       recentRate: recent === null ? null : Math.max(0, recent),
       projection: null,
       risk: null,
+      rating: null,
+      watch: null,
       bestRank,
       record,
     });
@@ -460,6 +472,22 @@ export function buildMarket(dataset: Dataset): Market {
   for (const event of [...dataset.events].sort((a, b) => a.date.localeCompare(b.date)))
     events.set(event.companyId, [...(events.get(event.companyId) ?? []), event]);
 
+  // A rating is about one life: a refounded corporation starts unrated.
+  const ratings = new Map<string, CompanyRating[]>();
+  for (const rating of [...dataset.ratings].sort((a, b) => a.date.localeCompare(b.date)))
+    ratings.set(rating.companyId, [...(ratings.get(rating.companyId) ?? []), rating]);
+
+  const marketEvents = [...dataset.marketEvents].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
+  );
+  for (const c of allLives) {
+    const rating = ratings.get(c.id)?.at(-1) ?? null;
+    c.rating = rating;
+    c.watch = rating
+      ? watchRating(c, rating, events.get(c.id) ?? [], marketEvents, latest.date)
+      : null;
+  }
+
   const byId = new Map(allLives.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
   const latestRows = latest.rows.filter((r) => shown(r.companyId));
@@ -500,9 +528,8 @@ export function buildMarket(dataset: Dataset): Market {
     byId,
     slugAliases,
     events,
-    marketEvents: [...dataset.marketEvents].sort(
-      (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
-    ),
+    ratings,
+    marketEvents,
     projection,
   };
 }

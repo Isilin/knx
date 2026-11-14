@@ -1,0 +1,166 @@
+.rating-form {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-6) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.rating-form .section-head {
+  margin-bottom: 0;
+}
+
+.rating-form select,
+.rating-form textarea {
+  width: 100%;
+  color: var(--ivoire);
+  color-scheme: dark;
+}
+
+.rating-form__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--s-5);
+  padding: var(--s-4);
+  background: var(--laque-2);
+  border: 1px solid var(--filet);
+}
+
+.rating-form__none {
+  display: grid;
+  place-items: center;
+  width: 112px;
+  height: 92px;
+  border: 1px dashed var(--filet-fort);
+  color: var(--gris-2);
+  font-size: var(--fs-fig);
+  font-weight: 300;
+}
+
+.rating-form__verdict {
+  font-size: var(--fs-h2);
+  font-weight: 300;
+}
+
+.rating-form__verdict span {
+  color: var(--gris);
+}
+
+.rating-form__detail {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.rating-form__axes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-6);
+  align-items: start;
+}
+
+.rating-form__axis {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--s-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--filet-fort);
+}
+
+.rating-form__axis legend {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 0 var(--s-1);
+  font-size: var(--fs-md);
+  font-weight: 500;
+}
+
+.rating-form__axis legend b {
+  font-weight: 300;
+}
+
+.rating-form__measure {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.rating-form__measure-label {
+  grid-column: 1 / -1;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rating-form__measure b {
+  font-weight: 500;
+  text-align: right;
+}
+
+.rating-form__measure small {
+  grid-column: 1 / -1;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.rating-form__check {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+/* Inside a .field, the shared input styles would draw a checkbox as a 38 px text box. */
+.rating-form .rating-form__check input {
+  flex: none;
+  width: auto;
+  min-height: 0;
+  padding: 0;
+  accent-color: var(--or);
+}
+
+.rating-form__hint {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.rating-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.rating-form__closing {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(0, 2fr);
+  gap: var(--s-4) var(--s-6);
+  align-items: start;
+}
+
+.rating-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+@media (max-width: 1100px) {
+  .rating-form__axes,
+  .rating-form__closing {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .rating-form__preview {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

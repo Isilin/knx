@@ -1,6 +1,6 @@
 -- Généré par scripts/import-sheet.ts (--backfill) ; ne pas modifier à la main.
 -- Corporations détruites dont les colonnes avaient été supprimées du tableur, retrouvées dans
--- son historique des versions. À exécuter une fois, après 20261117000000_fiches_vies.sql, sur
+-- son historique des versions. À exécuter une fois, après 20261118000000_fiches_vies.sql, sur
 -- une base déjà remplie. Tout ou rien : une erreur annule l'ensemble.
 do $$
 declare
