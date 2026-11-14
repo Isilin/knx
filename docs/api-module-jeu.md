@@ -8,7 +8,8 @@ Le module vit dans un autre projet : ce document est la référence côté modul
 - **Clés :** créées par un opérateur dans **Relevés → Clés du module de jeu**. La clé n'est affichée
   qu'une fois : KNX n'en garde qu'une empreinte (sha256). Une clé révoquée est refusée tout de suite.
 - **Validation :** un envoi ne publie rien. Il attend dans **Relevés → Envois du jeu en attente**,
-  avec le même contrôle qu'un rapport collé, puis l'opérateur le publie ou le rejette.
+  comparé au relevé précédent (nouvelles, disparues, renommages, valeurs aberrantes), puis
+  l'opérateur le publie ou le rejette. C'est le seul chemin d'entrée des relevés.
 
 ## `POST /api/v1/releves`
 

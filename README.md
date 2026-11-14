@@ -53,8 +53,9 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
    publique (`NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `…_PUBLISHABLE_KEY`). KNX les lit telles quelles.
 2. Dans l'éditeur SQL Supabase, exécuter dans l'ordre les fichiers de `supabase/migrations/` :
    `20261113000000_init.sql`, `20261113100000_userscript_api.sql` (clés et envois du module de
-   jeu), `20261114000000_fiche_identite_historique.sql` et
-   `20261114100000_publication_envois_identite.sql`, puis `supabase/seed.sql` pour charger
+   jeu), `20261114000000_fiche_identite_historique.sql`,
+   `20261114100000_publication_envois_identite.sql` et `20261114200000_retrait_releve.sql`
+   (retrait du dernier relevé depuis le journal), puis `supabase/seed.sql` pour charger
    l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
    fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
    11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le
@@ -105,8 +106,8 @@ variables du projet.
 ## API du module de jeu
 
 Le userscript (projet séparé) envoie le rapport du jour à `POST /api/v1/releves` avec une clé
-`Authorization: Bearer knx_…`. L'envoi attend dans Relevés, contrôlé comme un rapport collé, jusqu'à
-ce qu'un opérateur le publie ou le rejette. Contrat complet : `docs/api-module-jeu.md`.
+`Authorization: Bearer knx_…`. L'envoi attend dans Relevés, comparé au relevé précédent, jusqu'à ce
+qu'un opérateur le publie ou le rejette. Contrat complet : `docs/api-module-jeu.md`.
 
 - `api/v1/*.ts` : points d'entrée Vercel, trois lignes chacun.
 - `src/server/` : logique HTTP testée (`vp test`), sans dépendance à Vercel.

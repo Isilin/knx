@@ -48,6 +48,8 @@ export interface DataSource {
   readonly kind: "local" | "supabase";
   load(): Promise<Dataset>;
   publish(request: PublishRequest): Promise<void>;
+  /** Withdraws the latest published report and undoes what its publication did. */
+  withdrawSnapshot(date: IsoDate): Promise<void>;
   /** Consortium, sector, typed creation date. */
   updateCompany(id: string, patch: CompanyPatch): Promise<void>;
   /** Sets (already reduced to a small WebP) or removes a corporation's logo. */

@@ -85,6 +85,10 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       });
       if (error) throw new Error(error.message);
     },
+    async withdrawSnapshot(date) {
+      const { error } = await client.rpc("withdraw_snapshot", { p_taken_on: date });
+      if (error) throw new Error(error.message);
+    },
     async updateCompany(id, patch) {
       const values: Record<string, unknown> = {};
       if (patch.consortiumId !== undefined)

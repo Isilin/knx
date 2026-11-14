@@ -79,6 +79,7 @@ export function createLocalSource(): DataSource {
       const newIds = request.rows.filter((r) => r.companyId === null).map(newId);
       await record({ type: "publish", request, newIds });
     },
+    withdrawSnapshot: (date) => record({ type: "withdraw", date }),
     updateCompany: (id, patch) => record({ type: "updateCompany", id, patch }),
     async setLogo(id, logo) {
       await record({ type: "setLogo", id, url: logo ? await blobToDataUrl(logo) : null });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { applyOp, normalizeDataset } from "./mutations.ts";
+import { applyOp, normalizeDataset, planWithdrawal } from "./mutations.ts";
 import type { CompanyMeta, Dataset } from "./types.ts";
 
 const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): CompanyMeta => ({
@@ -96,6 +96,77 @@ describe("publish", () => {
         },
       }),
     ).toThrow("porte déjà le nom");
+  });
+});
+
+describe("withdraw", () => {
+  const published = publish(base);
+
+  it("plans what the latest report's publication did", () => {
+    expect(planWithdrawal(published, "2026-11-13")).toMatchObject({
+      rows: 3,
+      created: ["n1"],
+      renamed: [
+        expect.objectContaining({ companyId: "2", details: { from: "Beta", to: "Beta Prime" } }),
+      ],
+      reopened: ["3"],
+    });
+  });
+
+  it("undoes rows, creations, renames and closures", () => {
+    const withdrawn = applyOp(published, { type: "withdraw", date: "2026-11-13" });
+    expect(withdrawn.snapshots).toEqual(base.snapshots);
+    expect(withdrawn.companies).toEqual(base.companies);
+    expect(withdrawn.events).toEqual([]);
+    // The module can send that day again.
+    expect(publish(withdrawn).snapshots).toHaveLength(2);
+  });
+
+  const documented = (dataset: Dataset) =>
+    applyOp(dataset, {
+      type: "saveEvent",
+      event: {
+        id: "e1",
+        companyId: "n1",
+        date: "2026-11-13",
+        kind: "other",
+        details: { title: "Fondation" },
+        note: null,
+        origin: "manual",
+      },
+    });
+
+  it("keeps a corporation the operator documented", () => {
+    const delta = applyOp(base, {
+      type: "publish",
+      newIds: ["n1"],
+      request: {
+        date: "2026-11-13",
+        source: "userscript",
+        replace: false,
+        closures: [],
+        rows: [{ companyId: null, name: "Delta", ...figures }],
+      },
+    });
+    const withdrawn = applyOp(documented(delta), { type: "withdraw", date: "2026-11-13" });
+    expect(withdrawn.companies.map((c) => c.id)).toEqual(["1", "2", "3", "n1"]);
+    expect(withdrawn.events.map((e) => e.id)).toEqual(["e1"]);
+  });
+
+  it("refuses to reopen a corporation beside a kept namesake", () => {
+    // Gamma was refounded that day and the new one documented: the old one cannot reopen.
+    expect(() => applyOp(documented(published), { type: "withdraw", date: "2026-11-13" })).toThrow(
+      "porteraient le nom « Gamma »",
+    );
+  });
+
+  it("only withdraws the latest published report", () => {
+    expect(() => applyOp(published, { type: "withdraw", date: "2026-11-12" })).toThrow(
+      "seul le dernier relevé",
+    );
+    expect(() => applyOp(published, { type: "withdraw", date: "2026-11-01" })).toThrow(
+      "aucun relevé publié",
+    );
   });
 });
 
