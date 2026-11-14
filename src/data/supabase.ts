@@ -1,6 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Dataset } from "../domain/types.ts";
-import type { DataSource, PublishRequest, Session } from "./source.ts";
+import type {
+  ApiKey,
+  CreatedApiKey,
+  DataSource,
+  PendingSnapshot,
+  PublishRequest,
+  Session,
+} from "./source.ts";
 
 /** Supabase Auth errors, said in the operator's terms. */
 function signInMessage(error: { message: string; status?: number; code?: string }): string {
@@ -64,6 +71,33 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     onSessionChange(listener) {
       const { data } = client.auth.onAuthStateChange(() => listener());
       return () => data.subscription.unsubscribe();
+    },
+    async pending() {
+      const { data, error } = await client.rpc("pending_snapshots");
+      if (error) throw new Error(`Lecture des envois en attente impossible : ${error.message}`);
+      return data as PendingSnapshot[];
+    },
+    async publishPending(id: number) {
+      const { error } = await client.rpc("publish_pending_snapshot", { p_id: id });
+      if (error) throw new Error(error.message);
+    },
+    async rejectPending(id: number) {
+      const { error } = await client.rpc("reject_pending_snapshot", { p_id: id });
+      if (error) throw new Error(error.message);
+    },
+    async apiKeys() {
+      const { data, error } = await client.rpc("list_api_keys");
+      if (error) throw new Error(`Lecture des clés impossible : ${error.message}`);
+      return data as ApiKey[];
+    },
+    async createApiKey(name: string) {
+      const { data, error } = await client.rpc("create_api_key", { p_name: name });
+      if (error) throw new Error(error.message);
+      return data as CreatedApiKey;
+    },
+    async revokeApiKey(id: number) {
+      const { error } = await client.rpc("revoke_api_key", { p_id: id });
+      if (error) throw new Error(error.message);
     },
   };
 }

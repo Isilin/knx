@@ -18,6 +18,12 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     signInWithPassword: async (email, password) =>
       (await get()).signInWithPassword(email, password),
     signOut: async () => (await get()).signOut(),
+    pending: async () => (await get()).pending(),
+    publishPending: async (id) => (await get()).publishPending(id),
+    rejectPending: async (id) => (await get()).rejectPending(id),
+    apiKeys: async () => (await get()).apiKeys(),
+    createApiKey: async (name) => (await get()).createApiKey(name),
+    revokeApiKey: async (id) => (await get()).revokeApiKey(id),
     onSessionChange(listener) {
       let unsubscribe = () => {};
       let active = true;
@@ -47,4 +53,11 @@ export function createDataSource(): DataSource {
   return url && key ? createLazySupabaseSource(url, key) : createLocalSource();
 }
 
-export type { DataSource, PublishRequest, Session } from "./source.ts";
+export type {
+  ApiKey,
+  CreatedApiKey,
+  DataSource,
+  PendingSnapshot,
+  PublishRequest,
+  Session,
+} from "./source.ts";

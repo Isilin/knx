@@ -50,7 +50,7 @@ Référence de composition : `.impeccable/mocks/decision/grounded-rapport.html`.
   1. Formules du tableur à lire (seules les valeurs ont été récupérées via gviz).
   2. Fiabilité du CA réel : erreur d'arrondi amplifiée par l'âge ; écart exact en jours entre relevés requis ; âge estimé de façon robuste (médiane, rejet des aberrations). Exemple réel : [Import] → relevé du 13.11 donne un CA réel négatif pour Armacham Technology.
   3. Groupes et secteurs (filtres) : groupes déduits des noms (Armacham ×5, Sovereign ×5, Donnellys ×2 ; Donnestyle à trancher) ; secteurs à définir.
-  4. Envoi par userscript : publication directe ou validation ?
+  4. ~~Envoi par userscript : publication directe ou validation ?~~ Tranché : validation. L'envoi attend dans Relevés et se publie en un clic (`docs/api-module-jeu.md`).
   5. Graphique d'accueil : top 10 dans le temps, à confirmer.
   6. Thème clair éventuel plus tard ; sombre par défaut.
 - Français uniquement, nombres au format français, contrastes WCAG AA.

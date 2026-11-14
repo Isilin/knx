@@ -2,6 +2,8 @@ import type { Dataset, Snapshot } from "../domain/types.ts";
 import type { DataSource, PublishRequest, Session } from "./source.ts";
 
 const STORAGE_KEY = "knx.local-snapshots";
+const SUPABASE_ONLY =
+  "Mode local : les envois du module de jeu et ses clés demandent la base Supabase.";
 
 function readLocal(): Snapshot[] {
   try {
@@ -60,6 +62,25 @@ export function createLocalSource(): DataSource {
     async signOut() {},
     onSessionChange() {
       return () => {};
+    },
+    // The in-game module and its keys live in Supabase only.
+    async pending() {
+      return [];
+    },
+    async publishPending() {
+      throw new Error(SUPABASE_ONLY);
+    },
+    async rejectPending() {
+      throw new Error(SUPABASE_ONLY);
+    },
+    async apiKeys() {
+      return [];
+    },
+    async createApiKey() {
+      throw new Error(SUPABASE_ONLY);
+    },
+    async revokeApiKey() {
+      throw new Error(SUPABASE_ONLY);
     },
   };
 }
