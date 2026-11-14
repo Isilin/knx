@@ -1,0 +1,101 @@
+.market-events {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.market-events .section-head {
+  margin-bottom: 0;
+}
+
+.market-event {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr);
+  align-items: baseline;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.market-event time {
+  color: var(--gris);
+}
+
+.market-event__body {
+  display: grid;
+  gap: var(--s-1);
+  min-width: 0;
+}
+
+.market-event__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2);
+  font-weight: 500;
+}
+
+.market-event__label {
+  padding: 0 var(--s-1);
+  border: 1px solid var(--filet-fort);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+}
+
+.market-event__meta {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.market-event__buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+  font-size: var(--fs-cap);
+}
+
+.market-event__danger,
+.market-event__error {
+  color: var(--baisse);
+  font-size: var(--fs-cap);
+}
+
+.market-events__add {
+  justify-self: start;
+}
+
+.market-event-form {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  background: var(--laque-2);
+  border: 1px solid var(--filet);
+}
+
+.market-event-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.market-event-form input,
+.market-event-form textarea {
+  width: 100%;
+  color: var(--ivoire);
+  color-scheme: dark;
+  background: var(--laque);
+}
+
+.market-event-form__hint {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.market-event-form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}

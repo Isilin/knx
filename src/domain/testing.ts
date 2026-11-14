@@ -32,6 +32,7 @@ export function datasetByName(named: NamedDataset): Dataset {
     companies: [...companies.values()],
     consortiums: [],
     events: [],
+    marketEvents: [],
     snapshots: named.snapshots.map((s) => ({
       date: s.date,
       source: s.source,

@@ -203,7 +203,7 @@ Une palette de laque et d'encres, où chaque teinte saturée porte un sens uniqu
 Grille suisse dans un conteneur centré de 1640 px au plus, gouttière fluide clamp(16px, 2.4vw, 32px). Rythme d'espacement sur une échelle 4/8 (4, 8, 12, 16, 24, 32, 48, 64 px). Les sections se séparent par des filets horizontaux d'un pixel, pas par des cartes.
 
 - **En-tête collant** de 60 px, laque à 94 % avec flou d'arrière-plan, filet en bas : marque à gauche, onglets, date et recherche à droite.
-- **Rangées de faits / KPI** : 6 (marché) ou 5 (fiche) colonnes égales, chacune coiffée d'une règle de tête ; 3 colonnes sous 1200 px, 2 sous 640 px.
+- **Rangées de faits / KPI** : 6 colonnes égales (marché et fiche), chacune coiffée d'une règle de tête ; 3 colonnes sous 1200 px, 2 sous 640 px.
 - **Zone principale du marché** : graphique fluide + colonne de 360 px séparée par un filet vertical ; empilée sous 1200 px.
 - **Fiche entreprise** : sceau, titre, actions sur une grille à trois colonnes.
 - **Mobile** : sous 760 px, les onglets passent sur leur propre ligne défilante (cibles de 44 px) ; sous 860 px, les colonnes secondaires de la cote se masquent ; sous 640 px, les étiquettes de fin de ligne du graphique ne gardent que le rang.
@@ -252,13 +252,16 @@ Onglets de l'en-tête en 500, gris au repos, ivoire au survol, actif ivoire avec
 Coiffée d'une règle dorée d'1 px ; en-têtes collants en libellés capitales gris, flèche de tri dorée quand active ; lignes séparées par des filets, survol et ligne focalisée en laque-2. Rang en 300, sceau de 26 px, nom en 500, sous-ligne en libellés. Colonnes numériques alignées à droite.
 
 ### Graphique temporel
-Grille en filets nets, axes gris en 11.5 px, séries d'1.25 px à 38 % d'opacité ; la série survolée ou suivie passe à 2 px pleine encre, les autres tombent à 16 %. Top 10 multi-séries avec étiquettes de fin de ligne espacées pour éviter les collisions (rang + nom court, rang seul sous 640 px), reliées par un filet coudé. Séries estimées en violet pointillé (2/4), tendance en points ronds violets. Réticule de survol en or éteint pointillé, infobulle en laque-2 à bordure filet fort.
+Grille en filets nets, axes gris en 11.5 px, séries d'1.25 px à 38 % d'opacité ; la série survolée ou suivie passe à 2 px pleine encre, les autres tombent à 16 %. Top 10 multi-séries avec étiquettes de fin de ligne espacées pour éviter les collisions (rang + nom court, rang seul sous 640 px), reliées par un filet coudé. Séries estimées en violet pointillé (2/4), tendance en points ronds violets. Évènement de marché : filet vertical gris éteint en pointillé fin (1/3) sur toute la hauteur du tracé, étiquette courte grise en 500 en haut à droite du filet (à gauche près du bord), titre complet en pied d'infobulle du premier relevé qui le suit. Réticule de survol en or éteint pointillé, infobulle en laque-2 à bordure filet fort.
 
 ### Liaison croisée
 Une entreprise survolée ou focalisée dans le graphique, la légende, les mouvements ou la cote est mise en avant partout à la fois via un contexte de focus partagé ; les autres éléments s'atténuent (légende à 45 %, étiquettes à 30 %).
 
 ### Sceau guilloché
 Rosette générée de façon déterministe depuis le nom de l'entreprise (hachage stable), au trait doré sans remplissage. À 26 px dans la cote, trait d'un pixel non mis à l'échelle. À 168 px sur la fiche, tracé une seule fois à l'ouverture (stroke-dashoffset, 1500 ms, ease-out), affiché d'emblée sous mouvement réduit.
+
+### Profil de risque
+Échelle à sept cases numérotées, à la manière de l'indicateur de risque des documents de fonds : cases à filet d'1 px, chiffres en 300 gris éteint, la case du profil en violet d'estimation (bordure, fond `estime-fond`, chiffre agrandi), bornes « Plus faible / Plus élevé » en libellés capitales sous l'échelle. Chaque indice est une ligne à filets (libellé en 500 et aide en gris, mesure alignée à droite, niveau en sept segments de 6 × 10 px remplis comme les jauges estimées, gris sous points violets, puis `n/7`). Les niveaux 6 et 7 et les drapeaux d'état (dormant, plafonnée, exposée) passent en orange d'alerte ; vert et rouge n'y apparaissent que sur la tendance, qui est une variation.
 
 ### Valeurs (Amount, Estimated, Change)
 Montants suivis d'un `¢` gris à 86 % ; valeur absente en `—` gris éteint. Estimées en violet souligné pointillé, « ≈ 0 » quand la valeur est sous l'incertitude d'arrondi. Variations en 500 avec triangle dessiné de 8 px. Les chiffres s'interpolent (520 ms, ease-out exponentiel) au changement de période, instantanément sous mouvement réduit.

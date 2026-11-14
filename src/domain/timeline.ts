@@ -1,8 +1,9 @@
 import { formatImperialDate, imperialYear } from "./imperial.ts";
 import type { CompanySeries } from "./market.ts";
+import { listedOn, marketEventsBetween } from "./marketEvents.ts";
 import { formatCompact, formatInteger, formatPercent } from "./numbers.ts";
 import { largestFlows } from "./treasury.ts";
-import type { CompanyEvent, EventKind, IsoDate } from "./types.ts";
+import type { CompanyEvent, EventKind, IsoDate, MarketEvent } from "./types.ts";
 
 export const EVENT_LABELS: Record<EventKind, string> = {
   renamed: "Changement de nom",
@@ -16,10 +17,15 @@ export interface TimelineEntry {
   date: IsoDate;
   title: string;
   note: string | null;
-  /** `estimate`: computed by KNX (violet, dotted); `auto`: read from the reports; `manual`: typed. */
-  origin: "auto" | "manual" | "estimate";
+  /**
+   * `estimate`: computed by KNX (violet, dotted); `auto`: read from the reports; `manual`: typed;
+   * `market`: an event of the whole market, edited on the Relevés page.
+   */
+  origin: "auto" | "manual" | "estimate" | "market";
   /** The recorded event behind the entry, when the operator can edit it. */
   event: CompanyEvent | null;
+  /** The market event behind the entry. */
+  market: MarketEvent | null;
   /** The typed founding date (the creation override). */
   founding: boolean;
   /** Another corporation the entry points to. */
@@ -48,6 +54,7 @@ const entry = (
   note: null,
   origin: "auto",
   event: null,
+  market: null,
   founding: false,
   link: null,
   ...partial,
@@ -61,6 +68,7 @@ const entry = (
 export function buildTimeline(
   company: CompanySeries,
   events: readonly CompanyEvent[],
+  marketEvents: readonly MarketEvent[] = [],
 ): TimelineEntry[] {
   const list: TimelineEntry[] = [];
   const { creation } = company;
@@ -126,15 +134,33 @@ export function buildTimeline(
   const inflow = flows.find((f) => f.flow > 0 && (f.share ?? 0) >= 0.25);
   for (const f of [outflow, inflow]) {
     if (!f) continue;
+    const during = marketEventsBetween(marketEvents, f.previousDate, f.date);
     list.push(
       entry({
         key: `flow-${f.date}`,
         date: f.date,
         title: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
+        note:
+          during.length > 0
+            ? `Coïncide avec ${during.map((e) => `« ${e.title} »`).join(", ")}.`
+            : null,
         origin: "estimate",
       }),
     );
   }
+
+  for (const market of marketEvents)
+    if (listedOn(company, market.date))
+      list.push(
+        entry({
+          key: `market-${market.id}`,
+          date: market.date,
+          title: market.title,
+          note: market.description,
+          origin: "market",
+          market,
+        }),
+      );
 
   const typedClosure = events.some((e) => e.kind === "closed");
   if (company.status === "delisted" && !typedClosure)

@@ -1,0 +1,178 @@
+.risk {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(0, 2fr);
+  gap: var(--s-7);
+  align-items: start;
+}
+
+.risk__profile {
+  display: grid;
+  gap: var(--s-3);
+}
+
+/* The seven-step scale of fund documents: one cell per level, the profile marked. */
+.risk-scale__steps {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: var(--s-1);
+}
+
+.risk-scale__step {
+  display: grid;
+  place-items: center;
+  height: 44px;
+  border: 1px solid var(--filet);
+  color: var(--gris-2);
+  font-size: var(--fs-md);
+  font-weight: 300;
+}
+
+.risk-scale__step.is-on {
+  border-color: var(--estime);
+  background: var(--estime-fond);
+  color: var(--estime);
+  font-size: var(--fs-h2);
+}
+
+.risk-scale__ends {
+  display: flex;
+  justify-content: space-between;
+  margin-top: var(--s-2);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.risk__verdict {
+  margin-top: var(--s-2);
+  font-size: var(--fs-h2);
+  font-weight: 300;
+  letter-spacing: -0.01em;
+}
+
+.risk__profile .company__note {
+  margin-top: 0;
+}
+
+.risk__alert {
+  color: var(--alerte);
+  font-size: var(--fs-sm);
+}
+
+.risk .is-alert {
+  color: var(--alerte);
+  text-decoration-color: var(--alerte);
+}
+
+.risk-index {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(7.5rem, auto) 8.5rem;
+  align-items: baseline;
+  gap: var(--s-4);
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.risk-index:first-child {
+  border-top: 1px solid var(--filet-fort);
+}
+
+.risk-index dt {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.risk-index__label {
+  font-weight: 500;
+}
+
+.risk-index__help {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.risk-index__measure {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+  font-size: var(--fs-md);
+  white-space: nowrap;
+}
+
+.risk-index__measure small {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.risk-index__pair {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-3);
+}
+
+.risk-index__quiet {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.risk-index__level {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--s-3);
+  font-size: var(--fs-md);
+  font-weight: 300;
+}
+
+/* Filled like the estimated gauges: grey ink under violet dots. */
+.risk-ticks {
+  display: inline-grid;
+  grid-template-columns: repeat(7, 6px);
+  gap: 2px;
+}
+
+.risk-ticks i {
+  height: 10px;
+  background: var(--laque-3);
+}
+
+.risk-ticks i.is-on {
+  background-color: var(--gris);
+  background-image: radial-gradient(circle, var(--estime) 1px, transparent 1.3px);
+  background-size: 4px 4px;
+}
+
+.risk-flag {
+  color: var(--alerte);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: help;
+}
+
+@media (max-width: 1100px) {
+  .risk {
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+  .risk__profile {
+    max-width: 420px;
+  }
+}
+
+@media (max-width: 640px) {
+  .risk-index {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-1) var(--s-4);
+  }
+  .risk-index dt {
+    grid-column: 1 / -1;
+  }
+  .risk-index__measure {
+    justify-items: start;
+  }
+}

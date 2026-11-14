@@ -1,8 +1,18 @@
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
 import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
+import { rateBetween } from "./revenue.ts";
+import { assessRisk, type CompanyRisk } from "./risk.ts";
 import type { SectorId } from "./sectors.ts";
-import type { CompanyEvent, CompanyMeta, Consortium, Dataset, IsoDate, Snapshot } from "./types.ts";
+import type {
+  CompanyEvent,
+  CompanyMeta,
+  Consortium,
+  Dataset,
+  IsoDate,
+  MarketEvent,
+  Snapshot,
+} from "./types.ts";
 
 export interface CompanyPoint {
   date: IsoDate;
@@ -81,6 +91,8 @@ export interface CompanySeries {
   recentRate: number | null;
   /** Where the published chiffre heads if that rate holds; null when the estimate cannot say. */
   projection: CompanyProjection | null;
+  /** KNX risk profile over the last five imperial years; null unless the company is active. */
+  risk: CompanyRisk | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -110,6 +122,8 @@ export interface Market {
   slugAliases: Map<string, string>;
   /** Recorded events, by corporation id, oldest first. */
   events: Map<string, CompanyEvent[]>;
+  /** Events of the whole market, oldest first. */
+  marketEvents: MarketEvent[];
   /** Horizon of the projections and the changes of order expected before it. */
   projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
 }
@@ -152,37 +166,6 @@ function rankSnapshot(snapshot: Snapshot, nameOf: (id: string) => string): Map<s
       nameOf(a.companyId).localeCompare(nameOf(b.companyId), "fr"),
   );
   return new Map(sorted.map((row, index) => [row.companyId, row.rank ?? index + 1]));
-}
-
-/** Cumulative revenue at or before `day`, with the matching report day. */
-function cumulativeAt(
-  points: readonly CompanyPoint[],
-  day: number,
-): { value: number; day: number } | null {
-  for (let k = points.length - 1; k >= 0; k--) {
-    const p = points[k];
-    if (toDayNumber(p.date) <= day && p.cumulative !== null)
-      return { value: p.cumulative, day: toDayNumber(p.date) };
-  }
-  return null;
-}
-
-/** Real revenue per day between `fromDay` and `toDay` (both snapped to available reports). */
-function rateBetween(
-  points: readonly CompanyPoint[],
-  fromDay: number,
-  toDay: number,
-): number | null {
-  const end = cumulativeAt(points, toDay);
-  // When the window opens before the history, start at the first report inside it.
-  let start = cumulativeAt(points, fromDay);
-  if (!start) {
-    const first = points.find((p) => p.cumulative !== null && toDayNumber(p.date) > fromDay);
-    if (first?.cumulative != null)
-      start = { value: first.cumulative, day: toDayNumber(first.date) };
-  }
-  if (!end || !start || end.day - start.day < 7) return null;
-  return (end.value - start.value) / (end.day - start.day);
 }
 
 function buildPoints(
@@ -355,6 +338,7 @@ export function buildMarket(dataset: Dataset): Market {
       },
       recentRate: recent === null ? null : Math.max(0, recent),
       projection: null,
+      risk: null,
       bestRank,
       record,
     });
@@ -368,6 +352,8 @@ export function buildMarket(dataset: Dataset): Market {
         ? Math.max(0, c.scores.weight) / totalRecent
         : null;
   }
+
+  for (const c of companies) c.risk = assessRisk(c, latest.date);
 
   assignSlugs(companies);
   assignSealSeeds(companies);
@@ -431,6 +417,9 @@ export function buildMarket(dataset: Dataset): Market {
     byId,
     slugAliases,
     events,
+    marketEvents: [...dataset.marketEvents].sort(
+      (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
+    ),
     projection,
   };
 }

@@ -14,10 +14,11 @@ import { Seal } from "../components/Seal.tsx";
 import { DynamicsKey, MarketMap } from "../components/MarketMap.tsx";
 import { RegimeChart } from "../components/RegimeChart.tsx";
 import { RegimeList } from "../components/RegimeList.tsx";
-import { TimeChart, type ChartSeries } from "../components/TimeChart.tsx";
+import { TimeChart, type ChartMarker, type ChartSeries } from "../components/TimeChart.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
 import { formatImperialDate, formatPti } from "../domain/imperial.ts";
 import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
+import { marketMarkers } from "../domain/marketEvents.ts";
 import { computeMovers } from "../domain/movers.ts";
 import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
 import { groupByRegime, marketMap } from "../domain/regimes.ts";
@@ -83,7 +84,13 @@ function MoverRow({ company, kind }: { company: CompanySeries; kind: "performanc
 }
 
 /** Capital and headcount of the whole listing, on the reports that publish them. */
-function TreasurySection({ points }: { points: MarketTreasuryPoint[] }) {
+function TreasurySection({
+  points,
+  markers,
+}: {
+  points: MarketTreasuryPoint[];
+  markers: readonly ChartMarker[];
+}) {
   const [period, setPeriod] = useState<PeriodId>("all");
   if (points.length === 0) return null;
   const start = periodStart(period, points[points.length - 1].date);
@@ -130,6 +137,7 @@ function TreasurySection({ points }: { points: MarketTreasuryPoint[] }) {
             label={`Capital total des corporations cotées, ${period === "all" ? "depuis le premier relevé du capital" : `${period} derniers ans impériaux`}`}
             formatValue={(v) => `${formatInteger(v)} ¢`}
             height={220}
+            markers={markers}
             series={[
               {
                 id: "capital",
@@ -157,6 +165,7 @@ function TreasurySection({ points }: { points: MarketTreasuryPoint[] }) {
             label="Effectif total des corporations cotées"
             formatValue={(v) => `${formatInteger(v)} employés`}
             height={220}
+            markers={markers}
             series={[
               {
                 id: "employees",
@@ -188,6 +197,7 @@ export function MarketPage() {
   const [metric, setMetric] = useState<"chiffre" | "real">("chiffre");
   const movers = useMemo(() => computeMovers(market, 4), [market]);
   const treasury = useMemo(() => marketTreasury(market), [market]);
+  const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
   const map = useMemo(() => marketMap(market), [market]);
   const regimes = useMemo(() => groupByRegime(market), [market]);
   // Changes of order near the top of the cote, soonest first.
@@ -290,6 +300,7 @@ export function MarketPage() {
             pinned={pinned}
             height={470}
             zeroBased={metric === "real"}
+            markers={markers}
             endLabel={(s, compact) => {
               const company = top.find((c) => c.slug === s.id);
               if (compact) return company ? String(company.latest.rank) : "";
@@ -445,7 +456,7 @@ export function MarketPage() {
         </p>
       </section>
 
-      <TreasurySection points={treasury} />
+      <TreasurySection points={treasury} markers={markers} />
 
       <section className="market__cote" aria-labelledby="cote">
         <div className="section-head">

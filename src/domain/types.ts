@@ -88,11 +88,27 @@ export interface CompanyEvent {
   origin: "manual" | "auto";
 }
 
+/**
+ * A dated fact of the whole market (a game rule, a breach): shown in the history of every
+ * corporation listed that day and on the charts.
+ */
+export interface MarketEvent {
+  id: string;
+  date: IsoDate;
+  /** Short label for the charts (`ZD-385`); the title when null. */
+  label: string | null;
+  title: string;
+  description: string | null;
+  /** Days, from `date`, over which its effects are read: flows in that span are tied to it. */
+  span: number;
+}
+
 export interface Dataset {
   generatedAt: string;
   companies: CompanyMeta[];
   consortiums: Consortium[];
   events: CompanyEvent[];
+  marketEvents: MarketEvent[];
   snapshots: Snapshot[];
 }
 

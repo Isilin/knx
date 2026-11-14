@@ -1,5 +1,10 @@
 import type { ResolvedRows } from "../domain/identity.ts";
-import type { CompanyPatch, ConsortiumDraft, EventDraft } from "../domain/mutations.ts";
+import type {
+  CompanyPatch,
+  ConsortiumDraft,
+  EventDraft,
+  MarketEventDraft,
+} from "../domain/mutations.ts";
 import type {
   Dataset,
   IsoDate,
@@ -8,7 +13,14 @@ import type {
   SnapshotSource,
 } from "../domain/types.ts";
 
-export type { CompanyPatch, ConsortiumDraft, EventDraft, PublishRequest, ResolvedRows };
+export type {
+  CompanyPatch,
+  ConsortiumDraft,
+  EventDraft,
+  MarketEventDraft,
+  PublishRequest,
+  ResolvedRows,
+};
 
 export type Session =
   | { state: "anonymous" }
@@ -58,6 +70,9 @@ export interface DataSource {
   deleteConsortium(id: string): Promise<void>;
   saveEvent(draft: EventDraft): Promise<void>;
   deleteEvent(id: string): Promise<void>;
+  /** Events of the whole market (game rules, breaches). */
+  saveMarketEvent(draft: MarketEventDraft): Promise<void>;
+  deleteMarketEvent(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
