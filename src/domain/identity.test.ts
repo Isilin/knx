@@ -18,6 +18,7 @@ const company = (id: string, name: string, closedOn: string | null = null): Comp
   closedOn,
   logoUrl: null,
   district: null,
+  hidden: false,
 });
 
 const line = (

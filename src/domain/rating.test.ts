@@ -27,6 +27,7 @@ const blankMeta = (id: string): CompanyMeta => ({
   closedOn: null,
   logoUrl: null,
   district: null,
+  hidden: false,
 });
 
 const CREATED: IsoDate = "2026-01-01";

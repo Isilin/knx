@@ -43,6 +43,13 @@ const MARKET_EVENTS: MarketEvent[] = [
   },
 ];
 
+/**
+ * Corporations kept out of KNX's displays: run by the game masters for their own building
+ * needs, not real businesses. The reports still list them. On Supabase, the flag is
+ * `companies.hidden` (migration 20261116000000_corporations_masquees.sql).
+ */
+const HIDDEN_COMPANIES = new Set(["MJ Immo"]);
+
 const SHEETS = {
   chiffre: "Chiffre quotidien",
   capital: "Capital",
@@ -180,6 +187,7 @@ function assignIdentities(
             closedOn: null,
             logoUrl: null,
             district: null,
+            hidden: HIDDEN_COMPANIES.has(row.name),
           };
       if (!continues) {
         companies.push(meta);

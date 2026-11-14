@@ -13,6 +13,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   closedOn: null,
   logoUrl: null,
   district: null,
+  hidden: false,
   ...extra,
 });
 

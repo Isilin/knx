@@ -12,6 +12,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   closedOn: null,
   logoUrl: null,
   district: null,
+  hidden: false,
   ...extra,
 });
 
@@ -203,5 +204,16 @@ describe("normalizeDataset", () => {
         snapshots: [{ date: "2026-11-12", rows: [{ name: "Alpha", chiffre: 1 }] }],
       }),
     ).toThrow("migration");
+  });
+
+  it("shows a corporation unless it is flagged hidden", () => {
+    const { companies } = normalizeDataset({
+      companies: [
+        { id: "1", name: "Alpha" },
+        { id: "2", name: "MJ Immo", hidden: true },
+      ],
+      snapshots: [],
+    });
+    expect(companies.map((c) => c.hidden)).toEqual([false, true]);
   });
 });

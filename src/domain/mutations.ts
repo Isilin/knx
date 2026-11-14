@@ -21,6 +21,7 @@ export interface CompanyPatch {
   sector?: SectorId | null;
   district?: District | null;
   creationOverride?: IsoDate | null;
+  hidden?: boolean;
 }
 
 /** A rating about to be published: frozen as computed, never edited afterwards. */
@@ -94,6 +95,7 @@ const blank = (id: string, name: string): CompanyMeta => ({
   closedOn: null,
   logoUrl: null,
   district: null,
+  hidden: false,
 });
 
 /**
@@ -124,6 +126,7 @@ export function normalizeDataset(raw: unknown): Dataset {
       closedOn: c.closedOn ?? null,
       logoUrl: c.logoUrl ?? null,
       district: isDistrict(c.district) ? c.district : null,
+      hidden: c.hidden === true,
     })),
     consortiums: (data.consortiums ?? []).filter((k) =>
       (CONSORTIUM_COLORS as readonly string[]).includes(k.color),

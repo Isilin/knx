@@ -96,6 +96,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       if (patch.sector !== undefined) values.sector = patch.sector;
       if (patch.district !== undefined) values.district = patch.district;
       if (patch.creationOverride !== undefined) values.creation_override = patch.creationOverride;
+      if (patch.hidden !== undefined) values.hidden = patch.hidden;
       await updateCompanyRow(id, values);
     },
     async setLogo(id, logo) {
@@ -183,7 +184,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       if (error)
         throw error.code === "42P01" || error.code === "PGRST205"
           ? new Error(
-              "table des notations absente : exécuter la migration 20261116000000_notation_agence.sql.",
+              "table des notations absente : exécuter la migration 20261117000000_notation_agence.sql.",
             )
           : writeMessage(error, "une notation existe déjà à cette date : retirez-la d'abord");
     },

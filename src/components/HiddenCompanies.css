@@ -1,0 +1,42 @@
+.hidden-companies {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.hidden-companies .section-head {
+  margin-bottom: 0;
+}
+
+.hidden-company {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.hidden-company__name small,
+.hidden-companies__empty,
+.hidden-companies__hint {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.hidden-company .linklike {
+  font-size: var(--fs-cap);
+}
+
+.hidden-companies__add {
+  display: grid;
+  gap: var(--s-2);
+  justify-items: start;
+  padding-top: var(--s-2);
+}
+
+.hidden-companies__add .field,
+.hidden-companies__add select {
+  width: 100%;
+}

@@ -1,5 +1,5 @@
 -- KNX — notation de l'Agence impériale de notation des entreprises, et quartier des corporations.
--- À exécuter après 20261115000000_evenements_marche.sql.
+-- À exécuter après 20261116000000_corporations_masquees.sql.
 --
 -- Une notation est un acte daté : la catégorie, le score, chaque critère (valeur, note, source)
 -- et ce que l'opérateur a saisi sont figés à la publication, avec la version de la méthode suivie.
@@ -39,7 +39,7 @@ create policy "ratings are public" on public.company_ratings
 create policy "admins manage ratings" on public.company_ratings
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
--- 3. Jeu de données complet v4 : v3 plus le quartier et les notations.
+-- 3. Jeu de données complet v5 : v4 (corporations masquées) plus le quartier et les notations.
 create or replace function public.market_dataset() returns jsonb
 language sql stable security invoker set search_path = public as $$
   select jsonb_build_object(
@@ -54,7 +54,8 @@ language sql stable security invoker set search_path = public as $$
         'district', c.district,
         'creationOverride', c.creation_override,
         'closedOn', c.closed_on,
-        'logoUrl', c.logo_url
+        'logoUrl', c.logo_url,
+        'hidden', c.hidden
       ) order by c.name, c.id)
       from public.companies c
     ), '[]'::jsonb),
