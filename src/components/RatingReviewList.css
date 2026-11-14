@@ -1,0 +1,43 @@
+.rating-review {
+  display: grid;
+  gap: var(--s-3);
+  align-content: start;
+}
+
+.rating-review .section-head {
+  margin-bottom: 0;
+}
+
+.rating-review li {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--s-3);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.rating-review__who {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rating-review__who a {
+  font-weight: 500;
+}
+
+.rating-review__who small {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.rating-review__watch {
+  color: var(--alerte);
+}
+
+.rating-review__empty {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}

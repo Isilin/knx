@@ -45,6 +45,12 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   apprécie les autres ; la catégorie (Ω, α, ß, Γ, Δ, ε) et l'indice de confiance se calculent en
   direct. Une notation publiée est figée ; pour la corriger, la retirer et noter à nouveau. Barèmes,
   pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v1`).
+  La cote affiche la note (colonne et filtre), la page Marché sa répartition et les dernières
+  notations. Une note passe « sous surveillance » quand, depuis sa publication, la recalculer sur
+  le dernier relevé changerait sa catégorie, ou après un changement de DG, une fermeture, une sortie
+  hors CA d'un quart du disponible, un capital au-delà de 30 M¢ ou un évènement de marché ; elle est
+  « à revoir » au-delà d'un trimestre (`WATCH_RULES`, `src/domain/agency.ts`). La page Relevés liste
+  les notations à revoir.
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;

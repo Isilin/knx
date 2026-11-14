@@ -43,6 +43,43 @@
   font-size: var(--fs-body);
 }
 
+/* Under watch: an alert framed by a hairline, never a coloured side bar. */
+.rating-watch {
+  display: grid;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-4);
+  border: 1px solid color-mix(in oklab, var(--alerte), transparent 55%);
+}
+
+.rating-watch .label {
+  color: var(--alerte);
+}
+
+.rating-watch--stale {
+  border-color: var(--filet-fort);
+}
+
+.rating-watch--stale .label {
+  color: var(--gris);
+}
+
+.rating-watch__lead {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.rating-watch li {
+  display: grid;
+  grid-template-columns: 6rem minmax(0, 1fr);
+  gap: var(--s-3);
+  padding: var(--s-1) 0;
+  font-size: var(--fs-sm);
+}
+
+.rating-watch time {
+  color: var(--gris);
+}
+
 .rating__axes {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -1,3 +1,4 @@
+import { watchRating, type RatingWatch } from "./agency.ts";
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
 import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
@@ -95,6 +96,10 @@ export interface CompanySeries {
   projection: CompanyProjection | null;
   /** KNX risk profile over the last five imperial years; null unless the company is active. */
   risk: CompanyRisk | null;
+  /** Latest rating of the Agence impériale de notation, if any. */
+  rating: CompanyRating | null;
+  /** What changed since that rating; null when not rated. */
+  watch: RatingWatch | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -349,6 +354,8 @@ export function buildMarket(dataset: Dataset): Market {
       recentRate: recent === null ? null : Math.max(0, recent),
       projection: null,
       risk: null,
+      rating: null,
+      watch: null,
       bestRank,
       record,
     });
@@ -403,6 +410,17 @@ export function buildMarket(dataset: Dataset): Market {
   for (const rating of [...dataset.ratings].sort((a, b) => a.date.localeCompare(b.date)))
     ratings.set(rating.companyId, [...(ratings.get(rating.companyId) ?? []), rating]);
 
+  const marketEvents = [...dataset.marketEvents].sort(
+    (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
+  );
+  for (const c of companies) {
+    const rating = ratings.get(c.id)?.at(-1) ?? null;
+    c.rating = rating;
+    c.watch = rating
+      ? watchRating(c, rating, events.get(c.id) ?? [], marketEvents, latest.date)
+      : null;
+  }
+
   const byId = new Map(companies.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
   const latestRows = latest.rows.filter((r) => shown(r.companyId));
@@ -435,9 +453,7 @@ export function buildMarket(dataset: Dataset): Market {
     slugAliases,
     events,
     ratings,
-    marketEvents: [...dataset.marketEvents].sort(
-      (a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id),
-    ),
+    marketEvents,
     projection,
   };
 }

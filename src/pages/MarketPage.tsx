@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
+import { AgencyOverview } from "../components/AgencyOverview.tsx";
 import { CoteTable } from "../components/CoteTable.tsx";
 import {
   Amount,
@@ -457,6 +458,8 @@ export function MarketPage() {
           −100 à +100.
         </p>
       </section>
+
+      <AgencyOverview market={market} />
 
       <TreasurySection points={treasury} markers={markers} />
 

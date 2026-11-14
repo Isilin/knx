@@ -3,12 +3,14 @@ import { Link, useNavigate } from "react-router";
 import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import type { Consortium } from "../domain/types.ts";
-import { formatPercent } from "../domain/numbers.ts";
+import { formatPercent, formatScore2 } from "../domain/numbers.ts";
+import { CATEGORY_INFO, RATING_METHOD, ratingCode, type RatingCategory } from "../domain/rating.ts";
 import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
 import { Amount, Change, Estimated, GroupTag, groupColor, RankChange } from "./figures.tsx";
 import { FollowButton } from "./FollowButton.tsx";
+import { RatingBadge } from "./RatingBadge.tsx";
 import { Seal } from "./Seal.tsx";
 import "./CoteTable.css";
 
@@ -25,6 +27,7 @@ type SortKey =
   | "activity"
   | "weight"
   | "projection"
+  | "rating"
   | "risk";
 
 interface Column {
@@ -169,6 +172,33 @@ const COLUMNS: Record<SortKey, Column> = {
         </span>
       ),
   },
+  rating: {
+    key: "rating",
+    label: "Note",
+    title:
+      "Notation de l'Agence impériale de notation des entreprises (Ω, α, ß, Γ, Δ, ε), triée par score",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.rating?.score ?? null,
+    render: (c) =>
+      c.rating ? (
+        <span className="cote__rating">
+          {c.watch?.watched ? (
+            <span className="cote__watch" title="Sous surveillance : à revoir par l'Agence">
+              <span className="sr-only">sous surveillance</span>
+            </span>
+          ) : null}
+          <RatingBadge
+            category={c.rating.category}
+            confidence={c.rating.confidence}
+            size="sm"
+            title={`${ratingCode(c.rating.category, c.rating.confidence)} · ${CATEGORY_INFO[c.rating.category].label}, ${formatScore2(c.rating.score)}/5${c.watch?.watched ? " · sous surveillance" : ""}`}
+          />
+        </span>
+      ) : (
+        <span className="amount--none">—</span>
+      ),
+  },
   risk: {
     key: "risk",
     label: "Risque",
@@ -206,7 +236,7 @@ const COLUMNS: Record<SortKey, Column> = {
 };
 
 const VARIANTS = {
-  compact: ["rank", "name", "chiffre", "change", "real", "capital", "employees"],
+  compact: ["rank", "name", "chiffre", "change", "real", "capital", "employees", "rating"],
   full: [
     "rank",
     "name",
@@ -220,6 +250,7 @@ const VARIANTS = {
     "activity",
     "weight",
     "projection",
+    "rating",
     "risk",
   ],
 } as const satisfies Record<string, readonly SortKey[]>;
@@ -239,6 +270,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "rank", dir: 1 });
   const [status, setStatus] = useState<StatusFilter>("listed");
   const [group, setGroup] = useState<string | null>(null);
+  const [grade, setGrade] = useState<RatingCategory | "unrated" | null>(null);
   const [query, setQuery] = useState("");
 
   const groups = useMemo(() => {
@@ -249,6 +281,19 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         counts.set(c.consortium.id, { ...entry, count: entry.count + 1 });
       }
     return [...counts.values()].sort((a, b) => b.count - a.count);
+  }, [companies]);
+
+  // Categories held by listed corporations, best first; empty until the Agence rates someone.
+  const grades = useMemo(() => {
+    const listed = companies.filter((c) => c.status !== "delisted");
+    if (!listed.some((c) => c.rating)) return [];
+    const held = RATING_METHOD.categories
+      .map(([category]) => ({
+        id: category as RatingCategory | "unrated",
+        count: listed.filter((c) => c.rating?.category === category).length,
+      }))
+      .filter((g) => g.count > 0);
+    return [...held, { id: "unrated" as const, count: listed.filter((c) => !c.rating).length }];
   }, [companies]);
 
   const counts = useMemo(
@@ -273,6 +318,8 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         if (status === "delisted" && c.status !== "delisted") return false;
         if (status === "followed" && !followed.includes(c.slug)) return false;
         if (group && c.consortium?.id !== group) return false;
+        if (grade === "unrated" && c.rating) return false;
+        if (grade && grade !== "unrated" && c.rating?.category !== grade) return false;
         if (
           q &&
           ![c.name, ...c.formerNames].some((n) =>
@@ -295,7 +342,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         const cmp = typeof va === "string" ? va.localeCompare(String(vb), "fr") : va - Number(vb);
         return cmp * sort.dir || a.latest.rank - b.latest.rank;
       });
-  }, [companies, sort, status, group, query, followed]);
+  }, [companies, sort, status, group, grade, query, followed]);
 
   const columns = VARIANTS[variant].map((key) => COLUMNS[key]);
 
@@ -345,6 +392,26 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
               >
                 <i style={{ background: groupColor(consortium) }} aria-hidden="true" />
                 {consortium.name} <small>{count}</small>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        {grades.length > 0 ? (
+          <div className="chips" role="group" aria-label="Note de l'Agence">
+            {grades.map((g) => (
+              <button
+                key={g.id}
+                type="button"
+                className="chip chip--grade"
+                aria-pressed={grade === g.id}
+                onClick={() => setGrade(grade === g.id ? null : g.id)}
+              >
+                {g.id === "unrated" ? (
+                  "Non notées"
+                ) : (
+                  <RatingBadge category={g.id} confidence="standard" size="sm" />
+                )}{" "}
+                <small>{g.count}</small>
               </button>
             ))}
           </div>
