@@ -1,0 +1,99 @@
+.profile-editor {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-6) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.profile-editor .section-head {
+  margin-bottom: 0;
+}
+
+.profile-editor__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-5) var(--s-6);
+  align-items: start;
+}
+
+.profile-editor select,
+.profile-editor input[type="date"] {
+  width: 100%;
+  color: var(--ivoire);
+  color-scheme: dark;
+}
+
+.profile-editor__logo {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.profile-editor__logo-actions {
+  display: grid;
+  justify-items: start;
+  gap: var(--s-2);
+}
+
+.profile-editor__logo-actions .button {
+  cursor: pointer;
+}
+
+.profile-editor__logo-actions .button:focus-within {
+  outline: 1px solid var(--or);
+  outline-offset: 2px;
+}
+
+.profile-editor__hint {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.profile-editor__hint a {
+  color: var(--ivoire);
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.profile-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+/* A logo sits on a plate: a hairline square, the corporation's own colours inside. */
+.logo-frame {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 88px;
+  height: 88px;
+  padding: var(--s-2);
+  background: var(--laque-2);
+  border: 1px solid var(--filet-fort);
+}
+
+.logo-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.logo-frame__empty {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 1100px) {
+  .profile-editor__grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .profile-editor__grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -59,7 +59,7 @@ function MoverRow({ company, kind }: { company: CompanySeries; kind: "performanc
       onMouseEnter={() => setFocused(company.slug)}
       onMouseLeave={() => setFocused(null)}
     >
-      <Seal name={company.name} size={20} />
+      <Seal seed={company.sealSeed} size={20} />
       <span className="mover__name">
         <Link to={`/corporations/${company.slug}`}>{company.name}</Link>
         {kind === "performance" ? (
@@ -210,7 +210,7 @@ export function MarketPage() {
       return {
         id: c.slug,
         label: c.name,
-        color: c.group ? groupColor(c.group) : "var(--ivoire)",
+        color: groupColor(c.consortium),
         points: values.filter((p) => !start || p.date >= start),
       };
     });
@@ -314,10 +314,7 @@ export function MarketPage() {
                 onMouseEnter={() => setFocused(c.slug)}
                 onMouseLeave={() => setFocused(null)}
               >
-                <i
-                  style={{ background: c.group ? groupColor(c.group) : "var(--ivoire)" }}
-                  aria-hidden="true"
-                />
+                <i style={{ background: groupColor(c.consortium) }} aria-hidden="true" />
                 <span className="legend__rank">{c.latest.rank}</span>
                 <Link to={`/corporations/${c.slug}`}>{c.name}</Link>
               </li>
@@ -377,7 +374,7 @@ export function MarketPage() {
                     onMouseEnter={() => setFocused(x.passer.slug)}
                     onMouseLeave={() => setFocused(null)}
                   >
-                    <Seal name={x.passer.name} size={20} />
+                    <Seal seed={x.passer.sealSeed} size={20} />
                     <span className="mover__name">
                       <Link to={`/corporations/${x.passer.slug}`}>{x.passer.name}</Link>
                       <small>

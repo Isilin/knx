@@ -1,12 +1,14 @@
-import type { Dataset, IsoDate, SnapshotRow, SnapshotSource } from "../domain/types.ts";
+import type { ResolvedRows } from "../domain/identity.ts";
+import type { CompanyPatch, ConsortiumDraft, EventDraft } from "../domain/mutations.ts";
+import type {
+  Dataset,
+  IsoDate,
+  PublishRequest,
+  ReportRow,
+  SnapshotSource,
+} from "../domain/types.ts";
 
-export interface PublishRequest {
-  date: IsoDate;
-  source: SnapshotSource;
-  rows: SnapshotRow[];
-  /** Replace an existing report for the same date. */
-  replace: boolean;
-}
+export type { CompanyPatch, ConsortiumDraft, EventDraft, PublishRequest, ResolvedRows };
 
 export type Session =
   | { state: "anonymous" }
@@ -21,7 +23,8 @@ export interface PendingSnapshot {
   receivedAt: string;
   /** The module key that sent it; null for a pending report typed by hand. */
   key: { name: string; prefix: string; revoked: boolean } | null;
-  rows: SnapshotRow[];
+  /** Rows as sent, by name: who is who is settled at review time. */
+  rows: ReportRow[];
 }
 
 /** A module key, as the admin screen lists it. The key itself is never stored. */
@@ -45,6 +48,14 @@ export interface DataSource {
   readonly kind: "local" | "supabase";
   load(): Promise<Dataset>;
   publish(request: PublishRequest): Promise<void>;
+  /** Consortium, sector, typed creation date. */
+  updateCompany(id: string, patch: CompanyPatch): Promise<void>;
+  /** Sets (already reduced to a small WebP) or removes a corporation's logo. */
+  setLogo(id: string, logo: Blob | null): Promise<void>;
+  saveConsortium(draft: ConsortiumDraft): Promise<void>;
+  deleteConsortium(id: string): Promise<void>;
+  saveEvent(draft: EventDraft): Promise<void>;
+  deleteEvent(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
@@ -54,7 +65,8 @@ export interface DataSource {
   onSessionChange(listener: () => void): () => void;
   /** Reports sent by the in-game module and not yet reviewed (operators only). */
   pending(): Promise<PendingSnapshot[]>;
-  publishPending(id: number): Promise<void>;
+  /** Publishes a pending report with the operator's identity decisions. */
+  publishPending(id: number, resolved: ResolvedRows): Promise<void>;
   rejectPending(id: number): Promise<void>;
   apiKeys(): Promise<ApiKey[]>;
   createApiKey(name: string): Promise<CreatedApiKey>;

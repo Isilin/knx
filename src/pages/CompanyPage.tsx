@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, Navigate, useNavigate, useParams } from "react-router";
 import {
   Amount,
   Change,
@@ -9,17 +9,20 @@ import {
   ImperialDate,
   RankChange,
 } from "../components/figures.tsx";
+import { CompanyEditor } from "../components/CompanyEditor.tsx";
+import { CompanyTimeline } from "../components/CompanyTimeline.tsx";
 import { FollowButton } from "../components/FollowButton.tsx";
 import { PeriodPicker, periodStart, type PeriodId } from "../components/PeriodPicker.tsx";
 import { Seal } from "../components/Seal.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
-import { useMarket } from "../data/DataProvider.tsx";
+import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CreationEstimate } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
-import { smoothedRealDaily, type CompanySeries } from "../domain/market.ts";
-import { formatCompact, formatInteger, formatPercent } from "../domain/numbers.ts";
+import { smoothedRealDaily } from "../domain/market.ts";
+import { formatInteger, formatPercent } from "../domain/numbers.ts";
+import { sectorLabel } from "../domain/sectors.ts";
 import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
@@ -58,51 +61,6 @@ function reliability(creation: CreationEstimate): { label: string; tone: "high" 
     return { label: "fiabilité élevée", tone: "high" };
   if ((creation.margin ?? Infinity) <= 60) return { label: "fiabilité moyenne", tone: "mid" };
   return { label: "fiabilité faible", tone: "low" };
-}
-
-interface Milestone {
-  date: string;
-  text: string;
-}
-
-function milestones(company: CompanySeries): Milestone[] {
-  const list: Milestone[] = [];
-  if (company.creation && company.creation.method !== "first-seen") {
-    list.push({
-      date: company.creation.creation,
-      text: company.creation.method === "manual" ? "Création (date saisie)" : "Création estimée",
-    });
-  }
-  list.push({ date: company.firstSeen, text: "Premier relevé KNX" });
-  let inTop = company.points[0].rank <= 10;
-  for (const p of company.points.slice(1)) {
-    const nowIn = p.rank <= 10;
-    if (nowIn !== inTop)
-      list.push({
-        date: p.date,
-        text: nowIn ? `Entre dans le top 10 (rang ${p.rank})` : `Sort du top 10 (rang ${p.rank})`,
-      });
-    inTop = nowIn;
-  }
-  list.push({ date: company.bestRank.date, text: `Meilleur rang : ${company.bestRank.rank}` });
-  list.push({
-    date: company.record.date,
-    text: `Record de CA publié : ${formatInteger(company.record.chiffre)} ¢`,
-  });
-  // The largest flows outside revenue, when they moved at least a quarter of the capital.
-  const flows = largestFlows(company.points, null, Infinity);
-  const outflow = flows.find((f) => f.flow < 0 && (f.share ?? 0) <= -0.25);
-  const inflow = flows.find((f) => f.flow > 0 && (f.share ?? 0) >= 0.25);
-  for (const f of [outflow, inflow]) {
-    if (!f) continue;
-    list.push({
-      date: f.date,
-      text: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
-    });
-  }
-  if (company.status === "delisted")
-    list.push({ date: company.latest.date, text: "Dernier relevé avant radiation" });
-  return list.sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 }
 
 /** Drawn chevron, the same stroke as the back link. */
@@ -155,8 +113,12 @@ function Gauge({ label, value, help }: { label: string; value: number | null; he
 export function CompanyPage() {
   const { slug = "" } = useParams();
   const market = useMarket();
+  const { session } = useData();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodId>("12");
+  // Remembered per address, so moving to another corporation closes the form.
+  const [editingSlug, setEditingSlug] = useState<string | null>(null);
+  const isAdmin = session?.state === "signed-in" && session.isAdmin;
   const company = market.bySlug.get(slug);
 
   const neighbours = useMemo(() => {
@@ -212,6 +174,8 @@ export function CompanyPage() {
   const tweenedChange = useTween(periodChange);
 
   if (!company) {
+    const renamed = market.slugAliases.get(slug);
+    if (renamed) return <Navigate to={`/corporations/${renamed}`} replace />;
     return (
       <div className="state">
         <h1>Corporation introuvable</h1>
@@ -230,7 +194,7 @@ export function CompanyPage() {
   const crossings = market.projection.crossings.filter(
     (x) => x.passer.slug === company.slug || x.passed.slug === company.slug,
   );
-  const color = company.group ? groupColor(company.group) : "var(--ivoire)";
+  const color = groupColor(company.consortium);
   const rel = creation ? reliability(creation) : null;
   const age =
     creation && creation.method !== "first-seen"
@@ -271,26 +235,55 @@ export function CompanyPage() {
       </nav>
 
       <header className="company__head" style={{ "--brand": color } as React.CSSProperties}>
-        <Seal name={company.name} size={168} draw className="company__seal" />
+        <Seal seed={company.sealSeed} size={168} draw className="company__seal" />
         <div className="company__title">
-          <h1>{company.name}</h1>
+          <div className="company__name">
+            {company.logoUrl ? (
+              <span className="logo-frame company__logo">
+                <img src={company.logoUrl} alt={`Logo de ${company.name}`} width={72} height={72} />
+              </span>
+            ) : null}
+            <h1>{company.name}</h1>
+          </div>
           <div className="company__meta">
-            <GroupTag group={company.group} />
+            <GroupTag consortium={company.consortium} />
             {company.status === "delisted" ? (
               <span className="company__status">
-                Radiée · dernier relevé le <ImperialDate date={latest.date} />
+                Fermée · dernier relevé le <ImperialDate date={latest.date} />
               </span>
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
             ) : null}
-            {company.sector ? <span>{company.sector}</span> : null}
+            {company.sector ? <span>{sectorLabel(company.sector)}</span> : null}
+            {company.formerNames.length > 0 ? (
+              <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
+            ) : null}
             <span>
               Suivie par KNX depuis le <ImperialDate date={company.firstSeen} pti />
             </span>
           </div>
         </div>
-        <FollowButton slug={company.slug} name={company.name} />
+        <div className="company__actions">
+          <FollowButton slug={company.slug} name={company.name} />
+          {isAdmin && editingSlug !== company.slug ? (
+            <button
+              type="button"
+              className="button button--quiet"
+              onClick={() => setEditingSlug(company.slug)}
+            >
+              Modifier la fiche
+            </button>
+          ) : null}
+        </div>
       </header>
+
+      {isAdmin && editingSlug === company.slug ? (
+        <CompanyEditor
+          company={company}
+          consortiums={market.consortiums}
+          onClose={() => setEditingSlug(null)}
+        />
+      ) : null}
 
       <dl className="kpis">
         <div className="kpi">
@@ -660,19 +653,11 @@ export function CompanyPage() {
             </div>
           </dl>
         </section>
-        <section aria-labelledby="faits">
-          <div className="section-head">
-            <h2 id="faits">Faits marquants</h2>
-          </div>
-          <ol className="milestones">
-            {milestones(company).map((m) => (
-              <li key={`${m.date}-${m.text}`}>
-                <ImperialDate date={m.date} />
-                <span>{m.text}</span>
-              </li>
-            ))}
-          </ol>
-        </section>
+        <CompanyTimeline
+          company={company}
+          events={market.events.get(company.id) ?? []}
+          isAdmin={isAdmin}
+        />
       </div>
 
       <section className="company__history" aria-labelledby="historique">

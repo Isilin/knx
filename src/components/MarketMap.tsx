@@ -95,8 +95,8 @@ export function MarketMap({ tiles, height = 440 }: { tiles: MapTile[]; height?: 
             onFocus={() => enter(rect)}
             onBlur={leave}
           >
-            {company.group ? (
-              <i className="map__band" style={{ background: groupColor(company.group) }} />
+            {company.consortium ? (
+              <i className="map__band" style={{ background: groupColor(company.consortium) }} />
             ) : null}
             {fitsName(rect) ? <span className="map__name">{company.name}</span> : null}
             {fitsFigures(rect) ? (

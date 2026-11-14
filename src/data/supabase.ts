@@ -1,13 +1,15 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { Dataset } from "../domain/types.ts";
+import { normalizeDataset } from "../domain/mutations.ts";
 import type {
   ApiKey,
   CreatedApiKey,
   DataSource,
   PendingSnapshot,
-  PublishRequest,
+  ResolvedRows,
   Session,
 } from "./source.ts";
+
+const LOGO_BUCKET = "company-logos";
 
 /** Supabase Auth errors, said in the operator's terms. */
 function signInMessage(error: { message: string; status?: number; code?: string }): string {
@@ -26,26 +28,118 @@ function signInMessage(error: { message: string; status?: number; code?: string 
   return error.message;
 }
 
+/** Database errors, said in the operator's terms. */
+function writeMessage(error: { message: string; code?: string }, duplicate?: string): Error {
+  if (error.code === "23505" && duplicate) return new Error(duplicate);
+  if (error.code === "42501" || /row-level security/i.test(error.message))
+    return new Error("modification réservée aux opérateurs.");
+  return new Error(error.message);
+}
+
+/** A resolved report row, as the publication functions read it. */
+function rowPayload(r: ResolvedRows["rows"][number]) {
+  return {
+    company_id: r.companyId,
+    name: r.name,
+    rank: r.rank,
+    chiffre: r.chiffre,
+    capital: r.capital,
+    employees: r.employees,
+  };
+}
+
+/** Path of an uploaded logo inside the bucket, from its public URL. */
+function logoPath(url: string | null): string | null {
+  const marker = `/storage/v1/object/public/${LOGO_BUCKET}/`;
+  const at = url?.indexOf(marker) ?? -1;
+  return url && at >= 0 ? decodeURIComponent(url.slice(at + marker.length)) : null;
+}
+
 export function createSupabaseSource(url: string, key: string): DataSource {
   const client: SupabaseClient = createClient(url, key, {
     auth: { persistSession: true, detectSessionInUrl: true },
   });
+
+  /** Updates one corporation; RLS turns a refused update into zero rows, so check for one. */
+  async function updateCompanyRow(id: string, values: Record<string, unknown>): Promise<void> {
+    const { data, error } = await client.from("companies").update(values).eq("id", id).select("id");
+    if (error) throw writeMessage(error);
+    if (!data || data.length === 0)
+      throw new Error("modification refusée ou corporation introuvable.");
+  }
 
   return {
     kind: "supabase",
     async load() {
       const { data, error } = await client.rpc("market_dataset");
       if (error) throw new Error(`Lecture des relevés impossible : ${error.message}`);
-      return data as Dataset;
+      return normalizeDataset(data);
     },
-    async publish(request: PublishRequest) {
+    async publish(request) {
       const { error } = await client.rpc("publish_snapshot", {
         p_taken_on: request.date,
         p_source: request.source,
-        p_rows: request.rows,
+        p_rows: request.rows.map(rowPayload),
+        p_closures: request.closures.map(Number),
         p_replace: request.replace,
       });
       if (error) throw new Error(error.message);
+    },
+    async updateCompany(id, patch) {
+      const values: Record<string, unknown> = {};
+      if (patch.consortiumId !== undefined)
+        values.consortium_id = patch.consortiumId === null ? null : Number(patch.consortiumId);
+      if (patch.sector !== undefined) values.sector = patch.sector;
+      if (patch.creationOverride !== undefined) values.creation_override = patch.creationOverride;
+      await updateCompanyRow(id, values);
+    },
+    async setLogo(id, logo) {
+      const { data: row } = await client.from("companies").select("logo_url").eq("id", id).single();
+      const previous = logoPath((row as { logo_url: string | null } | null)?.logo_url ?? null);
+      let next: string | null = null;
+      if (logo) {
+        const path = `${id}/${crypto.randomUUID()}.webp`;
+        const { error } = await client.storage.from(LOGO_BUCKET).upload(path, logo, {
+          contentType: logo.type || "image/webp",
+          cacheControl: "31536000",
+        });
+        if (error) throw writeMessage(error);
+        next = client.storage.from(LOGO_BUCKET).getPublicUrl(path).data.publicUrl;
+      }
+      await updateCompanyRow(id, { logo_url: next });
+      // The former file is no longer referenced; failing to remove it only leaves a stray file.
+      if (previous) await client.storage.from(LOGO_BUCKET).remove([previous]);
+    },
+    async saveConsortium({ id, name, color }) {
+      const values = { name: name.trim(), color };
+      const duplicate = `un consortium s'appelle déjà « ${values.name} »`;
+      const { error } =
+        id === null
+          ? await client.from("consortiums").insert(values)
+          : await client.from("consortiums").update(values).eq("id", id);
+      if (error) throw writeMessage(error, duplicate);
+    },
+    async deleteConsortium(id) {
+      const { error } = await client.from("consortiums").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async saveEvent({ id, companyId, date, kind, details, note }) {
+      const values = {
+        company_id: Number(companyId),
+        occurred_on: date,
+        kind,
+        details,
+        note,
+      };
+      const { error } =
+        id === null
+          ? await client.from("company_events").insert(values)
+          : await client.from("company_events").update(values).eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async deleteEvent(id) {
+      const { error } = await client.from("company_events").delete().eq("id", id);
+      if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {
       const { data } = await client.auth.getSession();
@@ -77,8 +171,12 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       if (error) throw new Error(`Lecture des envois en attente impossible : ${error.message}`);
       return data as PendingSnapshot[];
     },
-    async publishPending(id: number) {
-      const { error } = await client.rpc("publish_pending_snapshot", { p_id: id });
+    async publishPending(id, resolved) {
+      const { error } = await client.rpc("publish_pending_snapshot", {
+        p_id: id,
+        p_rows: resolved.rows.map(rowPayload),
+        p_closures: resolved.closures.map(Number),
+      });
       if (error) throw new Error(error.message);
     },
     async rejectPending(id: number) {

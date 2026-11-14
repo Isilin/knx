@@ -2,6 +2,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
+import type { Consortium } from "../domain/types.ts";
 import { formatPercent } from "../domain/numbers.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
@@ -218,10 +219,13 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
   const [query, setQuery] = useState("");
 
   const groups = useMemo(() => {
-    const counts = new Map<string, number>();
+    const counts = new Map<string, { consortium: Consortium; count: number }>();
     for (const c of companies)
-      if (c.group && c.status !== "delisted") counts.set(c.group, (counts.get(c.group) ?? 0) + 1);
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+      if (c.consortium && c.status !== "delisted") {
+        const entry = counts.get(c.consortium.id) ?? { consortium: c.consortium, count: 0 };
+        counts.set(c.consortium.id, { ...entry, count: entry.count + 1 });
+      }
+    return [...counts.values()].sort((a, b) => b.count - a.count);
   }, [companies]);
 
   const counts = useMemo(
@@ -245,8 +249,17 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         if (status === "idle" && c.status !== "idle") return false;
         if (status === "delisted" && c.status !== "delisted") return false;
         if (status === "followed" && !followed.includes(c.slug)) return false;
-        if (group && c.group !== group) return false;
-        if (q && !c.name.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().includes(q))
+        if (group && c.consortium?.id !== group) return false;
+        if (
+          q &&
+          ![c.name, ...c.formerNames].some((n) =>
+            n
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .toLowerCase()
+              .includes(q),
+          )
+        )
           return false;
         return true;
       })
@@ -276,7 +289,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
     { id: "active", label: "Actives", count: counts.active },
     { id: "idle", label: "À l'arrêt", count: counts.idle },
     ...(variant === "full"
-      ? [{ id: "delisted" as const, label: "Radiées", count: counts.delisted }]
+      ? [{ id: "delisted" as const, label: "Fermées", count: counts.delisted }]
       : []),
     { id: "followed", label: "Suivies", count: counts.followed },
   ];
@@ -299,16 +312,16 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         </div>
         {groups.length > 0 ? (
           <div className="chips" role="group" aria-label="Groupe">
-            {groups.map(([name, count]) => (
+            {groups.map(({ consortium, count }) => (
               <button
-                key={name}
+                key={consortium.id}
                 type="button"
                 className="chip"
-                aria-pressed={group === name}
-                onClick={() => setGroup(group === name ? null : name)}
+                aria-pressed={group === consortium.id}
+                onClick={() => setGroup(group === consortium.id ? null : consortium.id)}
               >
-                <i style={{ background: groupColor(name) }} aria-hidden="true" />
-                {name} <small>{count}</small>
+                <i style={{ background: groupColor(consortium) }} aria-hidden="true" />
+                {consortium.name} <small>{count}</small>
               </button>
             ))}
           </div>
@@ -403,16 +416,16 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
                         return (
                           <th key="name" scope="row" className="col-name">
                             <span className="cote__name">
-                              <Seal name={c.name} size={26} />
+                              <Seal seed={c.sealSeed} size={26} />
                               <span className="cote__name-text">
                                 <Link to={`/corporations/${c.slug}`}>{c.name}</Link>
                                 <span className="cote__sub">
-                                  <GroupTag group={c.group} />
+                                  <GroupTag consortium={c.consortium} />
                                   {c.status === "idle" ? (
                                     <span className="tag">à l'arrêt</span>
                                   ) : null}
                                   {c.status === "delisted" ? (
-                                    <span className="tag">radiée</span>
+                                    <span className="tag">fermée</span>
                                   ) : null}
                                 </span>
                               </span>

@@ -41,6 +41,24 @@
   stroke: var(--or);
 }
 
+.company__name {
+  display: flex;
+  align-items: center;
+  gap: var(--s-4);
+}
+
+.company__logo {
+  width: 72px;
+  height: 72px;
+  padding: var(--s-1);
+}
+
+.company__actions {
+  display: grid;
+  justify-items: end;
+  gap: var(--s-3);
+}
+
 .company__title h1 {
   margin: var(--s-2) 0 var(--s-3);
   font-size: var(--fs-h1);
@@ -369,9 +387,15 @@
     width: 88px;
     height: 88px;
   }
-  .company__head .follow {
+  .company__actions {
     grid-column: 1 / -1;
-    justify-self: start;
+    justify-items: start;
+    grid-auto-flow: column;
+    justify-content: start;
+  }
+  .company__logo {
+    width: 56px;
+    height: 56px;
   }
   .kpis {
     grid-template-columns: repeat(2, minmax(0, 1fr));

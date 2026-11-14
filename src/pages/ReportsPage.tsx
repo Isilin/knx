@@ -1,4 +1,5 @@
 import { useMemo, useState, type FormEvent } from "react";
+import { ConsortiumManager } from "../components/ConsortiumManager.tsx";
 import { ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import { isIsoDate } from "../domain/dates.ts";
@@ -6,8 +7,13 @@ import { formatImperialDate } from "../domain/imperial.ts";
 import { assignRanks } from "../domain/diff.ts";
 import { parseAmount } from "../domain/numbers.ts";
 import { parseReport } from "../domain/report.ts";
-import { creationLookup, previousSnapshot, reviewReport } from "../domain/review.ts";
-import type { Dataset, SnapshotRow, SnapshotSource } from "../domain/types.ts";
+import {
+  creationLookup,
+  previousSnapshot,
+  reviewReport,
+  type IdentityChoices,
+} from "../domain/review.ts";
+import type { Dataset, ReportRow, SnapshotSource } from "../domain/types.ts";
 import { ApiKeysPanel } from "./reports/ApiKeysPanel.tsx";
 import { PendingReview } from "./reports/PendingReview.tsx";
 import { ReportChecks } from "./reports/ReportChecks.tsx";
@@ -152,13 +158,23 @@ function Journal({ dataset }: { dataset: Dataset }) {
   );
 }
 
+interface PublishStatus {
+  tone: "ok" | "error";
+  text: string;
+}
+
 function Editor({
   dataset,
   pendingDates,
+  status,
+  setStatus,
 }: {
   dataset: Dataset | null;
   /** Dates holding a report sent by the in-game module, not yet reviewed. */
   pendingDates: ReadonlySet<string>;
+  /** Kept by the page: a successful publication reloads the data and remounts the editor. */
+  status: PublishStatus | null;
+  setStatus: (status: PublishStatus | null) => void;
 }) {
   const { publish, source, state } = useData();
   const market = state.status === "ready" ? state.market : null;
@@ -166,18 +182,22 @@ function Editor({
   const [mode, setMode] = useState<"paste" | "form">("paste");
   const [text, setText] = useState("");
   const [replace, setReplace] = useState(false);
-  const [status, setStatus] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const [choices, setChoices] = useState<IdentityChoices>({});
   const [busy, setBusy] = useState(false);
 
   const previous = useMemo(
     () => (dataset ? previousSnapshot(dataset.snapshots, date) : null),
     [dataset, date],
   );
+  const nameOf = useMemo(() => {
+    const names = new Map(dataset?.companies.map((c) => [c.id, c.name]) ?? []);
+    return (id: string) => names.get(id) ?? id;
+  }, [dataset]);
 
   const [formRows, setFormRows] = useState<FormRow[]>(() =>
     (previous?.rows ?? []).map((r, i) => ({
-      key: `${i}-${r.name}`,
-      name: r.name,
+      key: `${i}-${r.companyId}`,
+      name: nameOf(r.companyId),
       chiffre: String(r.chiffre),
       capital: r.capital === null ? "" : String(r.capital),
       employees: r.employees === null ? "" : String(r.employees),
@@ -188,7 +208,7 @@ function Editor({
   const pendingHere = !published && pendingDates.has(date);
   const exists = published || pendingHere;
 
-  const parsed = useMemo((): { rows: SnapshotRow[]; errors: string[] } => {
+  const parsed = useMemo((): { rows: ReportRow[]; errors: string[] } => {
     if (mode === "paste") {
       const result = parseReport(text);
       return {
@@ -197,7 +217,7 @@ function Editor({
       };
     }
     const errors: string[] = [];
-    const rows: SnapshotRow[] = [];
+    const rows: ReportRow[] = [];
     const seen = new Set<string>();
     formRows.forEach((r, i) => {
       const name = r.name.trim();
@@ -224,15 +244,20 @@ function Editor({
   const review = useMemo(
     () =>
       reviewReport(
-        dataset?.snapshots ?? [],
+        dataset ?? { companies: [], snapshots: [], events: [] },
         creationLookup(market?.companies ?? []),
         date,
         parsed.rows,
+        choices,
       ),
-    [dataset, market, date, parsed.rows],
+    [dataset, market, date, parsed.rows, choices],
   );
   const canPublish =
-    parsed.rows.length > 0 && parsed.errors.length === 0 && (!exists || replace) && !busy;
+    dataset !== null &&
+    parsed.rows.length > 0 &&
+    parsed.errors.length === 0 &&
+    (!exists || replace) &&
+    !busy;
 
   const submit = async () => {
     setBusy(true);
@@ -241,7 +266,8 @@ function Editor({
       await publish({
         date,
         source: mode === "paste" ? "paste" : "form",
-        rows: parsed.rows,
+        rows: review.resolved.rows,
+        closures: review.resolved.closures,
         replace: exists && replace,
       });
       setStatus({
@@ -250,6 +276,7 @@ function Editor({
       });
       setText("");
       setReplace(false);
+      setChoices({});
     } catch (error) {
       setStatus({
         tone: "error",
@@ -406,8 +433,9 @@ function Editor({
             ) : null}
             {review.diff ? (
               <ReportChecks
-                diff={review.diff}
-                averageChange={review.averageChange}
+                review={review}
+                choices={choices}
+                onChoice={(key, value) => setChoices((current) => ({ ...current, [key]: value }))}
                 showClean={parsed.errors.length === 0}
               />
             ) : null}
@@ -451,6 +479,7 @@ export function ReportsPage() {
   const isAdmin = session?.state === "signed-in" && session.isAdmin;
   const { pending, error: pendingError, refresh } = usePending(isAdmin);
   const pendingDates = useMemo(() => new Set(pending.map((p) => p.date)), [pending]);
+  const [status, setStatus] = useState<PublishStatus | null>(null);
 
   return (
     <div className="reports">
@@ -497,9 +526,12 @@ export function ReportsPage() {
               key={dataset?.snapshots.length ?? 0}
               dataset={dataset}
               pendingDates={pendingDates}
+              status={status}
+              setStatus={setStatus}
             />
           </div>
           <div className="reports__side">
+            {state.status === "ready" ? <ConsortiumManager market={state.market} /> : null}
             {dataset ? <Journal dataset={dataset} /> : null}
             {source.kind === "supabase" ? <ApiKeysPanel /> : null}
           </div>

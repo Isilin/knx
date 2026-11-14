@@ -217,7 +217,7 @@ export function RegimeChart({
                 cy={d.y}
                 r={d.r}
                 className={`regime__dot${isFocused ? " is-focused" : ""}${dim ? " is-dim" : ""}`}
-                style={{ fill: groupColor(d.company.group) }}
+                style={{ fill: groupColor(d.company.consortium) }}
               />
             );
           })}
@@ -260,7 +260,7 @@ export function RegimeChart({
           </p>
           <p className="map__tip-name">{hover.company.name}</p>
           <p>
-            <i style={{ background: groupColor(hover.company.group) }} />
+            <i style={{ background: groupColor(hover.company.consortium) }} />
             <span>Activité</span>
             <b>
               <Score value={hover.company.scores.activity} />

@@ -3,7 +3,7 @@ import { Amount, ImperialDate } from "../../components/figures.tsx";
 import { useData } from "../../data/DataProvider.tsx";
 import type { PendingSnapshot } from "../../data/source.ts";
 import { formatImperialDate } from "../../domain/imperial.ts";
-import { creationLookup, reviewReport } from "../../domain/review.ts";
+import { creationLookup, reviewReport, type IdentityChoices } from "../../domain/review.ts";
 import type { Dataset } from "../../domain/types.ts";
 import { parisClock, parisDay } from "./format.ts";
 import { ReportChecks } from "./ReportChecks.tsx";
@@ -20,17 +20,19 @@ function PendingCard({
   /** Called once the report is published or rejected, with the confirmation to show. */
   onSettled: (text: string) => void;
 }) {
-  const { publishPending, source, state } = useData();
+  const { change, source, state } = useData();
   const market = state.status === "ready" ? state.market : null;
   const [busy, setBusy] = useState<"publish" | "reject" | null>(null);
   const [confirming, setConfirming] = useState(false);
   const [status, setStatus] = useState<Status>(null);
+  const [choices, setChoices] = useState<IdentityChoices>({});
 
   const review = reviewReport(
-    dataset?.snapshots ?? [],
+    dataset ?? { companies: [], snapshots: [], events: [] },
     creationLookup(market?.companies ?? []),
     item.date,
     item.rows,
+    choices,
   );
   const day = formatImperialDate(item.date);
 
@@ -40,7 +42,8 @@ function PendingCard({
     try {
       // The card disappears with the next refresh; the section keeps the confirmation.
       if (action === "publish") {
-        await publishPending(item.id);
+        if (!dataset) throw new Error("données de la cote pas encore chargées.");
+        await change((s) => s.publishPending(item.id, review.resolved));
         onSettled(`Relevé du ${day} publié : ${item.rows.length} corporations.`);
       } else {
         await source.rejectPending(item.id);
@@ -81,7 +84,12 @@ function PendingCard({
           : "Premier relevé : rien à comparer"}
       </p>
       {review.diff ? (
-        <ReportChecks diff={review.diff} averageChange={review.averageChange} showClean />
+        <ReportChecks
+          review={review}
+          choices={choices}
+          onChoice={(key, value) => setChoices((current) => ({ ...current, [key]: value }))}
+          showClean
+        />
       ) : null}
 
       <details className="pending__rows">

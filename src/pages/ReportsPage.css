@@ -11,17 +11,6 @@
   font-size: var(--fs-sm);
 }
 
-.linklike {
-  padding: 0;
-  background: none;
-  border: 0;
-  color: var(--ivoire);
-  text-decoration: underline;
-  text-decoration-color: var(--or-sombre);
-  text-underline-offset: 0.22em;
-  cursor: pointer;
-}
-
 .editor {
   display: grid;
   gap: var(--s-5);
@@ -136,6 +125,36 @@
   color: var(--alerte);
 }
 
+.choices {
+  display: grid;
+  gap: var(--s-2);
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr);
+  gap: var(--s-2);
+  align-items: start;
+  cursor: pointer;
+}
+
+.choice input {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+  accent-color: var(--or);
+}
+
+.choice strong {
+  font-weight: 500;
+}
+
+.choice small {
+  display: block;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
 .outlier {
   display: flex;
   flex-wrap: wrap;
@@ -243,7 +262,7 @@
   font-size: var(--fs-sm);
 }
 
-/* Main column: pending sends from the game, then the editor. Side column: journal, then keys. */
+/* Main column: pending sends from the game, then the editor. Side column: consortiums, journal, keys. */
 .reports__main,
 .reports__side {
   display: grid;

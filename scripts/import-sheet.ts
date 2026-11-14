@@ -12,8 +12,18 @@ import { dirname, resolve } from "node:path";
 import ExcelJS from "exceljs";
 import { isIsoDate } from "../src/domain/dates.ts";
 import { parseAmount } from "../src/domain/numbers.ts";
+import { isRefounding } from "../src/domain/identity.ts";
+import { inferGroups } from "../src/domain/market.ts";
 import { parseReport } from "../src/domain/report.ts";
-import type { CompanyMeta, Dataset, Snapshot, SnapshotRow } from "../src/domain/types.ts";
+import type {
+  CompanyMeta,
+  Consortium,
+  ConsortiumColor,
+  Dataset,
+  ReportRow,
+  Snapshot,
+  SnapshotSource,
+} from "../src/domain/types.ts";
 import { toSeedSql } from "./seed-sql.ts";
 
 const SHEETS = {
@@ -115,6 +125,96 @@ function parseArgs(argv: string[]): {
   return { workbook, reports };
 }
 
+interface NamedSnapshot {
+  date: string;
+  source: SnapshotSource;
+  rows: ReportRow[];
+}
+
+/**
+ * Gives each corporation an id. The sheet has one column per name, but a name can carry several
+ * corporations in turn: a closed one never reopens, so a name that comes back after an absence,
+ * or whose figures fall back to zero (Paradox, 11 November 2026), starts a new corporation.
+ */
+function assignIdentities(
+  named: readonly NamedSnapshot[],
+  overrides: ReadonlyMap<string, string>,
+): { companies: CompanyMeta[]; snapshots: Snapshot[] } {
+  const companies: CompanyMeta[] = [];
+  const current = new Map<string, { meta: CompanyMeta; last: ReportRow; lastDate: string }>();
+  const firstSeen = new Map<string, string>();
+  let previousDate: string | null = null;
+
+  const snapshots = named.map((snapshot): Snapshot => {
+    const rows = snapshot.rows.map((row) => {
+      const life = current.get(row.name);
+      const continues =
+        life !== undefined && life.lastDate === previousDate && !isRefounding(life.last, row);
+      if (life && !continues) life.meta.closedOn ??= snapshot.date;
+      const meta: CompanyMeta = continues
+        ? life.meta
+        : {
+            id: String(companies.length + 1),
+            name: row.name,
+            formerNames: [],
+            consortiumId: null,
+            sector: null,
+            creationOverride: null,
+            closedOn: null,
+            logoUrl: null,
+          };
+      if (!continues) {
+        companies.push(meta);
+        firstSeen.set(meta.id, snapshot.date);
+      }
+      current.set(row.name, { meta, last: row, lastDate: snapshot.date });
+      const { name: _name, ...figures } = row;
+      return { companyId: meta.id, ...figures };
+    });
+    // Missing from this report: closed for good.
+    for (const life of current.values())
+      if (life.lastDate === previousDate) life.meta.closedOn ??= snapshot.date;
+    previousDate = snapshot.date;
+    return { date: snapshot.date, source: snapshot.source, rows };
+  });
+
+  // A hand-typed creation date belongs to the first corporation of that name seen after it.
+  for (const [name, creation] of overrides) {
+    const lives = companies.filter((c) => c.name === name);
+    const owner =
+      lives.find((c) => (firstSeen.get(c.id) ?? "") >= creation) ?? lives[lives.length - 1];
+    if (owner) owner.creationOverride = creation;
+  }
+  return { companies, snapshots };
+}
+
+const HOUSE_COLORS: Record<string, ConsortiumColor> = {
+  Armacham: "cyan",
+  Sovereign: "magenta",
+  Donnellys: "ambre",
+};
+
+/** Seeds the consortium list from brand words shared by open corporations. */
+function seedConsortiums(companies: CompanyMeta[]): Consortium[] {
+  const groups = inferGroups(companies.filter((c) => c.closedOn === null).map((c) => c.name));
+  const consortiums: Consortium[] = [];
+  for (const company of companies) {
+    const name = groups.get(company.name);
+    if (!name) continue;
+    let consortium = consortiums.find((k) => k.name === name);
+    if (!consortium) {
+      consortium = {
+        id: String(consortiums.length + 1),
+        name,
+        color: HOUSE_COLORS[name] ?? "bleu",
+      };
+      consortiums.push(consortium);
+    }
+    company.consortiumId = consortium.id;
+  }
+  return consortiums;
+}
+
 async function main(): Promise<void> {
   const { workbook: workbookPath, reports } = parseArgs(process.argv.slice(2));
   const workbook = new ExcelJS.Workbook();
@@ -124,7 +224,6 @@ async function main(): Promise<void> {
   const chiffre = readMetric(chiffreSheet, 3);
   const capital = readMetric(findSheet(workbook, SHEETS.capital), 3);
   const employees = readMetric(findSheet(workbook, SHEETS.employees), 3);
-  const companyNames = [...companyColumns(chiffreSheet, 3).keys()];
 
   // Hand-typed creation dates in the « Âge » sheet (row 2 holds a date instead of a formula).
   const ageSheet = findSheet(workbook, SHEETS.age);
@@ -157,8 +256,8 @@ async function main(): Promise<void> {
     return date >= since || (created !== undefined && date >= created);
   };
 
-  const snapshots: Snapshot[] = dates.map((date) => {
-    const rows: SnapshotRow[] = [];
+  const named: NamedSnapshot[] = dates.map((date) => {
+    const rows: ReportRow[] = [];
     for (const [name, value] of chiffre.get(date) ?? []) {
       if (!isPresent(name, date, value)) continue;
       rows.push({
@@ -179,21 +278,23 @@ async function main(): Promise<void> {
       for (const error of parsed.errors) console.error(`  ligne ${error.line} : ${error.reason}`);
       throw new Error(`Rapport ${report.path} illisible`);
     }
-    const existing = snapshots.findIndex((s) => s.date === report.date);
-    const snapshot: Snapshot = { date: report.date, source: "paste", rows: parsed.rows };
-    if (existing >= 0) snapshots[existing] = snapshot;
-    else snapshots.push(snapshot);
-    for (const row of parsed.rows)
-      if (!companyNames.includes(row.name)) companyNames.push(row.name);
+    const existing = named.findIndex((s) => s.date === report.date);
+    const snapshot: NamedSnapshot = { date: report.date, source: "paste", rows: parsed.rows };
+    if (existing >= 0) named[existing] = snapshot;
+    else named.push(snapshot);
   }
-  snapshots.sort((a, b) => a.date.localeCompare(b.date));
+  named.sort((a, b) => a.date.localeCompare(b.date));
 
-  const companies: CompanyMeta[] = companyNames.map((name) => ({
-    name,
-    creationOverride: overrides.get(name) ?? null,
-  }));
+  const { companies, snapshots } = assignIdentities(named, overrides);
+  const consortiums = seedConsortiums(companies);
 
-  const dataset: Dataset = { generatedAt: new Date().toISOString(), companies, snapshots };
+  const dataset: Dataset = {
+    generatedAt: new Date().toISOString(),
+    companies,
+    consortiums,
+    events: [],
+    snapshots,
+  };
 
   const jsonPath = resolve("public/data/history.json");
   await mkdir(dirname(jsonPath), { recursive: true });
@@ -205,7 +306,7 @@ async function main(): Promise<void> {
 
   const rows = snapshots.reduce((sum, s) => sum + s.rows.length, 0);
   console.log(
-    `${companies.length} entreprises, ${snapshots.length} relevés (${snapshots[0]?.date} → ${snapshots.at(-1)?.date}), ${rows} lignes, ${overrides.size} dates de création saisies.`,
+    `${companies.length} entreprises (${companies.filter((c) => c.closedOn).length} fermées), ${consortiums.length} consortiums, ${snapshots.length} relevés (${snapshots[0]?.date} → ${snapshots.at(-1)?.date}), ${rows} lignes, ${overrides.size} dates de création saisies.`,
   );
 }
 

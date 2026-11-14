@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { datasetByName } from "./testing.ts";
 import { buildMarket, type CompanySeries, type CompanyStatus } from "./market.ts";
 import { chiffreAfter, projectMarket } from "./projection.ts";
 
@@ -85,22 +86,24 @@ describe("projectMarket", () => {
 
 describe("buildMarket", () => {
   it("attaches the projection from the last 30 days' revenue rate", () => {
-    const market = buildMarket({
-      generatedAt: "2026-11-13T00:00:00Z",
-      companies: [{ name: "Iota", creationOverride: "2026-10-01" }],
-      snapshots: [
-        {
-          date: "2026-11-01",
-          source: "paste",
-          rows: [{ name: "Iota", rank: 1, chiffre: 1_000, capital: null, employees: null }],
-        },
-        {
-          date: "2026-11-11",
-          source: "paste",
-          rows: [{ name: "Iota", rank: 1, chiffre: 1_100, capital: null, employees: null }],
-        },
-      ],
-    });
+    const market = buildMarket(
+      datasetByName({
+        generatedAt: "2026-11-13T00:00:00Z",
+        companies: [{ name: "Iota", creationOverride: "2026-10-01" }],
+        snapshots: [
+          {
+            date: "2026-11-01",
+            source: "paste",
+            rows: [{ name: "Iota", rank: 1, chiffre: 1_000, capital: null, employees: null }],
+          },
+          {
+            date: "2026-11-11",
+            source: "paste",
+            rows: [{ name: "Iota", rank: 1, chiffre: 1_100, capital: null, employees: null }],
+          },
+        ],
+      }),
+    );
     const iota = market.bySlug.get("iota")!;
     // 31 000 → 1 100×41 = 45 100 over 10 days.
     expect(iota.recentRate).toBe(1_410);

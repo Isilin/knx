@@ -1,59 +1,94 @@
-import type { Dataset, Snapshot } from "../domain/types.ts";
-import type { DataSource, PublishRequest, Session } from "./source.ts";
+import { applyOp, normalizeDataset, type LocalOp } from "../domain/mutations.ts";
+import type { Dataset } from "../domain/types.ts";
+import type { DataSource, Session } from "./source.ts";
 
-const STORAGE_KEY = "knx.local-snapshots";
+const STORAGE_KEY = "knx.local-ops";
 const SUPABASE_ONLY =
   "Mode local : les envois du module de jeu et ses clés demandent la base Supabase.";
 
-function readLocal(): Snapshot[] {
+function readOps(): LocalOp[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as Snapshot[]) : [];
+    return raw ? (JSON.parse(raw) as LocalOp[]) : [];
   } catch {
     return [];
   }
 }
 
-function writeLocal(snapshots: Snapshot[]): void {
+function writeOps(ops: LocalOp[]): void {
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshots));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ops));
   } catch {
     throw new Error(
-      "Impossible d'enregistrer le relevé dans ce navigateur (stockage indisponible).",
+      "Impossible d'enregistrer la modification dans ce navigateur (stockage indisponible ou plein).",
     );
   }
 }
 
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () =>
+      typeof reader.result === "string"
+        ? resolve(reader.result)
+        : reject(new Error("Lecture de l'image impossible."));
+    reader.onerror = () => reject(new Error("Lecture de l'image impossible."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+const newId = () => `local-${crypto.randomUUID()}`;
+
 /**
- * Local data source: the imported history served as a static file, plus reports typed in this
- * browser. Used in development and whenever Supabase is not configured.
+ * Local data source: the imported history served as a static file, plus the changes made in this
+ * browser, kept as a log of operations. Used in development and whenever Supabase is not
+ * configured.
  */
 export function createLocalSource(): DataSource {
+  let base: Promise<Dataset> | null = null;
+
+  const loadBase = () =>
+    (base ??= fetch(`${import.meta.env.BASE_URL}data/history.json`).then(async (response) => {
+      if (!response.ok) throw new Error(`Historique introuvable (${response.status}).`);
+      return normalizeDataset(await response.json());
+    }));
+
+  const current = async (): Promise<Dataset> => {
+    let dataset = await loadBase();
+    for (const op of readOps()) {
+      try {
+        dataset = applyOp(dataset, op);
+      } catch (error) {
+        // The history changed under an old local change: skip it rather than block the site.
+        console.warn("Modification locale ignorée :", op.type, error);
+      }
+    }
+    return dataset;
+  };
+
+  /** Checks the operation against the current state, then records it. */
+  const record = async (op: LocalOp) => {
+    applyOp(await current(), op);
+    writeOps([...readOps(), op]);
+  };
+
   return {
     kind: "local",
-    async load() {
-      const response = await fetch(`${import.meta.env.BASE_URL}data/history.json`);
-      if (!response.ok) throw new Error(`Historique introuvable (${response.status}).`);
-      const dataset = (await response.json()) as Dataset;
-      const local = readLocal();
-      if (local.length === 0) return dataset;
-      const byDate = new Map(dataset.snapshots.map((s) => [s.date, s]));
-      for (const snapshot of local) byDate.set(snapshot.date, snapshot);
-      const names = new Set(dataset.companies.map((c) => c.name));
-      const companies = [...dataset.companies];
-      for (const s of local)
-        for (const r of s.rows)
-          if (!names.has(r.name)) {
-            names.add(r.name);
-            companies.push({ name: r.name });
-          }
-      return { ...dataset, companies, snapshots: [...byDate.values()] };
+    load: current,
+    async publish(request) {
+      const newIds = request.rows.filter((r) => r.companyId === null).map(newId);
+      await record({ type: "publish", request, newIds });
     },
-    async publish(request: PublishRequest) {
-      const local = readLocal().filter((s) => s.date !== request.date);
-      local.push({ date: request.date, source: request.source, rows: request.rows });
-      writeLocal(local);
+    updateCompany: (id, patch) => record({ type: "updateCompany", id, patch }),
+    async setLogo(id, logo) {
+      await record({ type: "setLogo", id, url: logo ? await blobToDataUrl(logo) : null });
     },
+    saveConsortium: ({ id, name, color }) =>
+      record({ type: "saveConsortium", consortium: { id: id ?? newId(), name, color } }),
+    deleteConsortium: (id) => record({ type: "deleteConsortium", id }),
+    saveEvent: ({ id, ...draft }) =>
+      record({ type: "saveEvent", event: { ...draft, id: id ?? newId(), origin: "manual" } }),
+    deleteEvent: (id) => record({ type: "deleteEvent", id }),
     async session(): Promise<Session> {
       return { state: "signed-in", email: "mode local", isAdmin: true };
     },

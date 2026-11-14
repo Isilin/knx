@@ -49,7 +49,7 @@ export function RegimeList({
                     onMouseEnter={() => setFocused(c.slug)}
                     onMouseLeave={() => setFocused(null)}
                   >
-                    <i style={{ background: groupColor(c.group) }} aria-hidden="true" />
+                    <i style={{ background: groupColor(c.consortium) }} aria-hidden="true" />
                     <Link to={`/corporations/${c.slug}`}>{c.name}</Link>
                     <span className="estimated" title="Poids économique estimé par KNX">
                       {c.scores.weight === null ? "—" : formatShare(c.scores.weight)}

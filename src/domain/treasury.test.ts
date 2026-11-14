@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
+import { datasetByName } from "./testing.ts";
 import { buildMarket } from "./market.ts";
 import { largestFlows, marketTreasury, treasuryBridge } from "./treasury.ts";
-import type { Dataset } from "./types.ts";
 
-const dataset: Dataset = {
+const dataset = datasetByName({
   generatedAt: "2026-11-13T00:00:00Z",
   companies: [{ name: "Kappa", creationOverride: "2026-10-01" }],
   snapshots: [
@@ -40,7 +40,7 @@ const dataset: Dataset = {
       ],
     },
   ],
-};
+});
 
 const market = buildMarket(dataset);
 const kappa = market.bySlug.get("kappa")!;
@@ -103,22 +103,24 @@ describe("largestFlows", () => {
   });
 
   it("never reports an outflow above the money available", () => {
-    const company = buildMarket({
-      generatedAt: "2026-11-13T00:00:00Z",
-      companies: [{ name: "Drain", creationOverride: "2026-10-01" }],
-      snapshots: [
-        {
-          date: "2026-11-01",
-          source: "paste",
-          rows: [{ name: "Drain", rank: 1, chiffre: 1_000, capital: 1_000, employees: 1 }],
-        },
-        {
-          date: "2026-11-11",
-          source: "paste",
-          rows: [{ name: "Drain", rank: 1, chiffre: 1_500, capital: 0, employees: 1 }],
-        },
-      ],
-    }).bySlug.get("drain")!;
+    const company = buildMarket(
+      datasetByName({
+        generatedAt: "2026-11-13T00:00:00Z",
+        companies: [{ name: "Drain", creationOverride: "2026-10-01" }],
+        snapshots: [
+          {
+            date: "2026-11-01",
+            source: "paste",
+            rows: [{ name: "Drain", rank: 1, chiffre: 1_000, capital: 1_000, employees: 1 }],
+          },
+          {
+            date: "2026-11-11",
+            source: "paste",
+            rows: [{ name: "Drain", rank: 1, chiffre: 1_500, capital: 0, employees: 1 }],
+          },
+        ],
+      }),
+    ).bySlug.get("drain")!;
     // 31 000 → 1 500×41 = 61 500: 30 500 earned, all of it gone with the 1 000 of capital.
     const [flow] = largestFlows(company.points, null);
     expect(flow.flow).toBeCloseTo(-31_500);

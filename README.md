@@ -31,7 +31,13 @@ relevés saisis dans la page Relevés restent dans le navigateur.
 - `src/domain/` : parsing du rapport, estimation de l'âge, CA réel, indicateurs, contrôle des
   relevés. Tout le calcul vit là, testé.
 - `scripts/import-sheet.ts` : lit l'export `.xlsx` du tableur historique (valeurs uniquement) et
-  écrit `public/data/history.json` et `supabase/seed.sql`.
+  écrit `public/data/history.json` et `supabase/seed.sql`. Une corporation est suivie par un
+  identifiant : un nom absent puis revenu, ou dont le chiffre retombe à 0, devient une nouvelle
+  corporation (une fermeture est définitive).
+- Fiche : logo, consortium, secteur et date de fondation se modifient depuis la page de la
+  corporation (opérateurs) ; la liste des consortiums se gère sur la page Relevés. L'historique de
+  chaque fiche mêle faits lus dans les relevés, renommages enregistrés à la publication et
+  évènements saisis.
 
 ```bash
 node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
@@ -45,9 +51,14 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
 1. Créer le projet sur Vercel (import du dépôt GitHub), puis ajouter l'intégration **Supabase**
    depuis le Marketplace Vercel : elle crée la base et injecte `NEXT_PUBLIC_SUPABASE_URL` et la clé
    publique (`NEXT_PUBLIC_SUPABASE_ANON_KEY` ou `…_PUBLISHABLE_KEY`). KNX les lit telles quelles.
-2. Dans l'éditeur SQL Supabase, exécuter dans l'ordre `supabase/migrations/20261113000000_init.sql`,
-   `supabase/migrations/20261113100000_userscript_api.sql` (clés et envois du module de jeu), puis
-   `supabase/seed.sql` pour charger l'historique.
+2. Dans l'éditeur SQL Supabase, exécuter dans l'ordre les fichiers de `supabase/migrations/` :
+   `20261113000000_init.sql`, `20261113100000_userscript_api.sql` (clés et envois du module de
+   jeu), `20261114000000_fiche_identite_historique.sql` et
+   `20261114100000_publication_envois_identite.sql`, puis `supabase/seed.sql` pour charger
+   l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
+   fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
+   11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le
+   registre : ne pas le relancer après des modifications faites depuis le site.
 3. Authentication → URL Configuration :
    - **Site URL** : l'adresse de production, par exemple `https://knx.vercel.app` (pas localhost :
      c'est l'adresse de repli quand une redirection n'est pas autorisée).

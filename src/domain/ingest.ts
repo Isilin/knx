@@ -1,7 +1,7 @@
 import { addDays, isIsoDate } from "./dates.ts";
 import { assignRanks } from "./diff.ts";
 import { parseAmount } from "./numbers.ts";
-import type { IsoDate, SnapshotRow } from "./types.ts";
+import type { IsoDate, ReportRow } from "./types.ts";
 
 /**
  * Limits of a report sent by the in-game module. The database enforces the same ones
@@ -22,7 +22,7 @@ const MAX_INT32 = 2_147_483_647;
 
 export interface IngestPayload {
   date: IsoDate;
-  rows: SnapshotRow[];
+  rows: ReportRow[];
 }
 
 export type IngestValidation =
@@ -76,7 +76,7 @@ export function validateIngest(body: unknown, today: IsoDate): IngestValidation 
     return { ok: false, errors };
   }
 
-  const normalised: SnapshotRow[] = [];
+  const normalised: ReportRow[] = [];
   const seen = new Set<string>();
   rows.forEach((raw: unknown, index) => {
     const line = `Ligne ${index + 1}`;

@@ -14,7 +14,7 @@ export function CompaniesPage() {
             Les {market.facts.listed} corporations cotées au{" "}
             <ImperialDate date={market.latestDate} />
             {delisted > 0
-              ? `, et ${delisted} radiée${delisted > 1 ? "s" : ""} dont KNX garde la mémoire`
+              ? `, et ${delisted} fermée${delisted > 1 ? "s" : ""} dont KNX garde la mémoire`
               : ""}
             . Triez par n'importe quelle colonne ; les indicateurs en violet sont calculés par KNX.
           </p>
