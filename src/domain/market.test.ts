@@ -11,6 +11,7 @@ const meta = (id: string, name: string, extra: Partial<CompanyMeta> = {}): Compa
   creationOverride: null,
   closedOn: null,
   logoUrl: null,
+  hidden: false,
   ...extra,
 });
 
@@ -89,6 +90,63 @@ describe("buildMarket", () => {
   it("reads consortiums from the registry", () => {
     expect(market.bySlug.get("alpha-corp")?.consortium?.name).toBe("Alpha");
     expect(market.bySlug.get("gamma")?.consortium).toBeNull();
+  });
+});
+
+describe("hidden corporations", () => {
+  // Alpha Bank and Epsilon are game-master companies: printed by the game, kept off KNX.
+  const market = buildMarket({
+    ...dataset,
+    companies: companies.map((c) =>
+      c.name === "Alpha Bank" || c.name === "Epsilon" ? { ...c, hidden: true } : c,
+    ),
+  });
+
+  it("get no series and no address", () => {
+    expect(market.companies.map((c) => c.name)).toEqual(["Gamma", "Alpha Corp", "Delta"]);
+    expect(market.bySlug.has("alpha-bank")).toBe(false);
+    expect(market.byId.has("5")).toBe(false);
+  });
+
+  it("count in no fact of the report", () => {
+    expect(market.facts).toMatchObject({
+      listed: 2,
+      active: 2,
+      idle: 0,
+      newcomers: [],
+      delisted: ["Delta"],
+    });
+  });
+
+  it("leave the ranks printed by the game", () => {
+    // 10 Nov, no printed rank: Alpha Corp, Alpha Bank, Gamma, Delta by chiffre.
+    expect(market.bySlug.get("delta")?.latest.rank).toBe(4);
+    expect(market.bySlug.get("alpha-corp")?.latest.rank).toBe(2);
+  });
+
+  it("take no share of the market", () => {
+    // Twelve days of reports, every creation date known: each open company earns a share.
+    const later = buildMarket({
+      ...dataset,
+      companies: companies.map((c) => ({
+        ...c,
+        creationOverride: "2026-10-01",
+        hidden: c.name === "Alpha Bank",
+      })),
+      snapshots: [
+        ...dataset.snapshots,
+        snapshot("2026-11-22", "paste", [
+          { name: "Gamma", rank: 1, chiffre: 1_150, capital: 5, employees: 3 },
+          { name: "Alpha Corp", rank: 2, chiffre: 1_000, capital: 5, employees: 1 },
+          { name: "Alpha Bank", rank: 3, chiffre: 800, capital: 5, employees: 1 },
+        ]),
+      ],
+    });
+    const weights = later.companies.flatMap((c) =>
+      c.scores.weight === null ? [] : [c.scores.weight],
+    );
+    expect(weights).toHaveLength(2);
+    expect(weights.reduce((sum, w) => sum + w, 0)).toBeCloseTo(1);
   });
 });
 

@@ -17,6 +17,7 @@ const company = (id: string, name: string, closedOn: string | null = null): Comp
   creationOverride: null,
   closedOn,
   logoUrl: null,
+  hidden: false,
 });
 
 const line = (

@@ -272,7 +272,11 @@ function assignSealSeeds(companies: CompanySeries[]): void {
   }
 }
 
-/** Derives every series, fact and score the interface reads from the raw dataset. */
+/**
+ * Derives every series, fact and score the interface reads from the raw dataset. Hidden
+ * corporations get no series and count in no fact or share; ranks stay the ones of the full
+ * report, as the game prints them.
+ */
 export function buildMarket(dataset: Dataset): Market {
   const snapshots = [...dataset.snapshots].sort((a, b) => a.date.localeCompare(b.date));
   if (snapshots.length === 0) throw new Error("Aucun relevé.");
@@ -283,8 +287,9 @@ export function buildMarket(dataset: Dataset): Market {
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
   const latestDay = toDayNumber(latest.date);
 
+  const shown = (id: string) => metaById.get(id)?.hidden !== true;
   const ids = new Set<string>();
-  for (const s of snapshots) for (const r of s.rows) ids.add(r.companyId);
+  for (const s of snapshots) for (const r of s.rows) if (shown(r.companyId)) ids.add(r.companyId);
 
   const companies: CompanySeries[] = [];
   for (const id of ids) {
@@ -391,15 +396,18 @@ export function buildMarket(dataset: Dataset): Market {
 
   const byId = new Map(companies.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
-  const latestIds = new Set(latest.rows.map((r) => r.companyId));
-  const previousIds = new Set(previous?.rows.map((r) => r.companyId) ?? []);
+  const latestRows = latest.rows.filter((r) => shown(r.companyId));
+  const latestIds = new Set(latestRows.map((r) => r.companyId));
+  const previousIds = new Set(
+    previous?.rows.filter((r) => shown(r.companyId)).map((r) => r.companyId) ?? [],
+  );
   const facts: ReportFacts = {
     date: latest.date,
     previousDate: previous?.date ?? null,
     gap: previous ? daysBetween(previous.date, latest.date) : null,
-    listed: latest.rows.length,
-    active: latest.rows.filter((r) => r.chiffre > 0).length,
-    idle: latest.rows.filter((r) => r.chiffre === 0).length,
+    listed: latestRows.length,
+    active: latestRows.filter((r) => r.chiffre > 0).length,
+    idle: latestRows.filter((r) => r.chiffre === 0).length,
     newcomers: previous ? [...latestIds].filter((id) => !previousIds.has(id)).map(nameOf) : [],
     delisted: [...previousIds].filter((id) => !latestIds.has(id)).map(nameOf),
   };

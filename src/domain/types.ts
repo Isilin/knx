@@ -61,6 +61,12 @@ export interface CompanyMeta {
   /** Date of the first report the corporation was missing from (closure is final). */
   closedOn: IsoDate | null;
   logoUrl: string | null;
+  /**
+   * Kept out of every KNX display (cote, charts, counts, shares). Its lines are still read and
+   * published with the reports: the game prints it, so the registry must keep recognising it.
+   * For a game-master company (MJ Immo) that is not a real player business.
+   */
+  hidden: boolean;
 }
 
 export type EventKind = "renamed" | "ceo_change" | "closed" | "other";

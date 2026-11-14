@@ -40,6 +40,10 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   évènements saisis. Les évènements de marché (une règle du jeu, une faille) se gèrent sur la page
   Relevés : chacun s'affiche dans l'historique de toutes les corporations cotées à sa date et sur
   les graphiques.
+- Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
+  par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
+  décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;
+  les rangs restent ceux imprimés par le jeu.
 
 ```bash
 node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
@@ -57,8 +61,9 @@ node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
    `20261113000000_init.sql`, `20261113100000_userscript_api.sql` (clés et envois du module de
    jeu), `20261114000000_fiche_identite_historique.sql`,
    `20261114100000_publication_envois_identite.sql`, `20261114200000_retrait_releve.sql`
-   (retrait du dernier relevé depuis le journal) et `20261115000000_evenements_marche.sql`
-   (évènements de marché, dont la Faille ZD-385), puis `supabase/seed.sql` pour charger
+   (retrait du dernier relevé depuis le journal), `20261115000000_evenements_marche.sql`
+   (évènements de marché, dont la Faille ZD-385) et `20261116000000_corporations_masquees.sql`
+   (corporations masquées, dont MJ Immo), puis `supabase/seed.sql` pour charger
    l'historique. Sur une base déjà remplie, exécuter seulement les migrations manquantes : la
    fiche-identité garde les relevés, crée les consortiums, scinde Paradox (fermée puis rouverte le
    11 novembre 2026) et ajoute le bucket Storage `company-logos`. Le seed remplace tout le
