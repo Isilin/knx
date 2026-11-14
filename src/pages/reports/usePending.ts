@@ -7,13 +7,14 @@ import type { PendingSnapshot } from "../../data/source.ts";
  * (after any publication) and on demand (after a rejection).
  */
 export function usePending(enabled: boolean): {
-  pending: PendingSnapshot[];
+  /** Null until the first fetch answers. */
+  pending: PendingSnapshot[] | null;
   error: string | null;
   refresh: () => void;
 } {
   const { source, state } = useData();
   const dataset = state.status === "ready" ? state.dataset : null;
-  const [pending, setPending] = useState<PendingSnapshot[]>([]);
+  const [pending, setPending] = useState<PendingSnapshot[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
@@ -36,5 +37,5 @@ export function usePending(enabled: boolean): {
   }, [enabled, source, dataset, tick]);
 
   const refresh = useCallback(() => setTick((t) => t + 1), []);
-  return { pending: enabled ? pending : [], error: enabled ? error : null, refresh };
+  return { pending: enabled ? pending : null, error: enabled ? error : null, refresh };
 }

@@ -42,7 +42,7 @@ Le jeu ne publie qu'un instantané quotidien, et sa colonne « Chiffre » est un
 
 - Surfaces confirmées : tableau de bord de toutes les entreprises ; fiche détaillée de chaque entreprise ; d'autres vues à venir.
 - **Pas d'indices pour l'instant** : le premier périmètre ne porte que sur les entreprises et leurs données brutes et calculées. Les indices (composite, par groupe, par secteur) viendront plus tard.
-- Ingestion d'un relevé par un simple formulaire ou par collage du texte du rapport, avec contrôle avant publication (noms nouveaux, disparus, valeurs aberrantes). **Plus tard :** un userscript dans le jeu enverra directement les données à l'app.
+- Ingestion d'un relevé par le userscript du jeu, qui envoie le rapport à l'app ; l'envoi attend la validation d'un·e opérateur·rice, avec contrôle avant publication (noms nouveaux, disparus, renommages, valeurs aberrantes). La saisie manuelle (formulaire, collage du rapport) a été retirée.
 - Import de l'historique existant depuis le tableur Google.
 - Calculs dérivés : reprendre les formules du tableur (âge estimé, CA réel journalier, facteur d'activité, chiffre normalisé…) en les affinant ; variations.
 - Les noms contiennent apostrophes, accents, `™` ; ils doivent rester exacts au caractère près.
@@ -68,5 +68,5 @@ Le jeu ne publie qu'un instantané quotidien, et sa colonne « Chiffre » est un
 1. **Le relevé du jeu fait foi.** Toute valeur estimée (CA réel, date de création) est marquée comme telle et distinguée de la valeur publiée.
 2. **L'évolution avant l'instantané.** Le jeu donne déjà le classement du jour ; chaque écran apporte du temps : tendance, rupture, mouvement.
 3. **Une institution de la cité, une méthode lisible.** Voix in-universe, mais un joueur doit pouvoir comprendre d'où sort chaque indice.
-4. **Saisie quotidienne en moins d'une minute.** Coller, vérifier, publier.
+4. **Validation quotidienne en moins d'une minute.** Le module envoie, l'opérateur·rice vérifie et publie.
 5. **Tenir avec peu de données.** Premiers jours d'historique, nouvelles corporations, valeurs nulles : aucun écran ne casse ni ne ment.
