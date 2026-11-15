@@ -2,7 +2,10 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router";
 import { groupColor, ImperialDate, Score } from "../components/figures.tsx";
 import { Seal } from "../components/Seal.tsx";
+import { SectorRegimeChart } from "../components/SectorRegimeChart.tsx";
+import { Waterfall } from "../components/Waterfall.tsx";
 import { useMarket } from "../data/DataProvider.tsx";
+import { growthContribution, sectorRegimes } from "../domain/groupHistory.ts";
 import { slugify } from "../domain/market.ts";
 import { formatCompact, formatDecimal, formatInteger, formatShare } from "../domain/numbers.ts";
 import {
@@ -135,6 +138,70 @@ function SectorBars({ sectors }: { sectors: readonly SectorSummary[] }) {
       <p className="sectors__note">
         {measure.help} La dynamique est la médiane des corporations cotées du secteur (30 derniers
         jours face aux 90 précédents). Chaque secteur ouvre la cote filtrée sur lui.
+      </p>
+    </section>
+  );
+}
+
+/** How each sector moved the market's revenue from one window to the next. */
+function Contribution() {
+  const market = useMarket();
+  const [days, setDays] = useState(30);
+  const growth = useMemo(() => growthContribution(market, days, "sector"), [market, days]);
+  return (
+    <section className="sectors__section" aria-labelledby="contribution-secteurs">
+      <div className="section-head">
+        <h2 id="contribution-secteurs">Contribution à la croissance</h2>
+        <p>
+          <span className="estimated">recette réelle par jour</span>, les {days} derniers jours face
+          aux {days} précédents
+        </p>
+        <div className="push">
+          <div className="segmented" role="group" aria-label="Fenêtre">
+            {[30, 90].map((d) => (
+              <button key={d} type="button" aria-pressed={days === d} onClick={() => setDays(d)}>
+                {d} jours
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+      <Waterfall before={growth.before} after={growth.after} groups={growth.groups} days={days} />
+      <p className="sectors__note">
+        Ce que chaque secteur a gagné ou perdu de recette par jour d'une fenêtre à l'autre : les
+        écarts s'additionnent pour donner celui du marché. Les corporations fermées sans secteur
+        forment la ligne « Non classées ».
+      </p>
+    </section>
+  );
+}
+
+/** Where the sectors stand on activity and dynamics, and the path they took. */
+function Regimes() {
+  const market = useMarket();
+  const trails = useMemo(() => sectorRegimes(market), [market]);
+  const from = trails[0]?.points[0]?.date;
+  return (
+    <section className="sectors__section" aria-labelledby="regimes-secteurs">
+      <div className="section-head">
+        <h2 id="regimes-secteurs">Régimes des secteurs</h2>
+        <p>
+          <span className="estimated">activité</span> face à{" "}
+          <span className="estimated">dynamique</span>, médianes des corporations
+          {from ? (
+            <>
+              , depuis le <ImperialDate date={from} />
+            </>
+          ) : null}
+        </p>
+      </div>
+      <SectorRegimeChart trails={trails} />
+      <p className="sectors__note">
+        Chaque secteur est placé à la médiane de ses corporations cotées : l'activité (30 derniers
+        jours face à leur moyenne historique) en abscisse, la dynamique (30 derniers jours face aux
+        90 précédents) en ordonnée. La bulle donne sa place au dernier relevé et sa part du marché ;
+        le trait, le chemin parcouru sur les trois derniers mois, de point en point. Un secteur qui
+        passe de « en reprise » à « en essor » prend le relais.
       </p>
     </section>
   );
@@ -334,6 +401,8 @@ export function SectorsPage() {
       ) : (
         <>
           <SectorBars sectors={sectors} />
+          <Contribution />
+          <Regimes />
           <Concentration sectors={sectors} />
           <Matrix />
         </>

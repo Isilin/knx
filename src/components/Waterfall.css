@@ -1,0 +1,92 @@
+.waterfall__rows {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--or);
+}
+
+.waterfall__rows li {
+  display: grid;
+  grid-template-columns: minmax(150px, 220px) minmax(0, 1fr) 128px;
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 34px;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.waterfall__label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  overflow: hidden;
+  color: var(--ivoire);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.waterfall__label i {
+  flex: none;
+  width: 14px;
+  height: 2px;
+}
+
+.waterfall__total .waterfall__label {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.waterfall__track {
+  position: relative;
+  height: 10px;
+}
+
+.waterfall__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 1px;
+  background: var(--gris-2);
+}
+
+.waterfall__total--end .waterfall__bar {
+  background: var(--ivoire);
+}
+
+/* Gains and losses: a wash of the direction colour, always doubled by the signed value. */
+.waterfall__bar--up {
+  background: color-mix(in srgb, var(--hausse) 55%, var(--laque-2));
+}
+
+.waterfall__bar--down {
+  background: color-mix(in srgb, var(--baisse) 55%, var(--laque-2));
+}
+
+.waterfall__value {
+  justify-self: end;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.waterfall__summary {
+  margin-top: var(--s-3);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+@media (max-width: 720px) {
+  .waterfall__rows li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-1) var(--s-3);
+    padding: var(--s-2) 0;
+  }
+
+  .waterfall__track {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+}

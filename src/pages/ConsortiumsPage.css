@@ -1,0 +1,153 @@
+.consortiums-page__warning {
+  padding-left: var(--s-3);
+  border-left: 2px solid var(--or-sombre);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+/* One card per consortium, hairlines only: a holding's page in an annual report. */
+.portfolios {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-6) var(--s-7);
+}
+
+.portfolio {
+  display: grid;
+  align-content: start;
+  gap: var(--s-3);
+  min-width: 0;
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--filet-fort);
+}
+
+.portfolio__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-2) var(--s-3);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.portfolio__head i {
+  align-self: center;
+  width: 14px;
+  height: 2px;
+}
+
+.portfolio__head h3 {
+  font-size: var(--fs-h2);
+  font-weight: 300;
+}
+
+.portfolio__head h3 a,
+.portfolio a {
+  color: var(--ivoire);
+  text-decoration: none;
+}
+
+.portfolio a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.portfolio__facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-4);
+}
+
+.portfolio__facts dd {
+  margin-top: var(--s-1);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+}
+
+.portfolio__members {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--filet);
+}
+
+.portfolio__members li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1.4fr) 84px minmax(0, 1fr) 56px;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 34px;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.portfolio__members li > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portfolio__sector {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.portfolio__bar {
+  height: 6px;
+  background: var(--laque-3);
+}
+
+.portfolio__bar span {
+  display: block;
+  height: 100%;
+  background: var(--gris-2);
+}
+
+.portfolio__share {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.portfolio__line {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.portfolio__line .label {
+  margin-right: var(--s-2);
+}
+
+.effect__reading {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.effect__moves-title {
+  margin-top: var(--s-6);
+  margin-bottom: var(--s-3);
+}
+
+@media (max-width: 1000px) {
+  .portfolios {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .portfolio__members li {
+    grid-template-columns: 18px minmax(0, 1fr) 72px 52px;
+  }
+
+  .portfolio__bar {
+    display: none;
+  }
+}
+
+.consortiums-page .market__map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-6);
+}

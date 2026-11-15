@@ -77,6 +77,16 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   au capital, ces deux dernières en médiane des corporations actives) ; la concentration de chaque
   secteur (indice de Herfindahl, concurrents équivalents, leader et sa part) ; le tableau
   secteur × consortium. La carte du marché se regroupe aussi par secteur ou par consortium.
+  S'y ajoutent la contribution de chaque secteur à la croissance (recette par jour des 30 ou 90
+  derniers jours face à la fenêtre précédente, en cascade) et les régimes des secteurs (activité
+  et dynamique médianes, avec leur chemin sur trois mois).
+- **Page Consortiums** (`/consortiums`) : la course des consortiums (recette réelle cumulée, chaque
+  corporation comptant pour le consortium dont elle était membre le jour où elle a encaissé), leur
+  contribution à la croissance, un portefeuille par consortium (membres, dépendance au premier,
+  secteurs, mouvements datés, anciens membres) et l'effet consortium : membres et indépendantes
+  comparés chacun à la médiane de son secteur, puis la recette avant et après chaque adhésion ou
+  départ daté (`src/domain/groupHistory.ts`). Tant qu'aucune adhésion n'est datée, chaque
+  consortium compte ses membres actuels sur tout l'historique ; la page le signale.
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;

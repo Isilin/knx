@@ -3,6 +3,7 @@ import { Layout } from "./app/Layout.tsx";
 import { DataProvider } from "./data/DataProvider.tsx";
 import { CompaniesPage } from "./pages/CompaniesPage.tsx";
 import { CompanyPage } from "./pages/CompanyPage.tsx";
+import { ConsortiumsPage } from "./pages/ConsortiumsPage.tsx";
 import { MarketPage } from "./pages/MarketPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { ReportsPage } from "./pages/ReportsPage.tsx";
@@ -16,6 +17,7 @@ const router = createBrowserRouter([
       { path: "corporations", element: <CompaniesPage /> },
       { path: "corporations/:slug", element: <CompanyPage /> },
       { path: "secteurs", element: <SectorsPage /> },
+      { path: "consortiums", element: <ConsortiumsPage /> },
       { path: "releves", element: <ReportsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],
