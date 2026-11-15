@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router";
-import { acrossLives, type CompanySeries, type Market } from "../domain/market.ts";
+import {
+  BALANCE_ITEM_INFO,
+  BALANCE_ITEMS,
+  SOURCE_INFO,
+  type BalanceItem,
+} from "../domain/balance.ts";
+import { acrossLives, lifeValuation, type CompanySeries, type Market } from "../domain/market.ts";
 import {
   formatDecimal,
   formatFactor,
@@ -11,12 +17,7 @@ import {
 } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, ratingCode } from "../domain/rating.ts";
 import { OPERATION_INFO } from "../domain/securities.ts";
-import {
-  LifeValuation,
-  priceHistory,
-  type ValuationParams,
-  type ValuationPoint,
-} from "../domain/valuation.ts";
+import { priceHistory, type ValuationParams, type ValuationPoint } from "../domain/valuation.ts";
 import type { IsoDate } from "../domain/types.ts";
 import { listingLabel, operationDetail, operationMarkers } from "./bourseText.ts";
 import { Change, ImperialDate } from "./figures.tsx";
@@ -34,6 +35,14 @@ function Since({ date }: { date: IsoDate | null }) {
     <>pas de relevé assez ancien</>
   );
 }
+
+/** The lever that weighs each item of the balance sheet. */
+const ITEM_WEIGHT: Record<BalanceItem, (p: ValuationParams) => number> = {
+  land: (p) => p.landWeight,
+  building: (p) => p.buildingWeight,
+  fittings: (p) => p.fittingsWeight,
+  stock: (p) => p.stockWeight,
+};
 
 /** The calculation of one day's value, line by line, like a receipt. */
 function Receipt({
@@ -122,6 +131,44 @@ function Receipt({
             )}
           </td>
         </tr>
+        <tr className="receipt__sub">
+          <th scope="row">= valeur de l'activité</th>
+          <td className="num">
+            <span className="estimated">{formatInteger(v.business)} ¢</span>
+          </td>
+          <td />
+        </tr>
+        {BALANCE_ITEMS.some((item) => v.assets[item]) ? (
+          BALANCE_ITEMS.map((item) => {
+            const asset = v.assets[item];
+            if (!asset) return null;
+            return (
+              <tr key={item}>
+                <th scope="row">+ {BALANCE_ITEM_INFO[item].label.toLowerCase()}</th>
+                <td className="num">
+                  <span className="estimated">{formatInteger(asset.counted)} ¢</span>
+                </td>
+                <td className="receipt__why">
+                  {formatInteger(asset.amount)} ¢ × {formatShare(ITEM_WEIGHT[item](params))}
+                  {asset.source === "declared"
+                    ? ` × ${formatShare(params.declaredWeight)} (déclaré)`
+                    : " (audité)"}
+                  {asset.fade !== undefined ? ` × ${formatShare(asset.fade)} (fraîcheur)` : null}
+                  {" · "}
+                  {SOURCE_INFO[asset.source].label} le <ImperialDate date={asset.date} />
+                </td>
+              </tr>
+            );
+          })
+        ) : (
+          <tr>
+            <th scope="row">+ local et stock</th>
+            <td className="num">
+              <span className="amount--none">—</span>
+            </td>
+            <td className="receipt__why">aucun bilan enregistré</td>
+          </tr>
+        )}
         <tr className="receipt__total">
           <th scope="row">= valeur KNX</th>
           <td className="num">
@@ -129,7 +176,8 @@ function Receipt({
           </td>
           <td className="receipt__why">
             fourchette {formatInteger(v.low)} – {formatInteger(v.high)} ¢ (±{" "}
-            {formatPercent(v.band).replace("+", "")}, selon la confiance de la notation)
+            {formatPercent(v.band).replace("+", "")} sur l'activité, selon la confiance de la
+            notation)
           </td>
         </tr>
         {shares ? (
@@ -176,19 +224,17 @@ export function ValuationPanel({
   const valuation = company.valuation;
   const listing = valuation?.listing ?? null;
   const operations = useMemo(() => market.operations.get(company.id) ?? [], [market, company.id]);
-  const current = useMemo(
-    () => new LifeValuation(company, market.ratings.get(company.id) ?? [], params),
-    [company, market, params],
-  );
+  const sheets = market.balances.get(company.id) ?? [];
+  const current = useMemo(() => lifeValuation(market, company, params), [company, market, params]);
   const values = useMemo(() => current.history(), [current]);
   const prices = useMemo(() => priceHistory(values, operations), [values, operations]);
   const pageValues = useMemo(
     () =>
       acrossLives(lives, (life) =>
-        (life === company
-          ? values
-          : new LifeValuation(life, market.ratings.get(life.id) ?? [], params).history()
-        ).map((v) => ({ date: v.date, value: v.value })),
+        (life === company ? values : lifeValuation(market, life, params).history()).map((v) => ({
+          date: v.date,
+          value: v.value,
+        })),
       ),
     [lives, company, values, market, params],
   );
@@ -402,6 +448,35 @@ export function ValuationPanel({
               doit être réintroduite. La courbe de valeur reprend chaque vie séparément.
             </p>
           ) : null}
+          <h3 className="label">Bilans</h3>
+          {sheets.length === 0 ? (
+            <p className="valuation__note">
+              Aucun bilan. Le local (terrain, bâtiment, aménagement) et le stock ne figurent pas au
+              rapport du jeu : la direction les déclare, ou l'Agence les audite, par exemple au
+              dossier d'une introduction en bourse.
+            </p>
+          ) : (
+            <ol className="valuation__ops">
+              {[...sheets].reverse().map((sheet) => (
+                <li key={sheet.id}>
+                  <ImperialDate date={sheet.date} />
+                  <span>
+                    <strong>{sheet.source === "audited" ? "Audité" : "Déclaré"}</strong>
+                    {BALANCE_ITEMS.filter((item) => sheet[item] !== null).map((item) => (
+                      <span key={item}>
+                        {" · "}
+                        {BALANCE_ITEM_INFO[item].label.toLowerCase()}{" "}
+                        {formatInteger(sheet[item] ?? 0)} ¢
+                      </span>
+                    ))}
+                    {sheet.note ? (
+                      <span className="valuation__op-note"> — {sheet.note}</span>
+                    ) : null}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       </div>
     </section>

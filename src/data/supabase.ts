@@ -90,7 +90,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
   return {
     kind: "supabase",
     async load() {
-      const [dataset, settings, operations] = await Promise.all([
+      const [dataset, settings, operations, balances] = await Promise.all([
         client.rpc("market_dataset"),
         client
           .from("valuation_settings")
@@ -101,6 +101,11 @@ export function createSupabaseSource(url: string, key: string): DataSource {
           .from("security_operations")
           .select("id, company_id, occurred_on, kind, shares, ratio, note")
           .order("occurred_on")
+          .order("id"),
+        client
+          .from("company_balance_sheets")
+          .select("id, company_id, stated_on, land, building, fittings, stock, source, note")
+          .order("stated_on")
           .order("id"),
       ]);
       if (dataset.error)
@@ -130,6 +135,17 @@ export function createSupabaseSource(url: string, key: string): DataSource {
           kind: r.kind,
           shares: r.shares,
           ratio: r.ratio,
+          note: r.note,
+        })),
+        balanceSheets: optional(balances, "des bilans").map((r) => ({
+          id: String(r.id),
+          companyId: String(r.company_id),
+          date: r.stated_on,
+          land: r.land,
+          building: r.building,
+          fittings: r.fittings,
+          stock: r.stock,
+          source: r.source,
           note: r.note,
         })),
       });
@@ -304,6 +320,28 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async deleteSecurityOperation(id) {
       const { error } = await client.from("security_operations").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async saveBalanceSheet({ id, companyId, date, land, building, fittings, stock, source, note }) {
+      const values = {
+        company_id: Number(companyId),
+        stated_on: date,
+        land,
+        building,
+        fittings,
+        stock,
+        source,
+        note,
+      };
+      const { error } =
+        id === null
+          ? await client.from("company_balance_sheets").insert(values)
+          : await client.from("company_balance_sheets").update(values).eq("id", id);
+      if (error)
+        throw isMissingTable(error) ? new Error(MISSING_PRICE_TABLES) : writeMessage(error);
+    },
+    async deleteBalanceSheet(id) {
+      const { error } = await client.from("company_balance_sheets").delete().eq("id", id);
       if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {

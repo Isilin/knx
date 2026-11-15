@@ -132,6 +132,25 @@ export const LEVERS: {
     help: "Avant, KNX ne publie pas de valeur : une corporation nouvelle reste en observation.",
   },
   {
+    key: "premisesWeights",
+    label: "Poids du local",
+    read: (p) =>
+      `terrain ${formatShare(p.landWeight)} · bâtiment ${formatShare(p.buildingWeight)} · aménagement ${formatShare(p.fittingsWeight)}`,
+    help: "Part du prix comptée selon ce qui se revend : le terrain seul, le bâtiment avec son terrain, l'aménagement seulement avec la boutique installée.",
+  },
+  {
+    key: "stockWeight",
+    label: "Poids du stock",
+    read: (p) => `${formatShare(p.stockWeight)} du prix d'achat, éteint en ${p.stockLife} jours`,
+    help: "Le stock compte à son prix d'achat, puis s'efface faute de nouveau chiffre : il se vend.",
+  },
+  {
+    key: "declaredWeight",
+    label: "Chiffre déclaré",
+    read: (p) => `compté à ${formatShare(p.declaredWeight)}`,
+    help: "Un montant déclaré par la direction compte moins qu'un montant audité par l'Agence, compté en entier.",
+  },
+  {
     key: "introductionPrice",
     label: "Cours d'introduction proposé",
     read: (p) => `${formatInteger(p.introductionPrice)} ¢`,

@@ -211,9 +211,12 @@ export function BoursePage() {
         <div className="bourse__method">
           <div className="bourse__formula">
             <p className="bourse__equation">
-              <span>valeur</span> = ( <span>jours de recettes</span> × <span>CA réel retenu</span> ×{" "}
-              <span>maturité</span> + <span>poids du capital</span> × <span>capital retenu</span> )
-              × <span>multiplicateur de l'Agence</span>
+              <span>activité</span> = ( <span>jours de recettes</span> × <span>CA réel retenu</span>{" "}
+              × <span>maturité</span> + <span>poids du capital</span> × <span>capital retenu</span>{" "}
+              ) × <span>multiplicateur de l'Agence</span>
+            </p>
+            <p className="bourse__equation">
+              <span>valeur</span> = <span>activité</span> + <span>local</span> + <span>stock</span>
             </p>
             <p className="bourse__equation">
               <span>cours</span> = <span>valeur</span> ÷ <span>titres</span>
@@ -235,8 +238,16 @@ export function BoursePage() {
                 la retirer.
               </li>
               <li>
-                <strong>La notation de l'Agence.</strong> Sa catégorie multiplie la valeur, sa
-                confiance règle la fourchette. Sans notation, une décote d'opacité s'applique.
+                <strong>La notation de l'Agence.</strong> Sa catégorie multiplie la valeur de
+                l'activité, sa confiance règle la fourchette. Sans notation, une décote d'opacité
+                s'applique.
+              </li>
+              <li>
+                <strong>Le local et le stock à part.</strong> Terrain, bâtiment et aménagement
+                comptent selon ce qui se revend ; le stock à son prix d'achat, et il s'efface faute
+                de nouveau chiffre. Un montant déclaré par la direction compte moins qu'un montant
+                audité par l'Agence. Un terrain vaut son prix quelle que soit la notation : ces
+                postes restent hors du multiplicateur et de la fourchette.
               </li>
               <li>
                 <strong>Toute l'histoire avec les mêmes réglages.</strong> Quand KNX change un

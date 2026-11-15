@@ -1,6 +1,7 @@
 import type { ResolvedRows } from "../domain/identity.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
+  BalanceSheetDraft,
   CompanyPatch,
   ConsortiumDraft,
   EventDraft,
@@ -19,6 +20,7 @@ import type {
 } from "../domain/types.ts";
 
 export type {
+  BalanceSheetDraft,
   CompanyPatch,
   ConsortiumDraft,
   EventDraft,
@@ -96,6 +98,9 @@ export interface DataSource {
   /** Records an operation on securities, already checked with `planOperation`. */
   saveSecurityOperation(draft: SecurityOperationDraft): Promise<void>;
   deleteSecurityOperation(id: string): Promise<void>;
+  /** Records a balance sheet, already checked with `planBalance`. */
+  saveBalanceSheet(draft: BalanceSheetDraft): Promise<void>;
+  deleteBalanceSheet(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;

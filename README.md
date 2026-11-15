@@ -149,8 +149,9 @@ fiches ; ce second fichier peut être rejoué sans doublon.
    quartier des corporations), `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
    vies), `20261119000000_adhesions_consortiums.sql` (consortiums datés : chaque consortium
    actuel devient une période ouverte, à dater ensuite depuis les fiches) et
-   `20261120000000_cours_theorique.sql` (réglages de la valeur KNX et opérations sur titres ;
-   sans elle, le site tourne avec les réglages par défaut et aucune corporation introduite), puis
+   `20261120000000_cours_theorique.sql` (réglages de la valeur KNX, opérations sur titres et
+   bilans ; sans elle, le site tourne avec les réglages par défaut, sans corporation introduite
+   ni bilan), puis
    `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
    seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
    consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket

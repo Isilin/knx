@@ -1,7 +1,7 @@
 import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useData } from "../data/DataProvider.tsx";
-import type { Market } from "../domain/market.ts";
+import { lifeValuation, type Market } from "../domain/market.ts";
 import { checkRemoval, planOperation, type SecurityOperationDraft } from "../domain/mutations.ts";
 import { formatInteger, formatPrice } from "../domain/numbers.ts";
 import {
@@ -13,7 +13,6 @@ import {
   type OperationKind,
 } from "../domain/securities.ts";
 import type { Dataset } from "../domain/types.ts";
-import { LifeValuation } from "../domain/valuation.ts";
 import { operationDetail } from "./bourseText.ts";
 import { ImperialDate } from "./figures.tsx";
 import "./ValuationSettingsForm.css";
@@ -49,11 +48,7 @@ function OperationForm({ market, dataset }: { market: Market; dataset: Dataset }
   const state = stepOn(listingSteps(operations), date)?.state ?? null;
   const kinds = possibleKinds(state);
   const chosen = kinds.includes(kind) ? kind : kinds[0];
-  const value = company
-    ? (new LifeValuation(company, market.ratings.get(company.id) ?? [], market.valuation.params).on(
-        date,
-      )?.value ?? null)
-    : null;
+  const value = company ? (lifeValuation(market, company).on(date)?.value ?? null) : null;
   const proposed =
     value !== null ? proposeShares(value, market.valuation.params.introductionPrice) : null;
 
@@ -148,7 +143,14 @@ function OperationForm({ market, dataset }: { market: Market; dataset: Dataset }
           </select>
         </label>
       </div>
-      {company ? <p className="levers__muted">{OPERATION_INFO[chosen].help}</p> : null}
+      {company ? (
+        <p className="levers__muted">
+          {OPERATION_INFO[chosen].help}
+          {chosen === "introduction"
+            ? " Le dossier d'introduction est l'occasion d'auditer le local et le stock : voir Bilans plus bas."
+            : null}
+        </p>
+      ) : null}
       {chosen === "introduction" ? (
         <label className="field">
           <span className="label">Nombre de titres, choisi par la direction</span>

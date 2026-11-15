@@ -29,6 +29,8 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     publishValuationSettings: async (draft) => (await get()).publishValuationSettings(draft),
     saveSecurityOperation: async (draft) => (await get()).saveSecurityOperation(draft),
     deleteSecurityOperation: async (id) => (await get()).deleteSecurityOperation(id),
+    saveBalanceSheet: async (draft) => (await get()).saveBalanceSheet(draft),
+    deleteBalanceSheet: async (id) => (await get()).deleteBalanceSheet(id),
     session: async () => (await get()).session(),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>

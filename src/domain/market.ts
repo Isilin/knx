@@ -8,6 +8,7 @@ import { rateBetween } from "./revenue.ts";
 import { assessRisk, type CompanyRisk } from "./risk.ts";
 import { summarizeSectors, type SectorSummary } from "./sectorStats.ts";
 import type { SectorId } from "./sectors.ts";
+import type { BalanceSheet } from "./balance.ts";
 import { inOrder, type SecurityOperation } from "./securities.ts";
 import {
   LifeValuation,
@@ -196,6 +197,8 @@ export interface Market {
   valuation: { params: ValuationParams; versions: ValuationSettings[] };
   /** Operations on securities, by corporation id, in the order they apply. */
   operations: Map<string, SecurityOperation[]>;
+  /** Balance sheets, by corporation id, oldest first. */
+  balances: Map<string, BalanceSheet[]>;
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -555,9 +558,14 @@ export function buildMarket(dataset: Dataset): Market {
   const operations = new Map<string, SecurityOperation[]>();
   for (const op of inOrder(dataset.securityOperations ?? []))
     operations.set(op.companyId, [...(operations.get(op.companyId) ?? []), op]);
+  const balances = new Map<string, BalanceSheet[]>();
+  for (const sheet of [...(dataset.balanceSheets ?? [])].sort((a, b) =>
+    a.date.localeCompare(b.date),
+  ))
+    balances.set(sheet.companyId, [...(balances.get(sheet.companyId) ?? []), sheet]);
   for (const c of allLives)
     c.valuation = summarizeValuation(
-      new LifeValuation(c, ratings.get(c.id) ?? [], params),
+      new LifeValuation(c, ratings.get(c.id) ?? [], params, balances.get(c.id) ?? []),
       operations.get(c.id) ?? [],
     );
 
@@ -607,6 +615,7 @@ export function buildMarket(dataset: Dataset): Market {
     projection,
     valuation: { params, versions },
     operations,
+    balances,
   };
 }
 
@@ -658,4 +667,18 @@ export function refoundingMarkers(
     label: "Refondation",
     title: `Refondation (vie ${life.life.index}) : l'âge et le CA moyen repartent de zéro`,
   }));
+}
+
+/** A life's valuation with its ratings and balance sheets, under the settings in force or others. */
+export function lifeValuation(
+  market: Pick<Market, "ratings" | "balances" | "valuation">,
+  life: CompanySeries,
+  params: ValuationParams = market.valuation.params,
+): LifeValuation {
+  return new LifeValuation(
+    life,
+    market.ratings.get(life.id) ?? [],
+    params,
+    market.balances.get(life.id) ?? [],
+  );
 }

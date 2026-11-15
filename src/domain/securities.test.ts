@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { applyOp, normalizeDataset, planOperation } from "./mutations.ts";
+import { applyOp, normalizeDataset, planBalance, planOperation } from "./mutations.ts";
 import { datasetByName } from "./testing.ts";
 import { DEFAULT_VALUATION } from "./valuation.ts";
 import {
@@ -162,5 +162,59 @@ describe("operations on securities", () => {
     expect(proposeShares(9_400_000, 1000)).toBe(10_000);
     expect(proposeShares(500, 1000)).toBe(1);
     expect(proposeShares(0, 1000)).toBe(1);
+  });
+});
+
+describe("balance sheet checks", () => {
+  const dataset = datasetByName({
+    generatedAt: "2026-11-13T00:00:00Z",
+    companies: [{ name: "Shop" }],
+    snapshots: ["2026-11-10", "2026-11-11"].map((date) => ({
+      date,
+      source: "paste" as const,
+      rows: [{ name: "Shop", rank: 1, chiffre: 100, capital: 1000, employees: 1 }],
+    })),
+  });
+  const draft = {
+    id: null,
+    companyId: "Shop",
+    date: "2026-11-11",
+    land: null,
+    building: null,
+    fittings: null,
+    stock: null,
+    source: "declared" as const,
+    note: null,
+  };
+
+  it("refuses an empty sheet, a negative amount or a date outside the life", () => {
+    expect(() => planBalance(dataset, draft)).toThrow(/au moins un poste/);
+    expect(() => planBalance(dataset, { ...draft, land: -5 })).toThrow(/entiers, positifs/);
+    expect(() => planBalance(dataset, { ...draft, land: 10, date: "2026-11-01" })).toThrow(
+      /premier relevé/,
+    );
+  });
+
+  it("records a sheet and reads stored ones safely", () => {
+    const next = applyOp(dataset, {
+      type: "saveBalance",
+      sheet: { ...draft, id: "b1", stock: 5000, note: "  dossier  " },
+    });
+    expect(next.balanceSheets?.[0].note).toBe("dossier");
+    const read = normalizeDataset({
+      companies: [],
+      snapshots: [],
+      balanceSheets: [
+        { id: 3, companyId: 7, date: "2026-11-11", land: "1200", source: "audited" },
+        { id: 4, companyId: 7, date: "2026-11-11", land: 1, source: "rumeur" },
+      ],
+    });
+    expect(read.balanceSheets).toHaveLength(1);
+    expect(read.balanceSheets?.[0]).toMatchObject({
+      id: "3",
+      companyId: "7",
+      land: 1200,
+      stock: null,
+    });
   });
 });
