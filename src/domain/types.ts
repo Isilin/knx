@@ -1,5 +1,7 @@
 import type { CompanyRating, District } from "./rating.ts";
 import type { SectorId } from "./sectors.ts";
+import type { SecurityOperation } from "./securities.ts";
+import type { ValuationSettings } from "./valuation.ts";
 
 /** ISO calendar date, `YYYY-MM-DD`, always interpreted in UTC. */
 export type IsoDate = string;
@@ -152,6 +154,10 @@ export interface Dataset {
   /** Ratings published by the Agence impériale de notation. */
   ratings: CompanyRating[];
   snapshots: Snapshot[];
+  /** Published versions of the settings of KNX's theoretical value, oldest first. */
+  valuationSettings?: ValuationSettings[];
+  /** Introductions, divisions, consolidations, suspensions and exits from the cote. */
+  securityOperations?: SecurityOperation[];
 }
 
 /** A report ready to publish: each row resolved to a corporation, or to a new one. */

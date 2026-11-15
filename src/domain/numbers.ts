@@ -96,3 +96,29 @@ export function formatSigned(value: number): string {
 export function formatShare(ratio: number): string {
   return formatPercent(ratio).replace("+", "");
 }
+
+const priceFormats = [0, 1, 2].map(
+  (digits) =>
+    new Intl.NumberFormat("fr-FR", {
+      maximumFractionDigits: digits,
+      minimumFractionDigits: digits,
+    }),
+);
+
+/** A share price: whole credits from 100 ¢, then one or two decimals so a small price still moves. */
+export function formatPrice(value: number): string {
+  const magnitude = Math.abs(value);
+  const format =
+    magnitude >= 100 ? priceFormats[0] : magnitude >= 10 ? priceFormats[1] : priceFormats[2];
+  return visibleGrouping(format.format(value));
+}
+
+const factorFormat = new Intl.NumberFormat("fr-FR", {
+  minimumFractionDigits: 1,
+  maximumFractionDigits: 2,
+});
+
+/** A multiplier or coefficient: `1,2`, `0,85`, `1,0`. */
+export function formatFactor(value: number): string {
+  return factorFormat.format(value);
+}

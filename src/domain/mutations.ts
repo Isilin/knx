@@ -17,6 +17,14 @@ import {
   type PublishRequest,
 } from "./types.ts";
 import { MAX_EVENT_SPAN } from "./marketEvents.ts";
+import { checkOperations, isOperationKind, type SecurityOperation } from "./securities.ts";
+import {
+  checkParams,
+  cleanParams,
+  VALUATION_METHOD,
+  type ValuationParams,
+  type ValuationSettings,
+} from "./valuation.ts";
 
 /**
  * Fields of a corporation's page the operator edits by hand: shared by all its lives. Its
@@ -72,6 +80,53 @@ export interface MarketEventDraft {
   span: number;
 }
 
+/** Settings of the theoretical value about to be published; a published version is never edited. */
+export interface ValuationSettingsDraft {
+  date: IsoDate;
+  params: ValuationParams;
+  note: string | null;
+}
+
+/** An operation on securities about to be recorded. */
+export type SecurityOperationDraft = Omit<SecurityOperation, "id"> & {
+  /** null records a new operation. */
+  id: string | null;
+};
+
+/** Checks settings before they are published and trims the note. */
+export function cleanSettings(draft: ValuationSettingsDraft): ValuationSettingsDraft {
+  checkParams(draft.params);
+  return { ...draft, note: draft.note?.trim() || null };
+}
+
+/**
+ * Checks an operation against the corporation's life and the operations already recorded, in
+ * the operator's words, and returns it trimmed: only the fields its kind uses.
+ */
+export function planOperation<T extends SecurityOperationDraft>(dataset: Dataset, draft: T): T {
+  const company = requireCompany(dataset, draft.companyId);
+  const reported = dataset.snapshots
+    .filter((s) => s.rows.some((r) => r.companyId === draft.companyId))
+    .map((s) => s.date)
+    .sort();
+  if (reported.length === 0) throw new Error("aucun relevé de cette corporation");
+  if (draft.date < reported[0])
+    throw new Error(`date antérieure au premier relevé de la corporation (${reported[0]})`);
+  if (company.closedOn !== null && draft.date >= company.closedOn)
+    throw new Error("la corporation est fermée à cette date");
+  const operation = {
+    ...draft,
+    shares: draft.kind === "introduction" ? draft.shares : null,
+    ratio: draft.kind === "split" || draft.kind === "reverse_split" ? draft.ratio : null,
+    note: draft.note?.trim() || null,
+  };
+  const others = (dataset.securityOperations ?? []).filter(
+    (o) => o.companyId === draft.companyId && o.id !== draft.id,
+  );
+  checkOperations([...others, { ...operation, id: operation.id ?? "nouvelle" }]);
+  return operation;
+}
+
 /** Trims a market event and checks it, in the operator's words. */
 export function cleanMarketEvent<T extends MarketEventDraft | MarketEvent>(event: T): T {
   const title = event.title.trim();
@@ -106,7 +161,10 @@ export type LocalOp =
   | { type: "saveMarketEvent"; event: MarketEvent }
   | { type: "deleteMarketEvent"; id: string }
   | { type: "saveRating"; rating: CompanyRating }
-  | { type: "deleteRating"; id: string };
+  | { type: "deleteRating"; id: string }
+  | { type: "publishValuation"; settings: ValuationSettings }
+  | { type: "saveOperation"; operation: SecurityOperation }
+  | { type: "deleteOperation"; id: string };
 
 const blank = (id: string, name: string, profileId: string): CompanyMeta => ({
   id,
@@ -253,6 +311,26 @@ export function normalizeDataset(raw: unknown): Dataset {
       span: Number.isInteger(e.span) && e.span > 0 ? e.span : 1,
     })),
     snapshots: data.snapshots,
+    valuationSettings: (Array.isArray(data.valuationSettings) ? data.valuationSettings : []).map(
+      (v): ValuationSettings => ({
+        id: String(v.id),
+        date: v.date,
+        method: v.method ?? VALUATION_METHOD,
+        params: cleanParams(v.params),
+        note: v.note ?? null,
+      }),
+    ),
+    securityOperations: (Array.isArray(data.securityOperations) ? data.securityOperations : [])
+      .filter((o) => isOperationKind(o.kind))
+      .map((o): SecurityOperation => ({
+        id: String(o.id),
+        companyId: String(o.companyId),
+        date: o.date,
+        kind: o.kind,
+        shares: o.shares == null ? null : Number(o.shares),
+        ratio: o.ratio == null ? null : Number(o.ratio),
+        note: o.note ?? null,
+      })),
   };
 }
 
@@ -570,5 +648,40 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
     }
     case "deleteRating":
       return { ...dataset, ratings: dataset.ratings.filter((r) => r.id !== op.id) };
+    case "publishValuation": {
+      const settings = { ...op.settings, ...cleanSettings(op.settings) };
+      return {
+        ...dataset,
+        valuationSettings: [...(dataset.valuationSettings ?? []), settings],
+      };
+    }
+    case "saveOperation": {
+      const operation = planOperation(dataset, op.operation);
+      const list = dataset.securityOperations ?? [];
+      const exists = list.some((o) => o.id === operation.id);
+      return {
+        ...dataset,
+        securityOperations: exists
+          ? list.map((o) => (o.id === operation.id ? operation : o))
+          : [...list, operation],
+      };
+    }
+    case "deleteOperation":
+      checkRemoval(dataset, op.id);
+      return {
+        ...dataset,
+        securityOperations: (dataset.securityOperations ?? []).filter((o) => o.id !== op.id),
+      };
   }
+}
+
+/**
+ * Whether removing an operation leaves the others valid: a division cannot outlive the
+ * introduction it applies to. Throws in the operator's words.
+ */
+export function checkRemoval(dataset: Dataset, id: string): void {
+  const list = dataset.securityOperations ?? [];
+  const removed = list.find((o) => o.id === id);
+  if (!removed) return;
+  checkOperations(list.filter((o) => o.companyId === removed.companyId && o.id !== id));
 }

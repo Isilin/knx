@@ -256,3 +256,14 @@
     content: none;
   }
 }
+
+/* A share price with its change on the report, or the suspension tag. */
+.cote__price {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--s-2);
+}
+
+.cote__price .change {
+  font-size: var(--fs-cap);
+}

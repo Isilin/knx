@@ -3,7 +3,15 @@ import { Link, useNavigate } from "react-router";
 import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.ts";
 import { slugify, type CompanySeries } from "../domain/market.ts";
 import type { Consortium } from "../domain/types.ts";
-import { formatPercent, formatScore, formatScore2, formatShare } from "../domain/numbers.ts";
+import {
+  formatCompact,
+  formatInteger,
+  formatPercent,
+  formatPrice,
+  formatScore,
+  formatScore2,
+  formatShare,
+} from "../domain/numbers.ts";
 import { CATEGORY_INFO, RATING_METHOD, ratingCode, type RatingCategory } from "../domain/rating.ts";
 import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import type { SectorSummary } from "../domain/sectorStats.ts";
@@ -33,7 +41,9 @@ type SortKey =
   | "vsSector"
   | "projection"
   | "rating"
-  | "risk";
+  | "risk"
+  | "value"
+  | "price";
 
 interface Column {
   key: SortKey;
@@ -224,6 +234,62 @@ const COLUMNS: Record<SortKey, Column> = {
         <span className="amount--none">—</span>
       ),
   },
+  value: {
+    key: "value",
+    label: "Valeur KNX",
+    title:
+      "Valeur théorique de la corporation estimée par KNX : fonds de commerce, capital retenu et notation (méthode sur la page Bourse)",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.valuation?.latest?.value ?? null,
+    render: (c) => {
+      const v = c.valuation?.latest;
+      if (!v) return <span className="amount--none">—</span>;
+      return (
+        <span
+          className="estimated"
+          title={`Valeur KNX : ${formatInteger(v.value)} ¢, de ${formatInteger(v.low)} à ${formatInteger(v.high)} ¢`}
+        >
+          {formatCompact(v.value)}
+        </span>
+      );
+    },
+  },
+  price: {
+    key: "price",
+    label: "Cours",
+    title:
+      "Cours théorique par titre des corporations introduites en bourse : valeur KNX ÷ nombre de titres",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.valuation?.listing?.price ?? null,
+    render: (c) => {
+      const listing = c.valuation?.listing;
+      if (!listing || listing.price === null || listing.state === "withdrawn")
+        return (
+          <span
+            className="amount--none"
+            title={listing?.state === "withdrawn" ? "Sortie de cote" : "Non introduite en bourse"}
+          >
+            —
+          </span>
+        );
+      return (
+        <span className="cote__price">
+          <span className="estimated" title={`${formatInteger(listing.shares)} titres`}>
+            {formatPrice(listing.price)}
+          </span>
+          {listing.state === "suspended" ? (
+            <span className="tag" title="Cotation suspendue : dernier cours publié">
+              susp.
+            </span>
+          ) : (
+            <Change ratio={c.valuation?.change.report ?? null} estimated />
+          )}
+        </span>
+      );
+    },
+  },
   weight: {
     key: "weight",
     label: "Poids",
@@ -270,7 +336,7 @@ const COLUMNS: Record<SortKey, Column> = {
 };
 
 const VARIANTS = {
-  compact: ["rank", "name", "chiffre", "change", "real", "capital", "employees", "rating"],
+  compact: ["rank", "name", "chiffre", "change", "real", "capital", "employees", "value", "rating"],
   full: [
     "rank",
     "name",
@@ -279,6 +345,8 @@ const VARIANTS = {
     "real",
     "capital",
     "employees",
+    "value",
+    "price",
     "creation",
     "dynamics",
     "activity",

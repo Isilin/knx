@@ -1,5 +1,6 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cleanMarketEvent, normalizeDataset } from "../domain/mutations.ts";
+import { VALUATION_METHOD } from "../domain/valuation.ts";
 import type {
   ApiKey,
   CreatedApiKey,
@@ -49,6 +50,14 @@ function rowPayload(r: ResolvedRows["rows"][number]) {
   };
 }
 
+/** Missing table: Postgres says 42P01, PostgREST's schema cache PGRST205. */
+function isMissingTable(error: { code?: string }): boolean {
+  return error.code === "42P01" || error.code === "PGRST205";
+}
+
+const MISSING_PRICE_TABLES =
+  "tables du cours théorique absentes : exécuter la migration 20261120000000_cours_theorique.sql.";
+
 /** Path of an uploaded logo inside the bucket, from its public URL. */
 function logoPath(url: string | null): string | null {
   const marker = `/storage/v1/object/public/${LOGO_BUCKET}/`;
@@ -81,9 +90,49 @@ export function createSupabaseSource(url: string, key: string): DataSource {
   return {
     kind: "supabase",
     async load() {
-      const { data, error } = await client.rpc("market_dataset");
-      if (error) throw new Error(`Lecture des relevés impossible : ${error.message}`);
-      return normalizeDataset(data);
+      const [dataset, settings, operations] = await Promise.all([
+        client.rpc("market_dataset"),
+        client
+          .from("valuation_settings")
+          .select("id, published_on, method, params, note")
+          .order("published_on")
+          .order("id"),
+        client
+          .from("security_operations")
+          .select("id, company_id, occurred_on, kind, shares, ratio, note")
+          .order("occurred_on")
+          .order("id"),
+      ]);
+      if (dataset.error)
+        throw new Error(`Lecture des relevés impossible : ${dataset.error.message}`);
+      // Before the migration of the theoretical price, the site runs on the default settings.
+      const optional = <T>(
+        result: { data: T[] | null; error: { message: string; code?: string } | null },
+        what: string,
+      ): T[] => {
+        if (!result.error) return result.data ?? [];
+        if (isMissingTable(result.error)) return [];
+        throw new Error(`Lecture ${what} impossible : ${result.error.message}`);
+      };
+      return normalizeDataset({
+        ...(dataset.data as object),
+        valuationSettings: optional(settings, "des réglages du cours").map((r) => ({
+          id: String(r.id),
+          date: r.published_on,
+          method: r.method,
+          params: r.params,
+          note: r.note,
+        })),
+        securityOperations: optional(operations, "des opérations sur titres").map((r) => ({
+          id: String(r.id),
+          companyId: String(r.company_id),
+          date: r.occurred_on,
+          kind: r.kind,
+          shares: r.shares,
+          ratio: r.ratio,
+          note: r.note,
+        })),
+      });
     },
     async publish(request) {
       const { error } = await client.rpc("publish_snapshot", {
@@ -225,6 +274,36 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async deleteRating(id) {
       const { error } = await client.from("company_ratings").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async publishValuationSettings(draft) {
+      const { error } = await client.from("valuation_settings").insert({
+        published_on: draft.date,
+        method: VALUATION_METHOD,
+        params: draft.params,
+        note: draft.note,
+      });
+      if (error)
+        throw isMissingTable(error) ? new Error(MISSING_PRICE_TABLES) : writeMessage(error);
+    },
+    async saveSecurityOperation({ id, companyId, date, kind, shares, ratio, note }) {
+      const values = {
+        company_id: Number(companyId),
+        occurred_on: date,
+        kind,
+        shares,
+        ratio,
+        note,
+      };
+      const { error } =
+        id === null
+          ? await client.from("security_operations").insert(values)
+          : await client.from("security_operations").update(values).eq("id", id);
+      if (error)
+        throw isMissingTable(error) ? new Error(MISSING_PRICE_TABLES) : writeMessage(error);
+    },
+    async deleteSecurityOperation(id) {
+      const { error } = await client.from("security_operations").delete().eq("id", id);
       if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {

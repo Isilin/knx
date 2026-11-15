@@ -10,6 +10,7 @@ const SECTIONS = [
   { to: "/corporations", label: "Corporations", end: false },
   { to: "/secteurs", label: "Secteurs", end: false },
   { to: "/consortiums", label: "Consortiums", end: false },
+  { to: "/bourse", label: "Bourse", end: false },
   { to: "/releves", label: "Relevés", end: false },
 ];
 

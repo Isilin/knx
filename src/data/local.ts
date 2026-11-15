@@ -1,5 +1,6 @@
 import { applyOp, normalizeDataset, type LocalOp } from "../domain/mutations.ts";
 import type { Dataset } from "../domain/types.ts";
+import { VALUATION_METHOD } from "../domain/valuation.ts";
 import type { DataSource, Session } from "./source.ts";
 
 const STORAGE_KEY = "knx.local-ops";
@@ -103,6 +104,14 @@ export function createLocalSource(): DataSource {
     deleteMarketEvent: (id) => record({ type: "deleteMarketEvent", id }),
     publishRating: (draft) => record({ type: "saveRating", rating: { ...draft, id: newId() } }),
     deleteRating: (id) => record({ type: "deleteRating", id }),
+    publishValuationSettings: (draft) =>
+      record({
+        type: "publishValuation",
+        settings: { ...draft, id: newId(), method: VALUATION_METHOD },
+      }),
+    saveSecurityOperation: ({ id, ...draft }) =>
+      record({ type: "saveOperation", operation: { ...draft, id: id ?? newId() } }),
+    deleteSecurityOperation: (id) => record({ type: "deleteOperation", id }),
     async session(): Promise<Session> {
       return { state: "signed-in", email: "mode local", isAdmin: true };
     },
