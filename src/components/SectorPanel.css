@@ -1,0 +1,120 @@
+.company__sector {
+  padding: var(--s-7) 0 var(--s-6);
+  border-bottom: 1px solid var(--filet);
+}
+
+.kpis.kpis--sector {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 0 0 var(--s-6);
+  border-bottom: 0;
+}
+
+.company__sector-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-7);
+}
+
+.company__sector-grid > div {
+  min-width: 0;
+}
+
+.company__sector-grid h3 {
+  margin-bottom: var(--s-3);
+}
+
+/* The listed peers of a sector, heaviest first: a grey bar per share, the corporation in ivory. */
+.sector-peers {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--filet);
+}
+
+.sector-peers li {
+  display: grid;
+  grid-template-columns: 24px 20px minmax(0, 1.2fr) minmax(0, 1fr) 56px 52px;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 40px;
+  border-bottom: 1px solid var(--filet);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.sector-peers__rank {
+  color: var(--gris-2);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sector-peers__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sector-peers__name a {
+  color: var(--ivoire);
+  text-decoration: none;
+}
+
+.sector-peers__name a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.sector-peers__bar {
+  height: 6px;
+  background: var(--laque-3);
+}
+
+.sector-peers__bar span {
+  display: block;
+  height: 100%;
+  background: var(--gris-2);
+}
+
+.sector-peers__share {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sector-peers li > .change {
+  justify-self: end;
+}
+
+.sector-peers li.is-self {
+  color: var(--ivoire);
+}
+
+.sector-peers li.is-self .sector-peers__name {
+  font-weight: 500;
+}
+
+.sector-peers li.is-self .sector-peers__bar span {
+  background: var(--ivoire);
+}
+
+@media (max-width: 1100px) {
+  .kpis.kpis--sector {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .company__sector-grid {
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+}
+
+@media (max-width: 640px) {
+  .sector-peers li {
+    grid-template-columns: 20px 20px minmax(0, 1fr) 52px 48px;
+  }
+
+  .sector-peers__bar {
+    display: none;
+  }
+}

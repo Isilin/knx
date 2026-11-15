@@ -118,7 +118,8 @@ function Row({ consortium, members }: { consortium: Consortium; members: number 
       </span>
       {confirming ? (
         <small className="consortium__warning">
-          Ses membres deviendront indépendants.{" "}
+          Ses membres deviendront indépendants et leurs périodes d'adhésion seront effacées,
+          historique compris.{" "}
           <button type="button" className="linklike" onClick={() => setConfirming(false)}>
             garder
           </button>

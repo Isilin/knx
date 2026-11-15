@@ -1,4 +1,5 @@
 import type { ResolvedRows } from "../domain/identity.ts";
+import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
   CompanyPatch,
   ConsortiumDraft,
@@ -20,6 +21,7 @@ export type {
   ConsortiumDraft,
   EventDraft,
   MarketEventDraft,
+  MembershipDraft,
   ProfilePatch,
   PublishRequest,
   RatingDraft,
@@ -68,8 +70,10 @@ export interface DataSource {
   withdrawSnapshot(date: IsoDate): Promise<void>;
   /** Typed creation date of one life. */
   updateCompany(id: string, patch: CompanyPatch): Promise<void>;
-  /** Consortium, sector, hidden flag of a page: shared by all its lives. */
+  /** Sector, district, hidden flag of a page: shared by all its lives. */
   updateProfile(id: string, patch: ProfilePatch): Promise<void>;
+  /** Replaces every dated consortium membership of a page, in one go. */
+  setMemberships(profileId: string, periods: MembershipDraft[]): Promise<void>;
   /** Sets (already reduced to a small WebP) or removes a page's logo. */
   setLogo(profileId: string, logo: Blob | null): Promise<void>;
   saveConsortium(draft: ConsortiumDraft): Promise<void>;

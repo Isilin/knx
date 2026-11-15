@@ -25,6 +25,7 @@ import type {
   CompanyProfile,
   Consortium,
   ConsortiumColor,
+  ConsortiumMembership,
   Dataset,
   IsoDate,
   MarketEvent,
@@ -176,7 +177,6 @@ function assignIdentities(
         if (!page || SEPARATE_NAMESAKES.get(row.name)?.includes(snapshot.date)) {
           page = {
             id: String(profiles.length + 1),
-            consortiumId: null,
             sector: null,
             logoUrl: null,
             district: null,
@@ -235,15 +235,21 @@ const HOUSE_COLORS: Record<string, ConsortiumColor> = {
   Donnellys: "ambre",
 };
 
-/** Seeds the consortium list from brand words shared by open corporations. */
-function seedConsortiums(profiles: CompanyProfile[], companies: CompanyMeta[]): Consortium[] {
+/**
+ * Seeds the consortium list from brand words shared by open corporations. The sheet does not date
+ * them: each page is a member since always, until the operator dates its moves.
+ */
+function seedConsortiums(
+  profiles: CompanyProfile[],
+  companies: CompanyMeta[],
+): { consortiums: Consortium[]; memberships: ConsortiumMembership[] } {
   const groups = inferGroups(companies.filter((c) => c.closedOn === null).map((c) => c.name));
-  const pages = new Map(profiles.map((p) => [p.id, p]));
+  const pages = new Set(profiles.map((p) => p.id));
+  const memberOf = new Map<string, string>();
   const consortiums: Consortium[] = [];
   for (const company of companies) {
     const name = groups.get(company.name);
-    const page = pages.get(company.profileId);
-    if (!name || !page) continue;
+    if (!name || !pages.has(company.profileId)) continue;
     let consortium = consortiums.find((k) => k.name === name);
     if (!consortium) {
       consortium = {
@@ -253,18 +259,24 @@ function seedConsortiums(profiles: CompanyProfile[], companies: CompanyMeta[]): 
       };
       consortiums.push(consortium);
     }
-    page.consortiumId = consortium.id;
+    memberOf.set(company.profileId, consortium.id);
   }
   // Closed pages join the house their name starts with (Armacham Design), as the backfill does.
   for (const company of companies) {
-    const page = pages.get(company.profileId);
-    if (!page || page.consortiumId !== null) continue;
+    if (!pages.has(company.profileId) || memberOf.has(company.profileId)) continue;
     const house = consortiums
       .filter((k) => company.name.startsWith(`${k.name} `))
       .sort((a, b) => b.name.length - a.name.length)[0];
-    if (house) page.consortiumId = house.id;
+    if (house) memberOf.set(company.profileId, house.id);
   }
-  return consortiums;
+  const memberships = [...memberOf].map(([profileId, consortiumId], index) => ({
+    id: String(index + 1),
+    profileId,
+    consortiumId,
+    joinedOn: null,
+    leftOn: null,
+  }));
+  return { consortiums, memberships };
 }
 
 async function main(): Promise<void> {
@@ -311,7 +323,7 @@ async function main(): Promise<void> {
   named.sort((a, b) => a.date.localeCompare(b.date));
 
   const { profiles, companies, snapshots, lives } = assignIdentities(named, typedCreations(tracks));
-  const consortiums = seedConsortiums(profiles, companies);
+  const { consortiums, memberships } = seedConsortiums(profiles, companies);
 
   // Renamed columns: their former names go to the life that carried them.
   const renamedLives: Life[] = [];
@@ -331,6 +343,7 @@ async function main(): Promise<void> {
     profiles,
     companies,
     consortiums,
+    memberships,
     events: [],
     marketEvents: MARKET_EVENTS,
     ratings: [],

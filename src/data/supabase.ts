@@ -105,12 +105,30 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async updateProfile(id, patch) {
       const values: Record<string, unknown> = {};
-      if (patch.consortiumId !== undefined)
-        values.consortium_id = patch.consortiumId === null ? null : Number(patch.consortiumId);
       if (patch.sector !== undefined) values.sector = patch.sector;
       if (patch.district !== undefined) values.district = patch.district;
       if (patch.hidden !== undefined) values.hidden = patch.hidden;
       await updateRow("company_profiles", id, values);
+    },
+    async setMemberships(profileId, periods) {
+      const { error } = await client.rpc("set_memberships", {
+        p_profile_id: Number(profileId),
+        p_periods: periods.map((m) => ({
+          consortium_id: Number(m.consortiumId),
+          joined_on: m.joinedOn,
+          left_on: m.leftOn,
+        })),
+      });
+      // Missing function: PostgREST says PGRST202.
+      if (error?.code === "PGRST202")
+        throw new Error(
+          "adhésions datées absentes : exécuter la migration 20261119000000_adhesions_consortiums.sql.",
+        );
+      if (error?.code === "23P01")
+        throw new Error(
+          "deux périodes se chevauchent : une corporation n'appartient qu'à un consortium à la fois.",
+        );
+      if (error) throw writeMessage(error);
     },
     async setLogo(id, logo) {
       const { data: row } = await client

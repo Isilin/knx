@@ -40,8 +40,14 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   montre toutes ses vies sur une frise continue, coupée à chaque destruction, et ses indicateurs
   portent sur la vie en cours. À la publication, une refondation ou un retour sous un ancien nom
   est proposé au rattachement (coché par défaut) ; décoché, c'est une corporation distincte.
-- Fiche : logo, consortium, secteur et date de fondation se modifient depuis la page de la
-  corporation (opérateurs) ; la liste des consortiums se gère sur la page Relevés. L'historique de
+- Fiche : logo, consortiums, secteur et date de fondation se modifient depuis la page de la
+  corporation (opérateurs) ; la liste des consortiums se gère sur la page Relevés.
+- **Consortiums datés.** Une corporation peut quitter son consortium et en rejoindre un autre :
+  l'appartenance est une suite de périodes (`consortium_memberships` : du jour d'entrée inclus au
+  jour de départ exclu ; une seule à la fois). La fiche affiche le consortium du dernier relevé,
+  l'historique écrit chaque mouvement, et tout chiffre lu par consortium dans le temps prend
+  l'appartenance de la date du relevé (`consortiumOn`, `src/domain/market.ts`). Supprimer un
+  consortium efface aussi ses périodes. L'historique de
   chaque fiche mêle faits lus dans les relevés, renommages enregistrés à la publication et
   évènements saisis. Les évènements de marché (une règle du jeu, une faille) se gèrent sur la page
   Relevés : chacun s'affiche dans l'historique de toutes les corporations cotées à sa date et sur
@@ -57,6 +63,15 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   hors CA d'un quart du disponible, un capital au-delà de 30 M¢ ou un évènement de marché ; elle est
   « à revoir » au-delà d'un trimestre (`WATCH_RULES`, `src/domain/agency.ts`). La page Relevés liste
   les notations à revoir.
+- **Secteurs.** La cote complète se filtre par secteur (puces, ou le secteur sous chaque nom) ;
+  ses filtres vivent dans l'adresse (`/corporations?secteur=banque&groupe=armacham&statut=actives`),
+  qu'on peut partager. Deux colonnes : le poids de la corporation dans les recettes de son secteur
+  sur 30 jours, et l'écart de sa dynamique à la médiane du secteur (une médiane plutôt qu'une
+  somme : un pic de recettes, presque gratuit à fabriquer en jeu, ne déplace pas la référence).
+  La fiche montre son rang dans le secteur, ses concurrents côte à côte et sa part du secteur dans
+  le temps ; cette part n'est tracée qu'aux relevés où les corporations classées font au moins
+  90 % des recettes du marché, les secteurs des corporations fermées n'étant pas tous connus
+  (`src/domain/sectorStats.ts`).
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;
@@ -114,8 +129,10 @@ vies et ces anciens noms à une base déjà remplie, sans toucher au reste.
    (retrait du dernier relevé depuis le journal), `20261115000000_evenements_marche.sql`
    (évènements de marché, dont la Faille ZD-385), `20261116000000_corporations_masquees.sql`
    (corporations masquées, dont MJ Immo), `20261117000000_notation_agence.sql` (notations et
-   quartier des corporations) et `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
-   vies), puis `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
+   quartier des corporations), `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
+   vies) et `20261119000000_adhesions_consortiums.sql` (consortiums datés : chaque consortium
+   actuel devient une période ouverte, à dater ensuite depuis les fiches), puis
+   `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
    seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
    consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket
    Storage `company-logos` ; `fiches_vies` crée une fiche par nom (les deux vies de Paradox

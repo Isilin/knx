@@ -1,4 +1,5 @@
 import { EMPTY_INPUTS, isDistrict, type CompanyRating, type District } from "./rating.ts";
+import { cleanMemberships } from "./memberships.ts";
 import { isSectorId, type SectorId } from "./sectors.ts";
 import {
   CONSORTIUM_COLORS,
@@ -7,6 +8,7 @@ import {
   type CompanyProfile,
   type Consortium,
   type ConsortiumColor,
+  type ConsortiumMembership,
   type Dataset,
   type EventDetails,
   type EventKind,
@@ -16,9 +18,11 @@ import {
 } from "./types.ts";
 import { MAX_EVENT_SPAN } from "./marketEvents.ts";
 
-/** Fields of a corporation's page the operator edits by hand: shared by all its lives. */
+/**
+ * Fields of a corporation's page the operator edits by hand: shared by all its lives. Its
+ * consortiums are dated and set apart (`setMemberships`).
+ */
 export interface ProfilePatch {
-  consortiumId?: string | null;
   sector?: SectorId | null;
   district?: District | null;
   hidden?: boolean;
@@ -29,8 +33,14 @@ export interface CompanyPatch {
   creationOverride?: IsoDate | null;
 }
 
+/**
+ * A page patch as logged before memberships were dated: the consortium was a plain field, a
+ * member since always.
+ */
+type LegacyProfilePatch = ProfilePatch & { consortiumId?: string | null };
+
 /** A life patch as logged before pages existed: page fields went with it. */
-type LegacyCompanyPatch = CompanyPatch & ProfilePatch;
+type LegacyCompanyPatch = CompanyPatch & LegacyProfilePatch;
 
 /** A rating about to be published: frozen as computed, never edited afterwards. */
 export type RatingDraft = Omit<CompanyRating, "id">;
@@ -83,7 +93,9 @@ export type LocalOp =
   | { type: "publish"; request: PublishRequest; newIds: string[] }
   | { type: "withdraw"; date: IsoDate }
   | { type: "updateCompany"; id: string; patch: LegacyCompanyPatch }
-  | { type: "updateProfile"; id: string; patch: ProfilePatch }
+  | { type: "updateProfile"; id: string; patch: LegacyProfilePatch }
+  /** Replaces every consortium membership of a page. */
+  | { type: "setMemberships"; profileId: string; memberships: ConsortiumMembership[] }
   /** Logged before pages existed: `id` is a life, the logo goes to its page. */
   | { type: "setLogo"; id: string; url: string | null }
   | { type: "setProfileLogo"; id: string; url: string | null }
@@ -107,25 +119,38 @@ const blank = (id: string, name: string, profileId: string): CompanyMeta => ({
 
 const blankProfile = (id: string): CompanyProfile => ({
   id,
-  consortiumId: null,
   sector: null,
   logoUrl: null,
   district: null,
   hidden: false,
 });
 
-/** A life as an older base serves it: page fields on the life itself. */
-type RawCompany = Partial<CompanyMeta> &
-  Partial<Omit<CompanyProfile, "id">> & { id: string; name: string };
+/** A page as an older base serves it: the consortium as a plain field, not dated. */
+type RawProfile = Partial<CompanyProfile> & { id: string; consortiumId?: string | null };
 
-/** Drops the pages left without any life. */
+/** A life as an older base serves it: page fields on the life itself. */
+type RawCompany = Partial<CompanyMeta> & Omit<RawProfile, "id"> & { id: string; name: string };
+
+/** Drops the pages left without any life, and their memberships. */
 function withoutEmptyProfiles(
-  profiles: readonly CompanyProfile[],
+  dataset: Pick<Dataset, "profiles" | "memberships">,
   companies: readonly CompanyMeta[],
-): CompanyProfile[] {
+): Pick<Dataset, "profiles" | "memberships"> {
   const used = new Set(companies.map((c) => c.profileId));
-  return profiles.filter((p) => used.has(p.id));
+  return {
+    profiles: dataset.profiles.filter((p) => used.has(p.id)),
+    memberships: dataset.memberships.filter((m) => used.has(m.profileId)),
+  };
 }
+
+/** A legacy undated consortium: a member since before the history begins, still a member. */
+const sinceAlways = (profileId: string, consortiumId: string): ConsortiumMembership => ({
+  id: `legacy-${profileId}`,
+  profileId,
+  consortiumId,
+  joinedOn: null,
+  leftOn: null,
+});
 
 /** A page carries at most one open life. */
 function checkOneOpenLife(companies: readonly CompanyMeta[]): void {
@@ -156,18 +181,25 @@ export function normalizeDataset(raw: unknown): Dataset {
       "Les données ne sont pas au format attendu. Sur Supabase, exécuter la migration 20261114000000_fiche_identite_historique.sql.",
     );
   }
-  const cleanProfile = (p: Partial<CompanyProfile> & { id: string }): CompanyProfile => ({
-    ...blankProfile(p.id),
-    consortiumId: p.consortiumId ?? null,
-    sector: isSectorId(p.sector) ? p.sector : null,
-    logoUrl: p.logoUrl ?? null,
-    district: isDistrict(p.district) ? p.district : null,
-    hidden: p.hidden === true,
-  });
+  // Before memberships were dated, a page carried its consortium as a plain field.
+  const legacyConsortium = new Map<string, string>();
+  const cleanProfile = (p: RawProfile): CompanyProfile => {
+    if (p.consortiumId) legacyConsortium.set(p.id, p.consortiumId);
+    return {
+      ...blankProfile(p.id),
+      sector: isSectorId(p.sector) ? p.sector : null,
+      logoUrl: p.logoUrl ?? null,
+      district: isDistrict(p.district) ? p.district : null,
+      hidden: p.hidden === true,
+    };
+  };
   // A base served before pages existed (or a life without its page) gets one page per life,
   // carrying the page fields it served on the life.
   const profiles = new Map(
-    (Array.isArray(data.profiles) ? data.profiles : []).map((p) => [p.id, cleanProfile(p)]),
+    (Array.isArray(data.profiles) ? (data.profiles as RawProfile[]) : []).map((p) => [
+      p.id,
+      cleanProfile(p),
+    ]),
   );
   const companies = (data.companies as RawCompany[]).map((c) => {
     let profileId = typeof c.profileId === "string" ? c.profileId : null;
@@ -182,13 +214,26 @@ export function normalizeDataset(raw: unknown): Dataset {
       closedOn: c.closedOn ?? null,
     };
   });
+  const consortiums = (data.consortiums ?? []).filter((k) =>
+    (CONSORTIUM_COLORS as readonly string[]).includes(k.color),
+  );
+  const known = new Set(consortiums.map((k) => k.id));
+  // A base that dates memberships serves them; an older one, the consortium of each page.
+  const memberships: ConsortiumMembership[] = Array.isArray(data.memberships)
+    ? data.memberships.map((m) => ({
+        ...m,
+        joinedOn: m.joinedOn ?? null,
+        leftOn: m.leftOn ?? null,
+      }))
+    : [...legacyConsortium].map(([profileId, consortiumId]) =>
+        sinceAlways(profileId, consortiumId),
+      );
   return {
     generatedAt: data.generatedAt ?? new Date().toISOString(),
     profiles: [...profiles.values()],
     companies,
-    consortiums: (data.consortiums ?? []).filter((k) =>
-      (CONSORTIUM_COLORS as readonly string[]).includes(k.color),
-    ),
+    consortiums,
+    memberships: memberships.filter((m) => known.has(m.consortiumId) && profiles.has(m.profileId)),
     events: (data.events ?? []).map((e) => ({
       ...e,
       details: e.details ?? {},
@@ -219,7 +264,7 @@ function applyPublish(
   const { date } = request;
   let snapshots = dataset.snapshots;
   let companies = dataset.companies;
-  let profiles = dataset.profiles;
+  let { profiles, memberships } = dataset;
   const events = [...dataset.events];
 
   if (snapshots.some((s) => s.date === date)) {
@@ -231,7 +276,7 @@ function applyPublish(
     companies = companies
       .filter((c) => withRows.has(c.id) || withEvents.has(c.id))
       .map((c) => (c.closedOn === date ? { ...c, closedOn: null } : c));
-    profiles = withoutEmptyProfiles(profiles, companies);
+    ({ profiles, memberships } = withoutEmptyProfiles({ profiles, memberships }, companies));
   }
 
   const closures = new Set(request.closures);
@@ -292,6 +337,7 @@ function applyPublish(
   return {
     ...dataset,
     profiles,
+    memberships,
     companies,
     events,
     snapshots: [
@@ -385,7 +431,7 @@ function applyWithdraw(dataset: Dataset, date: IsoDate): Dataset {
 
   return {
     ...dataset,
-    profiles: withoutEmptyProfiles(dataset.profiles, companies),
+    ...withoutEmptyProfiles(dataset, companies),
     companies,
     events: dataset.events.filter((e) => !undone.has(e.id)),
     snapshots: dataset.snapshots.filter((s) => s.date !== date),
@@ -398,20 +444,36 @@ function requireCompany(dataset: Dataset, id: string): CompanyMeta {
   return company;
 }
 
-function updateProfile(dataset: Dataset, id: string, patch: ProfilePatch): Dataset {
+/** Replaces every consortium membership of a page, after checking them. */
+function setMemberships(
+  dataset: Dataset,
+  profileId: string,
+  periods: readonly ConsortiumMembership[],
+): Dataset {
+  if (!dataset.profiles.some((p) => p.id === profileId)) throw new Error("fiche introuvable");
+  const clean = cleanMemberships(
+    periods.map((m) => ({ ...m, profileId })),
+    new Set(dataset.consortiums.map((k) => k.id)),
+  );
+  return {
+    ...dataset,
+    memberships: [...dataset.memberships.filter((m) => m.profileId !== profileId), ...clean],
+  };
+}
+
+function updateProfile(dataset: Dataset, id: string, patch: LegacyProfilePatch): Dataset {
   if (!dataset.profiles.some((p) => p.id === id)) throw new Error("fiche introuvable");
-  const { consortiumId } = patch;
-  if (consortiumId && !dataset.consortiums.some((k) => k.id === consortiumId))
-    throw new Error("consortium introuvable");
   const fields: ProfilePatch = {};
-  if (patch.consortiumId !== undefined) fields.consortiumId = patch.consortiumId;
   if (patch.sector !== undefined) fields.sector = patch.sector;
   if (patch.district !== undefined) fields.district = patch.district;
   if (patch.hidden !== undefined) fields.hidden = patch.hidden;
-  return {
+  const next: Dataset = {
     ...dataset,
     profiles: dataset.profiles.map((p) => (p.id === id ? { ...p, ...fields } : p)),
   };
+  // Logged before memberships were dated: the consortium, a member since always.
+  if (patch.consortiumId === undefined) return next;
+  return setMemberships(next, id, patch.consortiumId ? [sinceAlways(id, patch.consortiumId)] : []);
 }
 
 function setProfileLogo(dataset: Dataset, id: string, url: string | null): Dataset {
@@ -443,6 +505,8 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
     }
     case "updateProfile":
       return updateProfile(dataset, op.id, op.patch);
+    case "setMemberships":
+      return setMemberships(dataset, op.profileId, op.memberships);
     case "setLogo":
       return setProfileLogo(dataset, requireCompany(dataset, op.id).profileId, op.url);
     case "setProfileLogo":
@@ -465,9 +529,7 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
       return {
         ...dataset,
         consortiums: dataset.consortiums.filter((k) => k.id !== op.id),
-        profiles: dataset.profiles.map((p) =>
-          p.consortiumId === op.id ? { ...p, consortiumId: null } : p,
-        ),
+        memberships: dataset.memberships.filter((m) => m.consortiumId !== op.id),
       };
     case "saveEvent": {
       requireCompany(dataset, op.event.companyId);

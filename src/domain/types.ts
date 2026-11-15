@@ -47,13 +47,28 @@ export interface Consortium {
 }
 
 /**
+ * A period during which a corporation's page belonged to a consortium. A corporation can leave
+ * its consortium and join another: every figure read by consortium over time reads the membership
+ * of that date, never the current one. A page belongs to one consortium at a time.
+ */
+export interface ConsortiumMembership {
+  id: string;
+  profileId: string;
+  consortiumId: string;
+  /** First day in the consortium; null: a member since before the history begins. */
+  joinedOn: IsoDate | null;
+  /** First day out of it; null: still a member. */
+  leftOn: IsoDate | null;
+}
+
+/**
  * A corporation's page: what stays across its lives. A corporation destroyed then refounded under
  * the same name is, in the game, a new company (its age and lifetime average restart), but for
- * the city it is the same house: one page, one logo, one consortium, one history.
+ * the city it is the same house: one page, one logo, one history. Its consortiums are dated
+ * apart (`ConsortiumMembership`).
  */
 export interface CompanyProfile {
   id: string;
-  consortiumId: string | null;
   sector: SectorId | null;
   logoUrl: string | null;
   /** Centre-Ville, Basse-Ville or Haute-Ville; the Agence's « Localisation » criterion. */
@@ -130,6 +145,8 @@ export interface Dataset {
   profiles: CompanyProfile[];
   companies: CompanyMeta[];
   consortiums: Consortium[];
+  /** Dated consortium memberships of the pages, oldest first within a page. */
+  memberships: ConsortiumMembership[];
   events: CompanyEvent[];
   marketEvents: MarketEvent[];
   /** Ratings published by the Agence impériale de notation. */

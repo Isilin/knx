@@ -21,7 +21,7 @@ export function toSeedSql(dataset: Dataset): string {
   const out: string[] = [
     "-- Généré par scripts/import-sheet.ts ; ne pas modifier à la main.",
     "begin;",
-    "truncate public.company_events, public.snapshot_rows, public.snapshots, public.companies, public.company_profiles, public.consortiums restart identity cascade;",
+    "truncate public.company_events, public.snapshot_rows, public.snapshots, public.consortium_memberships, public.companies, public.company_profiles, public.consortiums restart identity cascade;",
     "",
   ];
 
@@ -37,15 +37,31 @@ export function toSeedSql(dataset: Dataset): string {
   }
 
   out.push(
-    "insert into public.company_profiles (id, consortium_id, sector, district, logo_url, hidden) overriding system value values",
+    "insert into public.company_profiles (id, sector, district, logo_url, hidden) overriding system value values",
     dataset.profiles
       .map(
         (p) =>
-          `  (${Number(p.id)}, ${nullable(p.consortiumId === null ? null : Number(p.consortiumId))}, ${nullable(p.sector)}, ${nullable(p.district)}, ${nullable(p.logoUrl)}, ${p.hidden})`,
+          `  (${Number(p.id)}, ${nullable(p.sector)}, ${nullable(p.district)}, ${nullable(p.logoUrl)}, ${p.hidden})`,
       )
       .join(",\n") + ";",
     "select setval(pg_get_serial_sequence('public.company_profiles', 'id'), (select max(id) from public.company_profiles));",
     "",
+  );
+
+  if (dataset.memberships.length > 0) {
+    out.push(
+      "insert into public.consortium_memberships (profile_id, consortium_id, joined_on, left_on) values",
+      dataset.memberships
+        .map(
+          (m) =>
+            `  (${Number(m.profileId)}, ${Number(m.consortiumId)}, ${nullable(m.joinedOn)}, ${nullable(m.leftOn)})`,
+        )
+        .join(",\n") + ";",
+      "",
+    );
+  }
+
+  out.push(
     "insert into public.companies (id, profile_id, name, aliases, creation_override, closed_on) overriding system value values",
     dataset.companies
       .map(

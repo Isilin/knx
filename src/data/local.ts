@@ -83,6 +83,12 @@ export function createLocalSource(): DataSource {
     updateCompany: (id, { creationOverride }) =>
       record({ type: "updateCompany", id, patch: { creationOverride } }),
     updateProfile: (id, patch) => record({ type: "updateProfile", id, patch }),
+    setMemberships: (profileId, periods) =>
+      record({
+        type: "setMemberships",
+        profileId,
+        memberships: periods.map((m) => ({ ...m, id: newId(), profileId })),
+      }),
     async setLogo(id, logo) {
       await record({ type: "setProfileLogo", id, url: logo ? await blobToDataUrl(logo) : null });
     },

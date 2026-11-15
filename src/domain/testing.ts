@@ -14,14 +14,20 @@ import type {
  * fields come from the first of them.
  */
 export type TestCompany = Partial<CompanyMeta> &
-  Partial<Omit<CompanyProfile, "id">> & { id: string; name: string };
+  Partial<Omit<CompanyProfile, "id">> & {
+    id: string;
+    name: string;
+    /** A consortium since always, as older bases served it; dated memberships go in `memberships`. */
+    consortiumId?: string | null;
+  };
 
 /** Test helper: a dataset whose lives carry their page fields. */
 export function testDataset(
-  raw: Omit<Dataset, "profiles" | "companies" | "ratings"> & {
+  raw: Omit<Dataset, "profiles" | "companies" | "ratings" | "memberships"> & {
     companies: TestCompany[];
     profiles?: CompanyProfile[];
     ratings?: Dataset["ratings"];
+    memberships?: Dataset["memberships"];
   },
 ): Dataset {
   return normalizeDataset({ profiles: [], ratings: [], ...raw });

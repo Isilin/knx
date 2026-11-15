@@ -477,6 +477,7 @@ export function MarketPage() {
           companies={market.companies}
           variant="compact"
           caption={`La cote du ${formatImperialDate(facts.date)}`}
+          sectors={market.sectors}
         />
       </section>
     </div>

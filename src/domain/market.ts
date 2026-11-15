@@ -1,10 +1,12 @@
 import { watchRating, type RatingWatch } from "./agency.ts";
 import { activityDays, estimateCreation, type CreationEstimate } from "./age.ts";
 import { daysBetween, toDayNumber } from "./dates.ts";
+import { membershipOn, membershipsByProfile } from "./memberships.ts";
 import { projectMarket, type CompanyProjection, type Crossing } from "./projection.ts";
 import type { CompanyRating, District } from "./rating.ts";
 import { rateBetween } from "./revenue.ts";
 import { assessRisk, type CompanyRisk } from "./risk.ts";
+import { summarizeSectors, type SectorSummary } from "./sectorStats.ts";
 import type { SectorId } from "./sectors.ts";
 import type {
   CompanyEvent,
@@ -58,6 +60,12 @@ export interface CompanyScores {
   activity: number | null;
   /** 0…1: share of the market's real revenue over the last 30 days. */
   weight: number | null;
+  /** 0…1: share of its sector's real revenue over the last 30 days. */
+  sectorWeight: number | null;
+  /** −2…2: dynamics minus its sector's (positive: does better than its sector). */
+  dynamicsVsSector: number | null;
+  /** −2…2: activity minus its sector's. */
+  activityVsSector: number | null;
 }
 
 /** Another page whose corporation carried the same name, before or after this one. */
@@ -67,6 +75,15 @@ export interface Namesake {
   firstSeen: IsoDate;
   lastSeen: IsoDate;
   closedOn: IsoDate | null;
+}
+
+/** A period of a page in a consortium, the consortium resolved. */
+export interface ResolvedMembership {
+  consortium: Consortium;
+  /** First day in it; null: since before the history begins. */
+  joinedOn: IsoDate | null;
+  /** First day out of it; null: still a member. */
+  leftOn: IsoDate | null;
 }
 
 /** One life of a corporation and every figure KNX derives from it. */
@@ -81,7 +98,10 @@ export interface CompanySeries {
   slug: string;
   /** Names the page carried before its current name, across all its lives, oldest first. */
   formerNames: string[];
+  /** Consortium on the life's latest report: today's for a listed corporation. */
   consortium: Consortium | null;
+  /** Every consortium period of the page, oldest first. */
+  memberships: ResolvedMembership[];
   sector: SectorId | null;
   district: District | null;
   logoUrl: string | null;
@@ -102,6 +122,10 @@ export interface CompanySeries {
   scores: CompanyScores;
   /** Real revenue per day over the last 30 days. Estimated. */
   recentRate: number | null;
+  /** Real revenue per day over the 90 days before those 30. Estimated. */
+  previousRate: number | null;
+  /** Rank by revenue of the last 30 days among the listed corporations of its sector. */
+  sectorRank: { rank: number; of: number } | null;
   /** Where the published chiffre heads if that rate holds; null when the estimate cannot say. */
   projection: CompanyProjection | null;
   /** KNX risk profile over the last five imperial years; null unless the company is active. */
@@ -139,6 +163,8 @@ export interface Market {
   /** Lives of each page, by page id, oldest first. */
   lives: Map<string, CompanySeries[]>;
   consortiums: Consortium[];
+  /** Each sector on the latest report, in the fixed order of the sector list. */
+  sectors: Map<SectorId, SectorSummary>;
   facts: ReportFacts;
   /** Page slug → its latest life. */
   bySlug: Map<string, CompanySeries>;
@@ -320,6 +346,15 @@ export function buildMarket(dataset: Dataset): Market {
   const metaById = new Map<string, CompanyMeta>(dataset.companies.map((c) => [c.id, c]));
   const profileById = new Map<string, CompanyProfile>(dataset.profiles.map((p) => [p.id, p]));
   const profileOf = (id: string) => profileById.get(metaById.get(id)?.profileId ?? "");
+  const periodsByProfile = new Map(
+    [...membershipsByProfile(dataset.memberships)].map(([profileId, list]) => [
+      profileId,
+      list.flatMap((m): ResolvedMembership[] => {
+        const consortium = consortiums.get(m.consortiumId);
+        return consortium ? [{ consortium, joinedOn: m.joinedOn, leftOn: m.leftOn }] : [];
+      }),
+    ]),
+  );
   const ranks = snapshots.map((s) => rankSnapshot(s, (id) => metaById.get(id)?.name ?? id));
   const latest = snapshots[snapshots.length - 1];
   const previous = snapshots.length > 1 ? snapshots[snapshots.length - 2] : null;
@@ -353,6 +388,7 @@ export function buildMarket(dataset: Dataset): Market {
       if (p.rank < bestRank.rank) bestRank = { rank: p.rank, date: p.date };
       if (p.chiffre > record.chiffre) record = { chiffre: p.chiffre, date: p.date };
     }
+    const memberships = periodsByProfile.get(meta.profileId) ?? [];
     allLives.push({
       id,
       profileId: meta.profileId,
@@ -360,7 +396,8 @@ export function buildMarket(dataset: Dataset): Market {
       name: meta.name,
       slug: "",
       formerNames: meta.formerNames,
-      consortium: profile?.consortiumId ? (consortiums.get(profile.consortiumId) ?? null) : null,
+      consortium: membershipOn(memberships, last.date)?.consortium ?? null,
+      memberships,
       sector: profile?.sector ?? null,
       district: profile?.district ?? null,
       logoUrl: profile?.logoUrl ?? null,
@@ -382,8 +419,13 @@ export function buildMarket(dataset: Dataset): Market {
             : null,
         activity: recent !== null && last.chiffre > 0 ? Math.tanh(recent / last.chiffre - 1) : null,
         weight: recent,
+        sectorWeight: null,
+        dynamicsVsSector: null,
+        activityVsSector: null,
       },
       recentRate: recent === null ? null : Math.max(0, recent),
+      previousRate: before,
+      sectorRank: null,
       projection: null,
       risk: null,
       rating: null,
@@ -460,6 +502,8 @@ export function buildMarket(dataset: Dataset): Market {
     return order[a.status] - order[b.status] || a.latest.rank - b.latest.rank;
   });
 
+  const sectors = summarizeSectors(allLives, companies, totalRecent);
+
   const bySlug = new Map(companies.map((c) => [c.slug, c]));
   const slugAliases = new Map<string, string>();
   const alias = (from: string, to: string) => {
@@ -523,6 +567,7 @@ export function buildMarket(dataset: Dataset): Market {
     allLives,
     lives,
     consortiums: [...dataset.consortiums].sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    sectors,
     facts,
     bySlug,
     byId,
@@ -532,6 +577,11 @@ export function buildMarket(dataset: Dataset): Market {
     marketEvents,
     projection,
   };
+}
+
+/** The consortium a corporation belonged to on `date`: memberships are dated, never retroactive. */
+export function consortiumOn(company: CompanySeries, date: IsoDate): Consortium | null {
+  return membershipOn(company.memberships, date)?.consortium ?? null;
 }
 
 /**
