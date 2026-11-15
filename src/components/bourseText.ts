@@ -151,6 +151,33 @@ export const LEVERS: {
     help: "Un montant déclaré par la direction compte moins qu'un montant audité par l'Agence, compté en entier.",
   },
   {
+    key: "listedDeclaredWeight",
+    label: "Chiffre déclaré, corporation cotée",
+    read: (p) => `compté à ${formatShare(p.listedDeclaredWeight)}`,
+    help: "Une fois des crédits réels engagés sur le cours, seul ce qui a été audité devrait compter.",
+  },
+  {
+    key: "commission",
+    label: "Commission et écart",
+    read: (p) =>
+      `commission ${formatShare(p.commission)} · écart achat-vente ${formatShare(p.spread)}`,
+    help: "À chaque séance, l'acheteur paie le fixing plus la moitié de l'écart, le vendeur reçoit le fixing moins l'autre moitié ; la commission s'ajoute de part et d'autre.",
+  },
+  {
+    key: "premium",
+    label: "Prime de marché",
+    read: (p) =>
+      `sensibilité ${formatFactor(p.premiumSensitivity)} · demi-vie ${formatFactor(p.premiumHalfLife)} séance${p.premiumHalfLife > 1 ? "s" : ""} · bornée à ± ${formatShare(p.premiumBand)}`,
+    help: "Le fixing s'écarte du cours KNX selon le solde des ordres : plus d'achats que de ventes, il monte ; la prime s'efface ensuite de séance en séance.",
+  },
+  {
+    key: "caps",
+    label: "Plafonds de détention",
+    read: (p) =>
+      `joueurs réunis ${formatShare(p.holdCap)} · par joueur ${formatShare(p.playerCap)}`,
+    help: "Part des titres d'une corporation que les joueurs peuvent détenir face à la Banque impériale, teneur de marché.",
+  },
+  {
     key: "introductionPrice",
     label: "Cours d'introduction proposé",
     read: (p) => `${formatInteger(p.introductionPrice)} ¢`,

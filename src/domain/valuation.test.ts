@@ -346,3 +346,43 @@ describe("balance sheets", () => {
     expect(v?.assets.stock?.amount).toBe(300_000);
   });
 });
+
+describe("listed corporations", () => {
+  it("weighs a declared figure at the listed weight once the shares are listed", () => {
+    const base = datasetOf([steady]);
+    const sheet: BalanceSheet = {
+      id: "b",
+      companyId: "Steady",
+      date: "2026-10-01",
+      land: 1_000_000,
+      building: null,
+      fittings: null,
+      stock: null,
+      source: "declared",
+      note: null,
+    };
+    const unlisted = company({ ...base, balanceSheets: [sheet] }, "Steady").valuation?.latest;
+    const listed = company(
+      {
+        ...base,
+        balanceSheets: [sheet],
+        securityOperations: [
+          {
+            id: "i",
+            companyId: "Steady",
+            date: "2026-10-15",
+            kind: "introduction",
+            shares: 1000,
+            ratio: null,
+            note: null,
+          },
+        ],
+      },
+      "Steady",
+    ).valuation?.latest;
+    expect(unlisted?.premises).toBe(500_000);
+    // Default listed weight: a declared figure no longer counts.
+    expect(listed?.premises).toBe(0);
+    expect(listed?.assets.land?.trust).toBe(0);
+  });
+});

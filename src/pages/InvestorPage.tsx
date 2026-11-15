@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { MovementsTable } from "../components/MovementsTable.tsx";
+import { TradingPanel } from "../components/TradingPanel.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import {
-  cashBalance,
   isLogin,
   MIN_PASSWORD,
   parseCredits,
@@ -12,6 +12,12 @@ import {
   type InvestorAccount,
 } from "../domain/investors.ts";
 import { formatInteger } from "../domain/numbers.ts";
+import {
+  accountCash,
+  type MarketOrder,
+  type MarketSession,
+  type MarketTrade,
+} from "../domain/trading.ts";
 import "./InvestorPage.css";
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
@@ -237,13 +243,26 @@ function WithdrawalForm({ available, onDone }: { available: number; onDone: () =
 }
 
 function AccountView({ account }: { account: InvestorAccount }) {
-  const { source } = useData();
-  const [movements, setMovements] = useState<CashMovement[] | null>(null);
+  const { source, state } = useData();
+  const [book, setBook] = useState<{
+    movements: CashMovement[];
+    orders: MarketOrder[];
+    trades: MarketTrade[];
+    sessions: MarketSession[];
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
 
   const refresh = useCallback(() => {
-    source.cashMovements().then(setMovements, (err: unknown) => setError(errorText(err)));
+    Promise.all([
+      source.cashMovements(),
+      source.marketOrders(),
+      source.marketTrades(),
+      source.marketSessions(),
+    ]).then(
+      ([movements, orders, trades, sessions]) => setBook({ movements, orders, trades, sessions }),
+      (err: unknown) => setError(errorText(err)),
+    );
   }, [source]);
   useEffect(refresh, [refresh]);
 
@@ -258,7 +277,8 @@ function AccountView({ account }: { account: InvestorAccount }) {
     }
   };
 
-  const { balance, pending, available } = cashBalance(movements ?? []);
+  const cash = accountCash(book?.movements ?? [], book?.trades ?? [], book?.orders ?? []);
+  const figure = (value: number) => (book ? formatInteger(value) : "…");
 
   return (
     <div className="investor__account">
@@ -266,23 +286,31 @@ function AccountView({ account }: { account: InvestorAccount }) {
         <div>
           <dt className="label">Solde</dt>
           <dd className="investor__figure">
-            {movements ? formatInteger(balance) : "…"}
+            {figure(cash.balance)}
             <span className="amount__unit"> ¢</span>
           </dd>
-          <dd className="investor__detail">crédits de Dreadcast déposés chez KNX</dd>
+          <dd className="investor__detail">dépôts, retraits et ordres exécutés</dd>
         </div>
         <div>
           <dt className="label">Disponible</dt>
           <dd className="investor__figure">
-            {movements ? formatInteger(available) : "…"}
+            {figure(cash.available)}
             <span className="amount__unit"> ¢</span>
           </dd>
-          <dd className="investor__detail">solde moins les retraits en attente</dd>
+          <dd className="investor__detail">pour un ordre ou un retrait</dd>
+        </div>
+        <div>
+          <dt className="label">Retenu par les ordres</dt>
+          <dd className="investor__figure">
+            {figure(cash.reserved)}
+            <span className="amount__unit"> ¢</span>
+          </dd>
+          <dd className="investor__detail">achats en attente de la séance</dd>
         </div>
         <div>
           <dt className="label">Retraits en attente</dt>
           <dd className="investor__figure">
-            {movements ? formatInteger(pending) : "…"}
+            {figure(cash.pending)}
             <span className="amount__unit"> ¢</span>
           </dd>
           <dd className="investor__detail">à verser en jeu par KNX</dd>
@@ -295,12 +323,24 @@ function AccountView({ account }: { account: InvestorAccount }) {
         </p>
       ) : null}
 
+      {book && state.status === "ready" ? (
+        <TradingPanel
+          market={state.market}
+          account={account}
+          sessions={book.sessions}
+          orders={book.orders}
+          trades={book.trades}
+          cash={cash.available}
+          onChange={refresh}
+        />
+      ) : null}
+
       <div className="investor__grid">
         <section aria-labelledby="mouvements">
           <h2 id="mouvements" className="investor__h2">
-            Mouvements
+            Mouvements de crédits
           </h2>
-          {movements ? <MovementsTable movements={movements} onCancel={cancel} /> : null}
+          {book ? <MovementsTable movements={book.movements} onCancel={cancel} /> : null}
         </section>
         <aside className="investor__side">
           <div className="investor__box">
@@ -310,7 +350,7 @@ function AccountView({ account }: { account: InvestorAccount }) {
               réception, KNX les inscrit sur votre compte.
             </p>
           </div>
-          <WithdrawalForm available={available} onDone={refresh} />
+          <WithdrawalForm available={cash.available} onDone={refresh} />
           {changing ? (
             <PasswordChange account={account} forced={false} onDone={() => setChanging(false)} />
           ) : (
@@ -336,7 +376,7 @@ export function InvestorPage() {
           <h1>{investor ? `Compte ${investor.login}` : "Compte investisseur"}</h1>
           <p>
             {investor
-              ? `${investor.displayName} · crédits de Dreadcast déposés chez KNX. Les ordres de bourse arrivent bientôt.`
+              ? `${investor.displayName} · crédits de Dreadcast déposés chez KNX, titres et ordres de la séance.`
               : "L'espace des investisseurs de la Bourse KNX : vos crédits déposés, vos retraits."}
           </p>
         </div>

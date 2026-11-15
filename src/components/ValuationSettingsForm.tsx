@@ -156,6 +156,68 @@ const SIMPLE: {
     percent: true,
     help: "Poids d'un montant déclaré par la direction ; audité, il compte en entier.",
   },
+  {
+    key: "listedDeclaredWeight",
+    label: "Déclaré, une fois cotée",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Poids d'un montant déclaré quand de vrais crédits reposent sur le cours.",
+  },
+  {
+    key: "commission",
+    label: "Commission",
+    unit: "%",
+    step: "0.1",
+    percent: true,
+    help: "Prélevée sur chaque exécution, à l'achat comme à la vente.",
+  },
+  {
+    key: "spread",
+    label: "Écart achat-vente",
+    unit: "%",
+    step: "0.5",
+    percent: true,
+    help: "Moitié au-dessus du fixing pour l'acheteur, moitié en dessous pour le vendeur.",
+  },
+  {
+    key: "premiumSensitivity",
+    label: "Sensibilité de la prime",
+    unit: "×",
+    step: "0.1",
+    help: "Mouvement de la prime pour une demande nette égale à tous les titres.",
+  },
+  {
+    key: "premiumHalfLife",
+    label: "Demi-vie de la prime",
+    unit: "séances",
+    step: "0.5",
+    help: "La prime s'efface de moitié en autant de séances.",
+  },
+  {
+    key: "premiumBand",
+    label: "Bande de la prime",
+    unit: "± %",
+    step: "1",
+    percent: true,
+    help: "Écart maximal du fixing au cours KNX.",
+  },
+  {
+    key: "holdCap",
+    label: "Plafond des joueurs",
+    unit: "%",
+    step: "1",
+    percent: true,
+    help: "Part des titres d'une corporation que les joueurs détiennent ensemble au plus.",
+  },
+  {
+    key: "playerCap",
+    label: "Plafond par joueur",
+    unit: "%",
+    step: "0.5",
+    percent: true,
+    help: "Part des titres qu'un joueur détient au plus.",
+  },
 ];
 
 const CATEGORIES = RATING_METHOD.categories.map(([c]) => c);
@@ -332,13 +394,23 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
             <div className="levers__pairs">
               {SIMPLE.slice(12, 16).map((f) => field(f.key, f.label, f.unit, f.step))}
             </div>
-            {SIMPLE.slice(16, 18).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
+            {SIMPLE.slice(16, 19).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
           </fieldset>
         </div>
         <div className="levers__column">
           <fieldset>
             <legend className="label">Âge et capital</legend>
             {SIMPLE.slice(5, 8).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
+          </fieldset>
+          <fieldset>
+            <legend className="label">Marché</legend>
+            <div className="levers__pairs">
+              {SIMPLE.slice(19, 21).map((f) => field(f.key, f.label, f.unit, f.step))}
+            </div>
+            {SIMPLE.slice(21, 24).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
+            <div className="levers__pairs">
+              {SIMPLE.slice(24, 26).map((f) => field(f.key, f.label, f.unit, f.step))}
+            </div>
           </fieldset>
           <fieldset>
             <legend className="label">Introduction</legend>

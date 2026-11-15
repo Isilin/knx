@@ -16,6 +16,8 @@ export interface InvestorAccount {
   note: string | null;
   closedAt: string | null;
   createdAt: string;
+  /** Pages (company profiles) the player is declared an insider of: no trading their shares. */
+  insiderOf: string[];
 }
 
 export type CashKind = "deposit" | "withdrawal";

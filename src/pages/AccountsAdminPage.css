@@ -70,3 +70,17 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.accounts__insider-list {
+  display: block;
+  color: var(--alerte);
+  font-size: var(--fs-cap);
+  font-weight: 400;
+}
+
+.accounts__insiders {
+  display: grid;
+  gap: var(--s-3);
+  max-width: 32rem;
+  padding: var(--s-2) 0 var(--s-3);
+}

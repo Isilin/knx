@@ -153,6 +153,30 @@ export function createLocalSource(): DataSource {
     async settleWithdrawal() {
       throw new Error(INVESTORS_ONLY);
     },
+    async setInsiders() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async marketSessions() {
+      return [];
+    },
+    async marketOrders() {
+      return [];
+    },
+    async marketTrades() {
+      return [];
+    },
+    async placeOrder() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async cancelOrder() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async openSession() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async closeSession() {
+      throw new Error(INVESTORS_ONLY);
+    },
     async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {

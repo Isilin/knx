@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { Change, ImperialDate } from "../components/figures.tsx";
 import { changedLevers, LEVERS, listingLabel, operationDetail } from "../components/bourseText.ts";
@@ -6,7 +6,9 @@ import { Seal } from "../components/Seal.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CompanySeries } from "../domain/market.ts";
 import { formatCompact, formatInteger, formatPrice } from "../domain/numbers.ts";
+import type { Market } from "../domain/market.ts";
 import { OPERATION_INFO } from "../domain/securities.ts";
+import type { MarketSession } from "../domain/trading.ts";
 import { DEFAULT_VALUATION, VALUATION_METHOD } from "../domain/valuation.ts";
 import "./BoursePage.css";
 
@@ -96,6 +98,99 @@ function ListedTable({ listed }: { listed: CompanySeries[] }) {
   );
 }
 
+/** Prices fixed at the latest closed session, for everyone to read. */
+function LastSession({ market }: { market: Market }) {
+  const { source } = useData();
+  const [sessions, setSessions] = useState<MarketSession[] | null>(null);
+  useEffect(() => {
+    source.marketSessions().then(setSessions, () => setSessions([]));
+  }, [source]);
+  const last = (sessions ?? [])
+    .filter((x) => x.status === "closed")
+    .sort((a, b) => (b.closedOn ?? "").localeCompare(a.closedOn ?? ""))[0];
+  const open = (sessions ?? []).find((x) => x.status === "open");
+  if (!sessions || (!last && !open)) return null;
+  return (
+    <section className="bourse__section" aria-labelledby="seance">
+      <div className="section-head">
+        <h2 id="seance">Séance</h2>
+        <p>
+          {open ? (
+            <>
+              séance en cours depuis le relevé du <ImperialDate date={open.openedOn} /> ·{" "}
+            </>
+          ) : null}
+          {last ? (
+            <>
+              dernière clôture au relevé du <ImperialDate date={last.closedOn ?? last.openedOn} />
+            </>
+          ) : (
+            "aucune séance close"
+          )}
+        </p>
+      </div>
+      {last && last.prices.length > 0 ? (
+        <div className="bourse__scroll">
+          <table className="ledger">
+            <caption className="sr-only">Prix de la dernière séance</caption>
+            <thead>
+              <tr>
+                <th scope="col">Titre</th>
+                <th scope="col" className="num">
+                  Cours KNX
+                </th>
+                <th scope="col" className="num">
+                  Prime
+                </th>
+                <th scope="col" className="num">
+                  Fixing
+                </th>
+                <th scope="col" className="num secondary">
+                  Achats / ventes
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {last.prices.map((p) => {
+                const company = market.byId.get(p.companyId);
+                return (
+                  <tr key={p.companyId}>
+                    <th scope="row">
+                      {company ? (
+                        <span className="ledger__name">
+                          <Seal seed={company.sealSeed} size={22} />
+                          <Link to={`/corporations/${company.slug}`}>{company.name}</Link>
+                        </span>
+                      ) : (
+                        "corporation inconnue"
+                      )}
+                    </th>
+                    <td className="num">{formatPrice(p.reference)} ¢</td>
+                    <td className="num">
+                      <Change ratio={p.premium} estimated />
+                    </td>
+                    <td className="num">
+                      <span className="estimated">{formatPrice(p.price)} ¢</span>
+                    </td>
+                    <td className="num secondary">
+                      {formatInteger(p.demand)} / {formatInteger(p.supply)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : null}
+      <p className="bourse__note">
+        Chaque heptade, les investisseurs passent leurs ordres ; à la clôture, le fixing s'écarte du
+        cours KNX selon le solde des ordres, et la Banque impériale sert chaque ordre compatible.{" "}
+        <Link to="/compte">Espace investisseur</Link>.
+      </p>
+    </section>
+  );
+}
+
 export function BoursePage() {
   const market = useMarket();
   const { session } = useData();
@@ -136,7 +231,8 @@ export function BoursePage() {
             KNX estime chaque jour la valeur de toutes les corporations cotées au rapport, et publie
             un cours par titre pour celles dont la direction a demandé l'introduction en bourse. Le
             cours est théorique : il suit les relevés et la notation de l'Agence, pas des ordres
-            d'achat et de vente. Les chiffres en violet sont calculés par KNX.
+            d'achat et de vente ; à chaque séance, le fixing s'en écarte selon les ordres des
+            investisseurs. Les chiffres en violet sont calculés par KNX.
           </p>
         </div>
         <div className="bourse__head-actions">
@@ -145,6 +241,9 @@ export function BoursePage() {
           </Link>
           {isAdmin ? (
             <>
+              <Link className="button button--quiet" to="/bourse/seance">
+                Séance
+              </Link>
               <Link className="button button--quiet" to="/bourse/comptes">
                 Comptes
               </Link>
@@ -202,6 +301,8 @@ export function BoursePage() {
           <ListedTable listed={listed} />
         )}
       </section>
+
+      <LastSession market={market} />
 
       <section className="bourse__section" aria-labelledby="methode">
         <div className="section-head">

@@ -9,6 +9,7 @@ import { CompanyPage } from "./pages/CompanyPage.tsx";
 import { ConsortiumsPage } from "./pages/ConsortiumsPage.tsx";
 import { InvestorPage } from "./pages/InvestorPage.tsx";
 import { MarketPage } from "./pages/MarketPage.tsx";
+import { SessionAdminPage } from "./pages/SessionAdminPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { ReportsPage } from "./pages/ReportsPage.tsx";
 import { SectorsPage } from "./pages/SectorsPage.tsx";
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
       { path: "bourse", element: <BoursePage /> },
       { path: "bourse/reglages", element: <BourseAdminPage /> },
       { path: "bourse/comptes", element: <AccountsAdminPage /> },
+      { path: "bourse/seance", element: <SessionAdminPage /> },
       { path: "compte", element: <InvestorPage /> },
       { path: "releves", element: <ReportsPage /> },
       { path: "*", element: <NotFoundPage /> },
