@@ -10,7 +10,8 @@ import { PendingReview } from "./reports/PendingReview.tsx";
 import { usePending } from "./reports/usePending.ts";
 import "./ReportsPage.css";
 
-function SignIn() {
+/** Operator sign-in, shared by the protected pages. */
+export function SignIn() {
   const { source } = useData();
   const [method, setMethod] = useState<"password" | "link">("password");
   const [email, setEmail] = useState("");

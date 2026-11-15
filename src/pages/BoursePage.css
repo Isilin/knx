@@ -1,0 +1,233 @@
+.bourse .page-head .button {
+  flex: none;
+}
+
+.bourse__facts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0 var(--s-6);
+  padding: var(--s-6) 0;
+}
+
+.bourse__facts > div {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--filet-fort);
+}
+
+.bourse__facts > div:first-child {
+  border-top-color: var(--or);
+}
+
+.bourse__figure {
+  font-size: var(--fs-fig);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.bourse__detail {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.bourse__section {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-7) 0 var(--s-6);
+  border-top: 1px solid var(--filet);
+}
+
+.bourse__note {
+  max-width: 80ch;
+  color: var(--gris-2);
+  font-size: var(--fs-sm);
+}
+
+.bourse__muted {
+  color: var(--gris);
+}
+
+.bourse__off {
+  color: var(--alerte);
+}
+
+.bourse__scroll {
+  overflow-x: auto;
+}
+
+/* Plain ruled table: the listed corporations and the levers in force. */
+.ledger {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.ledger th,
+.ledger td {
+  padding: var(--s-2) var(--s-3);
+  border-bottom: 1px solid var(--filet);
+  text-align: left;
+  vertical-align: baseline;
+  font-weight: 400;
+}
+
+.ledger thead th {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom-color: var(--filet-fort);
+  white-space: nowrap;
+}
+
+.ledger .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.ledger__name a {
+  color: var(--ivoire);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.ledger__name a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.bourse__method {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--s-6) var(--s-7);
+  align-items: start;
+}
+
+.bourse__formula {
+  display: grid;
+  gap: var(--s-4);
+}
+
+.bourse__equation {
+  padding: var(--s-3) var(--s-4);
+  border-left: 2px solid var(--estime);
+  background: var(--estime-fond);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+}
+
+.bourse__equation span {
+  color: var(--estime);
+  white-space: nowrap;
+}
+
+.bourse__principles {
+  display: grid;
+  gap: var(--s-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.bourse__principles strong {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.ledger--levers th {
+  width: 14em;
+  padding-left: 0;
+  color: var(--gris);
+}
+
+.ledger--levers td {
+  display: grid;
+  gap: 2px;
+}
+
+.bourse__help {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+/* A lever moved away from the method's default. */
+.bourse__changed {
+  color: var(--or-clair);
+}
+
+.bourse__journal {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.bourse__journal li {
+  display: grid;
+  grid-template-columns: 8em minmax(0, 1fr);
+  gap: var(--s-4);
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.bourse__journal .idate {
+  color: var(--gris);
+}
+
+.bourse__journal a {
+  color: var(--ivoire);
+}
+
+.bourse__journal strong {
+  font-weight: 500;
+}
+
+.bourse__changes {
+  display: grid;
+  gap: 2px;
+  margin-top: var(--s-1);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+@media (max-width: 1100px) {
+  .bourse__method {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .ledger .secondary {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .bourse__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--s-4) var(--s-5);
+  }
+  .ledger--levers th {
+    width: auto;
+  }
+  .bourse__journal li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+}

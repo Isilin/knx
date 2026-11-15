@@ -21,6 +21,7 @@ import { Seal } from "../components/Seal.tsx";
 import { SectorPanel } from "../components/SectorPanel.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
+import { ValuationPanel } from "../components/ValuationPanel.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import { creationReliability } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
@@ -461,6 +462,16 @@ export function CompanyPage() {
           </dd>
         </div>
       </dl>
+
+      <ValuationPanel
+        company={company}
+        lives={lives}
+        market={market}
+        start={start}
+        period={period}
+        onPeriod={setPeriod}
+        markers={markers}
+      />
 
       <section className="company__chart" aria-labelledby="ca">
         <div className="section-head">

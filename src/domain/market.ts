@@ -8,6 +8,16 @@ import { rateBetween } from "./revenue.ts";
 import { assessRisk, type CompanyRisk } from "./risk.ts";
 import { summarizeSectors, type SectorSummary } from "./sectorStats.ts";
 import type { SectorId } from "./sectors.ts";
+import { inOrder, type SecurityOperation } from "./securities.ts";
+import {
+  LifeValuation,
+  settingsInForce,
+  sortSettings,
+  summarizeValuation,
+  type CompanyValuation,
+  type ValuationParams,
+  type ValuationSettings,
+} from "./valuation.ts";
 import type {
   CompanyEvent,
   CompanyMeta,
@@ -134,6 +144,8 @@ export interface CompanySeries {
   rating: CompanyRating | null;
   /** What changed since that rating; null when not rated. */
   watch: RatingWatch | null;
+  /** KNX theoretical value and, once introduced, share price. */
+  valuation: CompanyValuation | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -180,6 +192,10 @@ export interface Market {
   ratings: Map<string, CompanyRating[]>;
   /** Horizon of the projections and the changes of order expected before it. */
   projection: { horizon: IsoDate; days: number; crossings: Crossing[] };
+  /** Settings of the theoretical value in force, and every published version, oldest first. */
+  valuation: { params: ValuationParams; versions: ValuationSettings[] };
+  /** Operations on securities, by corporation id, in the order they apply. */
+  operations: Map<string, SecurityOperation[]>;
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -430,6 +446,7 @@ export function buildMarket(dataset: Dataset): Market {
       risk: null,
       rating: null,
       watch: null,
+      valuation: null,
       bestRank,
       record,
     });
@@ -532,6 +549,18 @@ export function buildMarket(dataset: Dataset): Market {
       : null;
   }
 
+  // Theoretical value with the settings in force; shares belong to one life.
+  const versions = sortSettings(dataset.valuationSettings ?? []);
+  const { params } = settingsInForce(versions);
+  const operations = new Map<string, SecurityOperation[]>();
+  for (const op of inOrder(dataset.securityOperations ?? []))
+    operations.set(op.companyId, [...(operations.get(op.companyId) ?? []), op]);
+  for (const c of allLives)
+    c.valuation = summarizeValuation(
+      new LifeValuation(c, ratings.get(c.id) ?? [], params),
+      operations.get(c.id) ?? [],
+    );
+
   const byId = new Map(allLives.map((c) => [c.id, c]));
   const nameOf = (id: string) => byId.get(id)?.name ?? id;
   const latestRows = latest.rows.filter((r) => shown(r.companyId));
@@ -576,6 +605,8 @@ export function buildMarket(dataset: Dataset): Market {
     ratings,
     marketEvents,
     projection,
+    valuation: { params, versions },
+    operations,
   };
 }
 

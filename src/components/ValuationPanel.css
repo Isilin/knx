@@ -1,0 +1,163 @@
+/* Value and share price of a corporation: figures, chart, then the calculation as a receipt. */
+.valuation {
+  display: grid;
+  gap: var(--s-5);
+  padding: var(--s-7) 0 var(--s-6);
+  border-bottom: 1px solid var(--filet);
+}
+
+.valuation__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-4);
+}
+
+.valuation__facts {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0 var(--s-6);
+}
+
+.valuation__facts > div {
+  display: grid;
+  align-content: start;
+  gap: var(--s-1);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--filet-fort);
+}
+
+.valuation__figure {
+  font-size: var(--fs-fig);
+  font-weight: 300;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.valuation__figure .change {
+  font-size: inherit;
+  font-weight: inherit;
+}
+
+.valuation__detail {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.valuation__state {
+  color: var(--alerte);
+}
+
+.valuation__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--s-6) var(--s-7);
+  align-items: start;
+}
+
+.valuation__grid > div {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+}
+
+.valuation__note {
+  max-width: 72ch;
+  color: var(--gris-2);
+  font-size: var(--fs-sm);
+}
+
+.valuation__ops {
+  display: grid;
+  gap: var(--s-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.valuation__ops li {
+  display: grid;
+  grid-template-columns: 7.5em minmax(0, 1fr);
+  gap: var(--s-3);
+  padding-bottom: var(--s-2);
+  border-bottom: 1px solid var(--filet);
+}
+
+.valuation__ops .idate {
+  color: var(--gris);
+}
+
+.valuation__ops strong {
+  font-weight: 500;
+}
+
+.valuation__op-note {
+  color: var(--gris);
+}
+
+/* The calculation, one operation per line: the amount right-aligned, the reason muted. */
+.receipt {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.receipt th,
+.receipt td {
+  padding: var(--s-2) var(--s-3) var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+  text-align: left;
+  vertical-align: baseline;
+  font-weight: 400;
+}
+
+.receipt th {
+  color: var(--gris);
+  white-space: nowrap;
+}
+
+.receipt .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.receipt__why {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+.receipt__sub th,
+.receipt__sub td {
+  border-bottom-color: var(--filet-fort);
+}
+
+.receipt__total th {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.receipt__total .num {
+  font-size: var(--fs-md);
+}
+
+@media (max-width: 1100px) {
+  .valuation__facts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--s-4) var(--s-5);
+  }
+  .valuation__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .valuation__facts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .receipt__why {
+    display: none;
+  }
+}
