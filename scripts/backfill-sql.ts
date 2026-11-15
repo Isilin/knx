@@ -96,3 +96,49 @@ export function toBackfillSql(
   out.push("end;", "$$;", "");
   return out.join("\n");
 }
+
+/** A rename event, with the life it belongs to as the base knows it: its name and closure. */
+export interface RenameEventRow {
+  name: string;
+  closedOn: IsoDate | null;
+  date: IsoDate;
+  details: { from?: string; to?: string };
+  note: string | null;
+}
+
+/**
+ * Renders rename events found in the sheet's history as SQL for a filled base: each joins the life
+ * of that name and closure. Safe to run twice (an event already there is skipped); stops if a life
+ * is missing.
+ */
+export function toRenameEventsSql(events: readonly RenameEventRow[]): string {
+  const out: string[] = [
+    "-- Généré par scripts/import-sheet.ts (--renames) ; ne pas modifier à la main.",
+    "-- Changements de nom relevés dans l'historique des versions du tableur, datés du moment où",
+    "-- l'en-tête de la colonne a changé. Sans effet s'ils sont déjà enregistrés.",
+    "do $$",
+    "begin",
+  ];
+  for (const e of events) {
+    const from = text(e.details.from ?? "");
+    const to = text(e.details.to ?? "");
+    const life = `c.name = ${text(e.name)} and c.closed_on is not distinct from ${e.closedOn ? `${text(e.closedOn)}::date` : "null"}`;
+    out.push(
+      "",
+      `  -- ${e.details.from} → ${e.details.to} (${e.name}), ${e.date}.`,
+      `  if not exists (select 1 from public.companies c where ${life}) then`,
+      `    raise exception 'corporation introuvable : « % »', ${text(e.name)};`,
+      "  end if;",
+      "  insert into public.company_events (company_id, occurred_on, kind, details, note, origin)",
+      `  select c.id, ${text(e.date)}, 'renamed', jsonb_build_object('from', ${from}, 'to', ${to}), ${e.note ? text(e.note) : "null"}, 'auto'`,
+      "  from public.companies c",
+      `  where ${life}`,
+      "    and not exists (",
+      "      select 1 from public.company_events x",
+      `      where x.company_id = c.id and x.kind = 'renamed' and x.details->>'from' = ${from} and x.details->>'to' = ${to}`,
+      "    );",
+    );
+  }
+  out.push("end;", "$$;", "");
+  return out.join("\n");
+}

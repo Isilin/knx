@@ -90,7 +90,7 @@ environ 12 700 en novembre 2026).
 node scripts/import-sheet.ts "data/source/Données entreprises.xlsx" \
   --report "data/source/releves/2026-11-13.txt=2026-11-13" \
   --versions data/source/versions \
-  --backfill supabase/backfill/20261117_corporations_detruites.sql
+  --backfill supabase/backfill/20261117_corporations_detruites.sql   --renames supabase/backfill/20261118_renommages.sql
 ```
 
 L'import compare chaque version à la suivante : une colonne disparue (ou vidée puis recréée sous
@@ -100,7 +100,9 @@ devient un ancien nom de la fiche (Hypercore, puis Kessler Distribution™ → N
 Il affiche les colonnes récupérées, les chiffres en conflit, les fiches à plusieurs vies et les
 anciens noms : à relire avant de publier. Un homonyme sans lien avec son prédécesseur se déclare
 dans `SEPARATE_NAMESAKES` (`scripts/import-sheet.ts`). `--backfill` écrit le SQL qui ajoute ces
-vies et ces anciens noms à une base déjà remplie, sans toucher au reste.
+vies et ces anciens noms à une base déjà remplie, sans toucher au reste ; `--renames` écrit les
+changements de nom datés (moment où l'en-tête a changé), qui s'affichent dans l'historique des
+fiches ; ce second fichier peut être rejoué sans doublon.
 
 ## Brancher Supabase et Vercel
 

@@ -3,6 +3,7 @@ import {
   columnTrack,
   formerNamesOf,
   mergeTracks,
+  renameHops,
   removedColumns,
   typedCreations,
   withoutRenamedColumns,
@@ -156,7 +157,13 @@ describe("withoutRenamedColumns", () => {
     const { tracks, renamed } = withoutRenamedColumns(removed, [columnTrack(after, "Kessler™")]);
     expect(tracks).toEqual([]);
     expect(renamed).toEqual([
-      { from: "Kessler", to: "Kessler™", removedIn: "current", lastDate: "2025-01-02" },
+      {
+        from: "Kessler",
+        to: "Kessler™",
+        source: "v1",
+        removedIn: "current",
+        lastDate: "2025-01-02",
+      },
     ]);
   });
 
@@ -186,14 +193,54 @@ describe("withoutRenamedColumns", () => {
   });
 });
 
+const hop = (from: string, to: string, removedIn: string, lastDate: string) => ({
+  from,
+  to,
+  source: "",
+  removedIn,
+  lastDate,
+});
+
+describe("withoutRenamedColumns with a chain of renames", () => {
+  it("names the first column to take the figures over", () => {
+    // Hypercore became Kessler Distribution™, which became NeuroCore Systems.
+    const days = (name: string) => ({
+      "2025-01-01": { [name]: 100 },
+      "2025-01-02": { [name]: 101 },
+    });
+    const removed = removedColumns(
+      [
+        { stamp: "v1", data: sheet(days("Hypercore")) },
+        { stamp: "v2", data: sheet(days("Kessler Distribution™")) },
+      ],
+      sheet(days("NeuroCore Systems")),
+    );
+    const current = columnTrack(sheet(days("NeuroCore Systems")), "NeuroCore Systems");
+    const { renamed } = withoutRenamedColumns(removed, [current]);
+    expect(renamed.map((r) => [r.from, r.to])).toEqual([
+      ["Hypercore", "Kessler Distribution™"],
+      ["Kessler Distribution™", "NeuroCore Systems"],
+    ]);
+  });
+});
+
+describe("renameHops", () => {
+  it("keeps the latest occurrence of a rename, the current sheet last", () => {
+    expect(
+      renameHops([
+        hop("InMeaBulla", "Metropolis", "r012676", "2026-10-14"),
+        hop("Edge Logistics", "Kessler Industries™", "current", "2026-07-01"),
+        hop("InMeaBulla", "Metropolis", "r004041", "2025-02-12"),
+      ]).map((r) => [r.from, r.removedIn]),
+    ).toEqual([
+      ["InMeaBulla", "r012676"],
+      ["Edge Logistics", "current"],
+    ]);
+  });
+});
+
 describe("formerNamesOf", () => {
   it("follows renames to the last name, oldest first, once each", () => {
-    const hop = (from: string, to: string, removedIn: string, lastDate: string) => ({
-      from,
-      to,
-      removedIn,
-      lastDate,
-    });
     expect([
       ...formerNamesOf([
         hop("Kessler Distribution™", "NeuroCore Systems", "r011796", "2026-07-01"),
