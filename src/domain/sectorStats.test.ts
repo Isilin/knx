@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { toDayNumber } from "./dates.ts";
 import { buildMarket } from "./market.ts";
-import { sectorShareHistory } from "./sectorStats.ts";
+import { groupedMarketMap } from "./regimes.ts";
+import { concentrationOf, sectorConsortiumMatrix, sectorShareHistory } from "./sectorStats.ts";
 import { datasetByName } from "./testing.ts";
 import type { ReportRow } from "./types.ts";
 
@@ -29,34 +30,34 @@ const earners: Record<string, { rate: (day: number) => number; sector?: string }
   Unfiled: { rate: () => 300 },
 };
 
-function market(unfiledRate?: number) {
+function dataset(unfiledRate?: number) {
   const named = Object.entries(earners).map(([name, e]) => ({
     name,
     rate: name === "Unfiled" && unfiledRate !== undefined ? () => unfiledRate : e.rate,
     sector: e.sector,
   }));
-  return buildMarket(
-    datasetByName({
-      generatedAt: "2026-11-13T00:00:00Z",
-      companies: named.map(({ name, sector }) => ({
+  return datasetByName({
+    generatedAt: "2026-11-13T00:00:00Z",
+    companies: named.map(({ name, sector }) => ({
+      name,
+      creationOverride: CREATION,
+      sector: sector as never,
+    })),
+    snapshots: dates.map((date) => ({
+      date,
+      source: "paste",
+      rows: named.map(({ name, rate }): ReportRow => ({
         name,
-        creationOverride: CREATION,
-        sector: sector as never,
+        rank: null,
+        chiffre: chiffreOn(date, rate),
+        capital: 1_000,
+        employees: 1,
       })),
-      snapshots: dates.map((date) => ({
-        date,
-        source: "paste",
-        rows: named.map(({ name, rate }): ReportRow => ({
-          name,
-          rank: null,
-          chiffre: chiffreOn(date, rate),
-          capital: 1_000,
-          employees: 1,
-        })),
-      })),
-    }),
-  );
+    })),
+  });
 }
+
+const market = (unfiledRate?: number) => buildMarket(dataset(unfiledRate));
 
 describe("summarizeSectors", () => {
   const m = market();
@@ -109,5 +110,69 @@ describe("sectorShareHistory", () => {
     const history = sectorShareHistory(m, [m.bySlug.get("steady")!]);
     expect(history.every((p) => p.value === null)).toBe(true);
     expect(sectorShareHistory(m, [m.bySlug.get("unfiled")!])).toEqual([]);
+  });
+});
+
+describe("concentration and productivity", () => {
+  const bank = market().sectors.get("banque")!;
+
+  it("measures how the sector's revenue is shared out", () => {
+    // Steady earns 1 000 a day, Rising 1 500: shares of 0,4 and 0,6.
+    expect(bank.hhi).toBeCloseTo(0.4 ** 2 + 0.6 ** 2, 2);
+    expect(bank.leader?.company.name).toBe("Rising");
+    expect(bank.leader?.share).toBeCloseTo(0.6, 2);
+    expect(concentrationOf(bank.hhi!).id).toBe("domine");
+    expect(concentrationOf(0.2).id).toBe("modere");
+    expect(concentrationOf(0.05).id).toBe("ouvert");
+  });
+
+  it("takes the median productivity of the active corporations", () => {
+    // One employee and 1 000 ¢ of capital each; the idle one is left out.
+    expect(bank.employees).toBe(3);
+    expect(bank.capital).toBe(3_000);
+    expect(bank.revenuePerEmployee).toBeCloseTo(1_250, -1);
+    expect(bank.revenueToCapital).toBeCloseTo(37.5, 0);
+  });
+});
+
+describe("sectorConsortiumMatrix", () => {
+  const data = dataset();
+  data.consortiums = [{ id: "k", name: "Maison", color: "cyan" }];
+  data.memberships = [
+    { id: "m", profileId: "Rising", consortiumId: "k", joinedOn: null, leftOn: null },
+  ];
+  const matrix = sectorConsortiumMatrix(buildMarket(data));
+
+  it("puts each listed corporation under its sector and today's consortium", () => {
+    expect(matrix.columns.map((c) => c.consortium?.name ?? "indépendantes")).toEqual([
+      "Maison",
+      "indépendantes",
+    ]);
+    const bank = matrix.rows.find((r) => r.sector.id === "banque")!;
+    expect(bank.cells[0].map((c) => c.name)).toEqual(["Rising"]);
+    expect(bank.cells[1].map((c) => c.name)).toEqual(["Steady", "Asleep"]);
+    expect(matrix.rows.map((r) => r.sector.id)).toEqual(["banque", "technopole"]);
+    expect(matrix.unfiled.map((c) => c.name)).toEqual(["Unfiled"]);
+  });
+});
+
+describe("groupedMarketMap", () => {
+  it("cuts the map into sector blocks, heaviest first, covering the whole market", () => {
+    const { groups } = groupedMarketMap(market(), "sector");
+    expect(groups.map((g) => g.id)).toEqual(["banque", "technopole", "non-classees"]);
+    expect(groups.reduce((sum, g) => sum + g.weight, 0)).toBeCloseTo(1, 5);
+    expect(groups[2].label).toBe("Non classées");
+  });
+
+  it("folds the smallest corporations of a block into its own remainder", () => {
+    const { groups } = groupedMarketMap(market(), "consortium", 0.35);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].label).toBe("Indépendantes");
+    const others = groups[0].tiles.find((t) => t.kind === "others");
+    expect(others?.kind === "others" && others.companies.map((c) => c.name).sort()).toEqual([
+      "Rising",
+      "Steady",
+      "Unfiled",
+    ]);
   });
 });

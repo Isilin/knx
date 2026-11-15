@@ -8,6 +8,7 @@ import "./Layout.css";
 const SECTIONS = [
   { to: "/", label: "Marché", end: true },
   { to: "/corporations", label: "Corporations", end: false },
+  { to: "/secteurs", label: "Secteurs", end: false },
   { to: "/releves", label: "Relevés", end: false },
 ];
 

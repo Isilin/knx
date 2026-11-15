@@ -281,3 +281,18 @@
   display: block;
   color: var(--gris-2);
 }
+
+.market__map-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3) var(--s-6);
+}
+
+@media (max-width: 720px) {
+  .market__map .section-head .push {
+    flex: 0 1 auto;
+    min-width: 0;
+    margin-left: 0;
+  }
+}

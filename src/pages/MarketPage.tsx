@@ -23,7 +23,7 @@ import { marketMarkers } from "../domain/marketEvents.ts";
 import { computeMovers } from "../domain/movers.ts";
 import { revenueRace } from "../domain/race.ts";
 import { formatCompact, formatDecimal, formatInteger } from "../domain/numbers.ts";
-import { groupByRegime, marketMap } from "../domain/regimes.ts";
+import { groupByRegime, groupedMarketMap, marketMap, type MapGrouping } from "../domain/regimes.ts";
 import { marketTreasury, type MarketTreasuryPoint } from "../domain/treasury.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { useFollowed } from "../hooks/useFollowed.ts";
@@ -201,6 +201,11 @@ export function MarketPage() {
   const treasury = useMemo(() => marketTreasury(market), [market]);
   const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
   const map = useMemo(() => marketMap(market), [market]);
+  const [grouping, setGrouping] = useState<MapGrouping>("none");
+  const grouped = useMemo(
+    () => (grouping === "none" ? null : groupedMarketMap(market, grouping)),
+    [market, grouping],
+  );
   const regimes = useMemo(() => groupByRegime(market), [market]);
   // Changes of order near the top of the cote, soonest first.
   const overtakes = market.projection.crossings
@@ -419,15 +424,36 @@ export function MarketPage() {
             surface : <span className="estimated">poids économique sur 30 jours</span> · couleur :{" "}
             <span className="estimated">dynamique</span>
           </p>
-          <div className="push">
+          <div className="push market__map-tools">
+            <div className="segmented" role="group" aria-label="Regrouper la carte">
+              {(
+                [
+                  ["none", "Toutes"],
+                  ["sector", "Par secteur"],
+                  ["consortium", "Par consortium"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={grouping === id}
+                  onClick={() => setGrouping(id)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
             <DynamicsKey />
           </div>
         </div>
-        <MarketMap tiles={map.tiles} />
+        <MarketMap tiles={map.tiles} groups={grouped?.groups ?? null} />
         <p className="chart-note">
           Chaque surface est la part de la corporation dans les recettes estimées de tout le marché
           sur les 30 derniers jours ; sa couleur, sa dynamique (30 derniers jours face aux 90
-          précédents). Les corporations sous 0,5 % sont regroupées dans « Autres ».
+          précédents). Les corporations sous 0,5 % sont regroupées dans « Autres »
+          {grouping === "none"
+            ? "."
+            : `, au sein de chaque ${grouping === "sector" ? "secteur" : "consortium"}. Chaque bloc a la surface de sa part du marché ; les consortiums sont ceux du dernier relevé.`}
           {map.silent.length > 0 ? (
             <span className="chart-note__source">
               Sans recette mesurable sur 30 jours, donc absentes de la carte :{" "}

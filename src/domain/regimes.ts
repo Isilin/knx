@@ -1,4 +1,6 @@
 import type { CompanyScores, CompanySeries, Market } from "./market.ts";
+import { sectorLabel } from "./sectors.ts";
+import type { Consortium } from "./types.ts";
 
 /**
  * Where a company stands on two estimated scores: activity (last 30 days against its lifetime
@@ -87,6 +89,75 @@ export function marketMap(
     tiles.push({ kind: "others", companies: tail, weight });
   }
   return { tiles, silent: active.filter((c) => !((c.scores.weight ?? 0) > 0)) };
+}
+
+export type MapGrouping = "none" | "sector" | "consortium";
+
+/** A block of the grouped market map: a sector or a consortium, and its tiles. */
+export interface MapGroup {
+  id: string;
+  label: string;
+  /** The consortium of a consortium block; null for a sector block or the independents. */
+  consortium: Consortium | null;
+  /** Share of the market's revenue over 30 days. */
+  weight: number;
+  tiles: MapTile[];
+}
+
+/**
+ * The market map cut into blocks, heaviest first: one per sector, or one per consortium with the
+ * independent corporations together. Within a block, corporations under `minWeight` of the whole
+ * market fold into the block's own « others » tile. Consortiums are today's.
+ */
+export function groupedMarketMap(
+  market: Market,
+  by: Exclude<MapGrouping, "none">,
+  minWeight = 0.005,
+): { groups: MapGroup[]; silent: CompanySeries[] } {
+  const { tiles, silent } = marketMap(market, 0);
+  const groups = new Map<string, MapGroup>();
+  for (const tile of tiles) {
+    if (tile.kind !== "company") continue;
+    const { company } = tile;
+    const key =
+      by === "sector"
+        ? (company.sector ?? "non-classees")
+        : (company.consortium?.id ?? "independantes");
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        id: key,
+        label:
+          by === "sector"
+            ? (sectorLabel(company.sector) ?? "Non classées")
+            : (company.consortium?.name ?? "Indépendantes"),
+        consortium: by === "consortium" ? company.consortium : null,
+        weight: 0,
+        tiles: [],
+      };
+      groups.set(key, group);
+    }
+    group.weight += tile.weight;
+    group.tiles.push(tile);
+  }
+  for (const group of groups.values()) {
+    const kept = group.tiles.filter((t) => t.weight >= minWeight);
+    const tail = group.tiles.flatMap((t) =>
+      t.kind === "company" && t.weight < minWeight ? [t.company] : [],
+    );
+    group.tiles =
+      tail.length > 0
+        ? [
+            ...kept,
+            {
+              kind: "others",
+              companies: tail,
+              weight: tail.reduce((sum, c) => sum + (c.scores.weight ?? 0), 0),
+            },
+          ]
+        : kept;
+  }
+  return { groups: [...groups.values()].sort((a, b) => b.weight - a.weight), silent };
 }
 
 export interface Rect<T> {
