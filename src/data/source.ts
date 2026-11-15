@@ -1,4 +1,5 @@
 import type { ResolvedRows } from "../domain/identity.ts";
+import type { CashMovement, InvestorAccount } from "../domain/investors.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
   BalanceSheetDraft,
@@ -36,7 +37,13 @@ export type {
 
 export type Session =
   | { state: "anonymous" }
-  | { state: "signed-in"; email: string; isAdmin: boolean };
+  | {
+      state: "signed-in";
+      email: string;
+      isAdmin: boolean;
+      /** The player's investor account, when the session is a player's. */
+      investor: InvestorAccount | null;
+    };
 
 /** A report sent by the in-game module, waiting for an operator to publish or reject it. */
 export interface PendingSnapshot {
@@ -102,6 +109,26 @@ export interface DataSource {
   saveBalanceSheet(draft: BalanceSheetDraft): Promise<void>;
   deleteBalanceSheet(id: string): Promise<void>;
   session(): Promise<Session>;
+  /** Signs a player in with their five-digit login. */
+  signInInvestor(login: string, password: string): Promise<void>;
+  /** Replaces the signed-in player's password, and lifts the temporary-password flag. */
+  changePassword(password: string): Promise<void>;
+  /** The signed-in player's movements; every account's for an operator. */
+  cashMovements(): Promise<CashMovement[]>;
+  requestWithdrawal(amount: number, note: string | null): Promise<void>;
+  /** A player withdraws their request; an operator refuses one. */
+  cancelWithdrawal(id: string): Promise<void>;
+  /** Every investor account (operators only). */
+  investorAccounts(): Promise<InvestorAccount[]>;
+  createInvestorAccount(draft: {
+    login: string;
+    displayName: string;
+    password: string;
+  }): Promise<void>;
+  resetInvestorPassword(login: string, password: string): Promise<void>;
+  recordDeposit(accountId: string, amount: number, note: string | null): Promise<void>;
+  /** The withdrawal was paid in the game. */
+  settleWithdrawal(id: string): Promise<void>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
   /** Signs in with an operator password; resolves once the session exists. */
