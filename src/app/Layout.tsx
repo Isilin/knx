@@ -16,10 +16,11 @@ const SECTIONS = [
 ];
 
 /** Pages that work without a loaded market (publishing the very first report). */
-const STANDALONE = ["/releves"];
+const STANDALONE = ["/releves", "/compte", "/bourse/comptes"];
 
 export function Layout() {
-  const { state, reload } = useData();
+  const { state, reload, session } = useData();
+  const investor = session?.state === "signed-in" ? session.investor : null;
   const { pathname } = useLocation();
   const standalone = STANDALONE.some((p) => pathname.startsWith(p));
 
@@ -42,6 +43,11 @@ export function Layout() {
             ))}
           </nav>
           <div className="masthead__meta">
+            {investor ? (
+              <Link className="masthead__account" to="/compte" title={investor.displayName}>
+                Compte {investor.login}
+              </Link>
+            ) : null}
             {state.status === "ready" ? (
               <>
                 <p className="masthead__date">

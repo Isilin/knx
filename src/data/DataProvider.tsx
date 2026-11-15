@@ -21,6 +21,8 @@ interface DataContextValue {
   state: LoadState;
   session: Session | null;
   reload: () => void;
+  /** Reads the session again (a flag of the account changed). */
+  refreshSession: () => void;
   /** Runs a write against the source, then reloads the data in the background. */
   change: (write: (source: DataSource) => Promise<void>) => Promise<void>;
 }
@@ -57,13 +59,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
     };
   }, [source, version]);
 
-  useEffect(() => {
-    const refresh = () => {
-      source.session().then(setSession, () => setSession({ state: "anonymous" }));
-    };
-    refresh();
-    return source.onSessionChange(refresh);
+  const refreshSession = useCallback(() => {
+    source.session().then(setSession, () => setSession({ state: "anonymous" }));
   }, [source]);
+
+  useEffect(() => {
+    refreshSession();
+    return source.onSessionChange(refreshSession);
+  }, [source, refreshSession]);
 
   const reload = useCallback(() => {
     setState({ status: "loading" });
@@ -79,8 +82,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
   );
 
   const value = useMemo(
-    () => ({ source, state, session, reload, change }),
-    [source, state, session, reload, change],
+    () => ({ source, state, session, reload, refreshSession, change }),
+    [source, state, session, reload, refreshSession, change],
   );
   return <DataContext value={value}>{children}</DataContext>;
 }

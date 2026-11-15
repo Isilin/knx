@@ -139,11 +139,21 @@ export function BoursePage() {
             d'achat et de vente. Les chiffres en violet sont calculés par KNX.
           </p>
         </div>
-        {isAdmin ? (
-          <Link className="button button--quiet" to="/bourse/reglages">
-            Réglages et opérations
+        <div className="bourse__head-actions">
+          <Link className="button button--quiet" to="/compte">
+            Espace investisseur
           </Link>
-        ) : null}
+          {isAdmin ? (
+            <>
+              <Link className="button button--quiet" to="/bourse/comptes">
+                Comptes
+              </Link>
+              <Link className="button button--quiet" to="/bourse/reglages">
+                Réglages et opérations
+              </Link>
+            </>
+          ) : null}
+        </div>
       </header>
 
       <dl className="bourse__facts">

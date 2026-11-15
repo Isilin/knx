@@ -1,5 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { cleanMarketEvent, normalizeDataset } from "../domain/mutations.ts";
+import {
+  investorEmail,
+  isLogin,
+  type CashMovement,
+  type InvestorAccount,
+} from "../domain/investors.ts";
 import { VALUATION_METHOD } from "../domain/valuation.ts";
 import type {
   ApiKey,
@@ -55,6 +61,60 @@ function isMissingTable(error: { code?: string }): boolean {
   return error.code === "42P01" || error.code === "PGRST205";
 }
 
+const MISSING_INVESTOR_TABLES =
+  "tables des comptes investisseurs absentes : exécuter la migration 20261121000000_comptes_investisseurs.sql.";
+
+const ACCOUNT_COLUMNS =
+  "user_id, login, display_name, must_change_password, note, closed_at, created_at";
+
+interface AccountRow {
+  user_id: string;
+  login: string;
+  display_name: string;
+  must_change_password: boolean;
+  note: string | null;
+  closed_at: string | null;
+  created_at: string;
+}
+
+interface MovementRow {
+  id: number;
+  account_id: string;
+  kind: CashMovement["kind"];
+  amount: number;
+  status: CashMovement["status"];
+  note: string | null;
+  requested_at: string;
+  settled_at: string | null;
+}
+
+const accountOf = (r: AccountRow): InvestorAccount => ({
+  id: r.user_id,
+  login: r.login,
+  displayName: r.display_name,
+  mustChangePassword: r.must_change_password,
+  note: r.note,
+  closedAt: r.closed_at,
+  createdAt: r.created_at,
+});
+
+const movementOf = (r: MovementRow): CashMovement => ({
+  id: String(r.id),
+  accountId: r.account_id,
+  kind: r.kind,
+  amount: Number(r.amount),
+  status: r.status,
+  note: r.note,
+  requestedAt: r.requested_at,
+  settledAt: r.settled_at,
+});
+
+/** Errors of the account functions: the database speaks French already. */
+function investorWriteMessage(error: { message: string; code?: string }): Error {
+  if (error.code === "PGRST202" || isMissingTable(error)) return new Error(MISSING_INVESTOR_TABLES);
+  return writeMessage(error);
+}
+
 const MISSING_PRICE_TABLES =
   "tables du cours théorique absentes : exécuter la migration 20261120000000_cours_theorique.sql.";
 
@@ -69,6 +129,25 @@ export function createSupabaseSource(url: string, key: string): DataSource {
   const client: SupabaseClient = createClient(url, key, {
     auth: { persistSession: true, detectSessionInUrl: true },
   });
+
+  /** Calls the server function that creates accounts, with the operator's own session. */
+  async function callAccounts(body: Record<string, string>): Promise<void> {
+    const { data } = await client.auth.getSession();
+    const token = data.session?.access_token;
+    if (!token) throw new Error("session expirée : reconnectez-vous.");
+    const response = await fetch("/api/v1/comptes", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (response.ok) return;
+    const reply = (await response.json().catch(() => null)) as {
+      error?: { message?: string; details?: string[] };
+    } | null;
+    const message = reply?.error?.message ?? `erreur ${response.status}`;
+    const details = reply?.error?.details?.join(" ; ");
+    throw new Error(details ? `${message} ${details}` : message);
+  }
 
   /** Updates one row; RLS turns a refused update into zero rows, so check for one. */
   async function updateRow(
@@ -348,8 +427,83 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { data } = await client.auth.getSession();
       const user = data.session?.user;
       if (!user) return { state: "anonymous" };
-      const { data: isAdmin } = await client.rpc("is_admin");
-      return { state: "signed-in", email: user.email ?? "", isAdmin: Boolean(isAdmin) };
+      const [{ data: isAdmin }, { data: account }] = await Promise.all([
+        client.rpc("is_admin"),
+        client
+          .from("investor_accounts")
+          .select(ACCOUNT_COLUMNS)
+          .eq("user_id", user.id)
+          .maybeSingle(),
+      ]);
+      return {
+        state: "signed-in",
+        email: user.email ?? "",
+        isAdmin: Boolean(isAdmin),
+        investor: account ? accountOf(account as AccountRow) : null,
+      };
+    },
+    async signInInvestor(login, password) {
+      if (!isLogin(login)) throw new Error("identifiant de cinq chiffres attendu.");
+      const { error } = await client.auth.signInWithPassword({
+        email: investorEmail(login),
+        password,
+      });
+      if (error)
+        throw new Error(
+          error.code === "invalid_credentials" || /invalid login credentials/i.test(error.message)
+            ? "identifiant ou mot de passe incorrect."
+            : signInMessage(error),
+        );
+    },
+    async changePassword(password) {
+      const { error } = await client.auth.updateUser({ password });
+      if (error) throw new Error(error.message);
+      const { error: flag } = await client.rpc("mark_password_changed");
+      if (flag) throw investorWriteMessage(flag);
+    },
+    async cashMovements() {
+      const { data, error } = await client
+        .from("cash_movements")
+        .select("id, account_id, kind, amount, status, note, requested_at, settled_at")
+        .order("requested_at", { ascending: false });
+      if (error)
+        throw isMissingTable(error) ? new Error(MISSING_INVESTOR_TABLES) : writeMessage(error);
+      return (data as MovementRow[]).map(movementOf);
+    },
+    async requestWithdrawal(amount, note) {
+      const { error } = await client.rpc("request_withdrawal", { p_amount: amount, p_note: note });
+      if (error) throw investorWriteMessage(error);
+    },
+    async cancelWithdrawal(id) {
+      const { error } = await client.rpc("cancel_withdrawal", { p_id: Number(id) });
+      if (error) throw investorWriteMessage(error);
+    },
+    async investorAccounts() {
+      const { data, error } = await client
+        .from("investor_accounts")
+        .select(ACCOUNT_COLUMNS)
+        .order("login");
+      if (error)
+        throw isMissingTable(error) ? new Error(MISSING_INVESTOR_TABLES) : writeMessage(error);
+      return (data as AccountRow[]).map(accountOf);
+    },
+    async createInvestorAccount({ login, displayName, password }) {
+      await callAccounts({ action: "create", login, displayName, password });
+    },
+    async resetInvestorPassword(login, password) {
+      await callAccounts({ action: "reset", login, password });
+    },
+    async recordDeposit(accountId, amount, note) {
+      const { error } = await client.rpc("record_deposit", {
+        p_account: accountId,
+        p_amount: amount,
+        p_note: note,
+      });
+      if (error) throw investorWriteMessage(error);
+    },
+    async settleWithdrawal(id) {
+      const { error } = await client.rpc("settle_withdrawal", { p_id: Number(id) });
+      if (error) throw investorWriteMessage(error);
     },
     async requestSignIn(email: string) {
       const { error } = await client.auth.signInWithOtp({

@@ -38,6 +38,9 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   });
 }
 
+const INVESTORS_ONLY =
+  "Mode local : les comptes investisseurs, qui portent de vrais crédits, demandent la base Supabase.";
+
 const newId = () => `local-${crypto.randomUUID()}`;
 
 /**
@@ -116,9 +119,40 @@ export function createLocalSource(): DataSource {
       record({ type: "saveBalance", sheet: { ...draft, id: id ?? newId() } }),
     deleteBalanceSheet: (id) => record({ type: "deleteBalance", id }),
     async session(): Promise<Session> {
-      return { state: "signed-in", email: "mode local", isAdmin: true };
+      return { state: "signed-in", email: "mode local", isAdmin: true, investor: null };
     },
     async requestSignIn() {},
+    // Investor accounts hold real credits: they live in Supabase only.
+    async signInInvestor() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async changePassword() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async cashMovements() {
+      return [];
+    },
+    async requestWithdrawal() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async cancelWithdrawal() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async investorAccounts() {
+      return [];
+    },
+    async createInvestorAccount() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async resetInvestorPassword() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async recordDeposit() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async settleWithdrawal() {
+      throw new Error(INVESTORS_ONLY);
+    },
     async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {

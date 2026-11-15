@@ -97,6 +97,19 @@
   color: var(--ivoire);
 }
 
+.masthead__account {
+  color: var(--or-clair);
+  font-size: var(--fs-sm);
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.masthead__account:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
 .page {
   max-width: var(--page-max);
   margin: 0 auto;

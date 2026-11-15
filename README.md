@@ -155,10 +155,11 @@ fiches ; ce second fichier peut être rejoué sans doublon.
    (corporations masquées, dont MJ Immo), `20261117000000_notation_agence.sql` (notations et
    quartier des corporations), `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
    vies), `20261119000000_adhesions_consortiums.sql` (consortiums datés : chaque consortium
-   actuel devient une période ouverte, à dater ensuite depuis les fiches) et
+   actuel devient une période ouverte, à dater ensuite depuis les fiches),
    `20261120000000_cours_theorique.sql` (réglages de la valeur KNX, opérations sur titres et
    bilans ; sans elle, le site tourne avec les réglages par défaut, sans corporation introduite
-   ni bilan), puis
+   ni bilan) et `20261121000000_comptes_investisseurs.sql` (comptes des joueurs et mouvements
+   de crédits), puis
    `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
    seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
    consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket
@@ -200,6 +201,12 @@ fiches ; ce second fichier peut être rejoué sans doublon.
    userscript. Facultatif : `KNX_CORS_ORIGINS` (variable Vercel, origines séparées par des virgules)
    restreint les pages autorisées à appeler l'API avec `fetch` ; par défaut toutes, la clé suffisant
    à protéger l'API.
+7. Comptes investisseurs : la création d'un compte joueur passe par la fonction `/api/v1/comptes`,
+   qui a besoin de la **clé de service** Supabase dans les variables Vercel :
+   `SUPABASE_SERVICE_ROLE_KEY` (ou `SUPABASE_SECRET_KEY`). L'intégration Vercel ↔ Supabase l'ajoute
+   en général ; sinon la copier depuis Supabase (Project Settings → API keys). Elle ne quitte jamais
+   le serveur. Les joueurs se connectent sur `/compte` avec leur identifiant de cinq chiffres ; leur
+   adresse technique (`knx-<identifiant>@example.com`) ne reçoit jamais d'e-mail.
 
 **Limite d'e-mails.** Le service d'e-mail intégré de Supabase n'envoie que 2 e-mails par heure pour
 tout le projet (liens de connexion compris) ; au-delà, la page Relevés affiche « trop de liens

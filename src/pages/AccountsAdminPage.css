@@ -1,0 +1,72 @@
+.accounts__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--s-6) var(--s-7);
+  align-items: start;
+}
+
+.accounts__forms {
+  display: grid;
+  gap: var(--s-6);
+}
+
+.accounts__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--s-3);
+}
+
+.accounts__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+.accounts__row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--s-1) var(--s-3);
+}
+
+/* The password alphabet already avoids look-alike characters: spacing is enough to read it out. */
+.accounts__secret {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.08em;
+}
+
+.accounts__handover {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.accounts__handover dl {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3) var(--s-6);
+}
+
+.accounts__handover dd {
+  font-size: var(--fs-md);
+}
+
+.bourse__journal li.accounts__pending {
+  grid-template-columns: 8em minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+@media (max-width: 900px) {
+  .accounts__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .accounts__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .bourse__journal li.accounts__pending {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
