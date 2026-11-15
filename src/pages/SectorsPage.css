@@ -1,0 +1,247 @@
+.sectors__section {
+  padding: var(--s-7) 0 var(--s-6);
+  border-top: 1px solid var(--filet);
+}
+
+.sectors__note {
+  max-width: 96ch;
+  margin-top: var(--s-3);
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+/* One grey bar per sector, on the chosen measure: colour stays out of the bars. */
+.sector-bars {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--or);
+}
+
+.sector-bars li {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr) 132px minmax(170px, 220px);
+  align-items: center;
+  gap: var(--s-4);
+  min-height: 44px;
+  border-bottom: 1px solid var(--filet);
+}
+
+.sector-bars__name {
+  color: var(--ivoire);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.sector-bars__name:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.sector-bars__bar {
+  height: 8px;
+  background: var(--laque-3);
+}
+
+.sector-bars__bar span {
+  display: block;
+  height: 100%;
+  background: var(--gris-2);
+}
+
+.sector-bars li:hover .sector-bars__bar span {
+  background: var(--ivoire);
+}
+
+.sector-bars__value {
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.sector-bars__detail {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-3);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.sector-bars__dynamics {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-1);
+}
+
+/* Tables of the page: hairlines, like the history of a corporation. */
+.sectors__scroll {
+  overflow-x: auto;
+  border-top: 1px solid var(--or);
+}
+
+.sectors__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.sectors__table th,
+.sectors__table td {
+  padding: var(--s-3);
+  border-bottom: 1px solid var(--filet);
+  text-align: left;
+  font-weight: 400;
+  vertical-align: top;
+}
+
+.sectors__table thead th {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom-color: var(--filet-fort);
+  vertical-align: bottom;
+}
+
+.sectors__table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.sectors__table tbody th a,
+.sectors__table td a {
+  color: var(--ivoire);
+  text-decoration: none;
+}
+
+.sectors__table tbody th a:hover,
+.sectors__table td a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.sectors__table tbody th {
+  font-weight: 500;
+}
+
+.sectors__table tbody th small,
+.sectors__table thead small {
+  display: block;
+  margin-top: 2px;
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.sectors__company {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+/* Concentration levels: a word in grey, ivory as it gets tighter; no colour of its own. */
+.concentration {
+  font-size: var(--fs-sm);
+}
+
+.concentration--ouvert,
+.concentration--modere {
+  color: var(--gris);
+}
+
+.concentration--concentre {
+  color: var(--ivoire);
+}
+
+.concentration--domine {
+  color: var(--ivoire);
+  font-weight: 500;
+  box-shadow: inset 0 -1px 0 var(--filet-fort);
+}
+
+.sectors__group {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+}
+
+.sectors__group i {
+  width: 14px;
+  height: 2px;
+}
+
+.sectors__group a {
+  color: var(--ivoire);
+  text-decoration: none;
+}
+
+.sectors__matrix td {
+  min-width: 150px;
+}
+
+.sectors__members {
+  display: grid;
+  gap: var(--s-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.sectors__members li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s-3);
+}
+
+.sectors__members .estimated {
+  flex: none;
+  font-size: var(--fs-cap);
+  font-variant-numeric: tabular-nums;
+}
+
+.sectors__empty {
+  color: var(--gris-2);
+}
+
+@media (max-width: 900px) {
+  .sector-bars li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: var(--s-1) var(--s-4);
+    padding: var(--s-3) 0;
+  }
+
+  .sector-bars__bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .sector-bars__detail {
+    grid-column: 1 / -1;
+    grid-row: 3;
+  }
+}
+
+/* Six measures: the picker wraps instead of pushing the page sideways. */
+.sectors__section .section-head .push {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sectors__section .segmented {
+  display: flex;
+  gap: var(--s-1) var(--s-4);
+}
+
+@media (max-width: 720px) {
+  .sectors__section .section-head .push {
+    margin-left: 0;
+  }
+}

@@ -72,6 +72,11 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   le temps ; cette part n'est tracée qu'aux relevés où les corporations classées font au moins
   90 % des recettes du marché, les secteurs des corporations fermées n'étant pas tous connus
   (`src/domain/sectorStats.ts`).
+- **Page Secteurs** (`/secteurs`), sur le dernier relevé : les secteurs côte à côte sur une mesure
+  au choix (recettes, corporations, effectif, capital, recette par employé et recettes rapportées
+  au capital, ces deux dernières en médiane des corporations actives) ; la concentration de chaque
+  secteur (indice de Herfindahl, concurrents équivalents, leader et sa part) ; le tableau
+  secteur × consortium. La carte du marché se regroupe aussi par secteur ou par consortium.
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;

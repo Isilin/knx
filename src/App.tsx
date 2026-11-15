@@ -6,6 +6,7 @@ import { CompanyPage } from "./pages/CompanyPage.tsx";
 import { MarketPage } from "./pages/MarketPage.tsx";
 import { NotFoundPage } from "./pages/NotFoundPage.tsx";
 import { ReportsPage } from "./pages/ReportsPage.tsx";
+import { SectorsPage } from "./pages/SectorsPage.tsx";
 
 const router = createBrowserRouter([
   {
@@ -14,6 +15,7 @@ const router = createBrowserRouter([
       { index: true, element: <MarketPage /> },
       { path: "corporations", element: <CompaniesPage /> },
       { path: "corporations/:slug", element: <CompanyPage /> },
+      { path: "secteurs", element: <SectorsPage /> },
       { path: "releves", element: <ReportsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

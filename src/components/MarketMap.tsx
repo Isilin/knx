@@ -1,7 +1,14 @@
 import { useState } from "react";
 import { Link } from "react-router";
 import { formatScore, formatShare } from "../domain/numbers.ts";
-import { REGIMES, regimeOf, squarify, type MapTile, type Rect } from "../domain/regimes.ts";
+import {
+  REGIMES,
+  regimeOf,
+  squarify,
+  type MapGroup,
+  type MapTile,
+  type Rect,
+} from "../domain/regimes.ts";
 import { useElementWidth } from "../hooks/useElementWidth.ts";
 import { useFocus } from "../hooks/focus.tsx";
 import { groupColor, Score, Trend } from "./figures.tsx";
@@ -29,15 +36,60 @@ const regimeLabel = (tile: MapTile) => {
 const fitsName = (r: Rect<MapTile>) => r.w >= 64 && r.h >= 30;
 const fitsFigures = (r: Rect<MapTile>) => r.w >= 92 && r.h >= 52;
 
+/** Height of a block's title strip, when the block is tall and wide enough to carry one. */
+const GROUP_HEAD = 22;
+/** Room between two blocks. */
+const GROUP_GAP = 3;
+
+/**
+ * Blocks first (area: the block's share), then each block's tiles inside it, under its title
+ * strip. Tiles keep their order within the block; their areas are shares of the block.
+ */
+function layoutGroups(
+  groups: readonly MapGroup[],
+  width: number,
+  height: number,
+): { blocks: Rect<MapGroup>[]; tiles: Rect<MapTile>[] } {
+  const blocks = squarify(groups, (g) => g.weight, width, height);
+  const tiles = blocks.flatMap((block) => {
+    const head = block.h >= 64 && block.w >= 80 ? GROUP_HEAD : 0;
+    const x = block.x + GROUP_GAP;
+    const y = block.y + GROUP_GAP + head;
+    const w = block.w - 2 * GROUP_GAP;
+    const h = block.h - 2 * GROUP_GAP - head;
+    return squarify(block.item.tiles, (t) => t.weight, w, h).map((r) => ({
+      ...r,
+      x: r.x + x,
+      y: r.y + y,
+    }));
+  });
+  return { blocks, tiles };
+}
+
 /**
  * Treemap of the market: each company's area is its share of the market's revenue over the last
- * 30 days, its colour its dynamics. Hover or focus lights the company up across the page.
+ * 30 days, its colour its dynamics. With `groups`, the map is cut into blocks (a sector, a
+ * consortium) holding their corporations. Hover or focus lights the company up across the page.
  */
-export function MarketMap({ tiles, height = 440 }: { tiles: MapTile[]; height?: number }) {
+export function MarketMap({
+  tiles,
+  groups = null,
+  height = 440,
+}: {
+  tiles: MapTile[];
+  groups?: readonly MapGroup[] | null;
+  height?: number;
+}) {
   const [ref, width] = useElementWidth<HTMLDivElement>();
   const { focused, setFocused } = useFocus();
   const [hover, setHover] = useState<Rect<MapTile> | null>(null);
-  const rects = width > 0 ? squarify(tiles, (t) => t.weight, width, height) : [];
+  const layout =
+    width <= 0
+      ? { blocks: [], tiles: [] }
+      : groups
+        ? layoutGroups(groups, width, height)
+        : { blocks: [], tiles: squarify(tiles, (t) => t.weight, width, height) };
+  const rects = layout.tiles;
 
   const enter = (rect: Rect<MapTile>) => {
     setHover(rect);
@@ -49,7 +101,25 @@ export function MarketMap({ tiles, height = 440 }: { tiles: MapTile[]; height?: 
   };
 
   return (
-    <div ref={ref} className="map" style={{ height }}>
+    <div ref={ref} className={`map${groups ? " map--grouped" : ""}`} style={{ height }}>
+      {layout.blocks.map((block) => (
+        <div
+          key={block.item.id}
+          className="map__group"
+          style={{ left: block.x, top: block.y, width: block.w, height: block.h }}
+          aria-hidden="true"
+        >
+          {block.h >= 64 && block.w >= 80 ? (
+            <span className="map__group-head">
+              {block.item.consortium ? (
+                <i style={{ background: groupColor(block.item.consortium) }} />
+              ) : null}
+              <span className="map__group-name">{block.item.label}</span>
+              <span className="map__group-share">{formatShare(block.item.weight)}</span>
+            </span>
+          ) : null}
+        </div>
+      ))}
       {rects.map((rect) => {
         const { item } = rect;
         const style = {
@@ -61,7 +131,7 @@ export function MarketMap({ tiles, height = 440 }: { tiles: MapTile[]; height?: 
         if (item.kind === "others") {
           return (
             <div
-              key="others"
+              key={`others-${Math.round(rect.x)}-${Math.round(rect.y)}`}
               className={`map__tile map__tile--others${focused ? " is-dim" : ""}`}
               style={style}
               tabIndex={0}

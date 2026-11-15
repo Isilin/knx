@@ -2,7 +2,7 @@ import { toDayNumber } from "./dates.ts";
 import type { CompanySeries, Market } from "./market.ts";
 import { rateBetween } from "./revenue.ts";
 import { SECTORS, type SectorId } from "./sectors.ts";
-import type { IsoDate } from "./types.ts";
+import type { Consortium, IsoDate } from "./types.ts";
 
 /** A sector taken as a whole, on the latest report. Every figure is estimated by KNX. */
 export interface SectorSummary {
@@ -18,6 +18,75 @@ export interface SectorSummary {
   dynamics: number | null;
   /** −1…1: median activity of its listed corporations. */
   activity: number | null;
+  /** Published headcount of its listed corporations, chief executives included. */
+  employees: number;
+  /** Published capital of its listed corporations. */
+  capital: number;
+  /**
+   * Herfindahl index of the revenue shares of its listed corporations over 30 days, 0…1: 1 when
+   * one corporation earns everything, 1/n when n share it equally.
+   */
+  hhi: number | null;
+  /** The corporation that earns the most, and its share of the sector. */
+  leader: { company: CompanySeries; share: number } | null;
+  /** Median real revenue per day per employee of its active corporations. */
+  revenuePerEmployee: number | null;
+  /** Median revenue of 30 days per credit of capital of its active corporations. */
+  revenueToCapital: number | null;
+}
+
+/** Real revenue per day per employee over the last 30 days; the chief executive counts. */
+export function revenuePerEmployee(c: CompanySeries): number | null {
+  const employees = c.latest.employees ?? 0;
+  return c.recentRate !== null && employees > 0 ? c.recentRate / employees : null;
+}
+
+/** Revenue of the last 30 days for each credit of published capital. */
+export function revenueToCapital(c: CompanySeries): number | null {
+  const capital = c.latest.capital ?? 0;
+  return c.recentRate !== null && capital > 0 ? (c.recentRate * 30) / capital : null;
+}
+
+export type ConcentrationLevel = "domine" | "concentre" | "modere" | "ouvert";
+
+/**
+ * Reading of a Herfindahl index, highest first. The 0.15 and 0.25 thresholds are those of the
+ * competition authorities; above 0.5, one corporation makes most of the sector.
+ */
+export const CONCENTRATION_LEVELS: readonly {
+  id: ConcentrationLevel;
+  label: string;
+  min: number;
+  help: string;
+}[] = [
+  {
+    id: "domine",
+    label: "Dominé",
+    min: 0.5,
+    help: "Une corporation fait l'essentiel des recettes.",
+  },
+  {
+    id: "concentre",
+    label: "Concentré",
+    min: 0.25,
+    help: "Deux ou trois corporations se partagent les recettes.",
+  },
+  {
+    id: "modere",
+    label: "Modérément concentré",
+    min: 0.15,
+    help: "Quelques corporations pèsent plus que les autres.",
+  },
+  {
+    id: "ouvert",
+    label: "Ouvert",
+    min: 0,
+    help: "Les recettes se répartissent entre de nombreuses corporations.",
+  },
+];
+
+export function concentrationOf(hhi: number): (typeof CONCENTRATION_LEVELS)[number] {
+  return CONCENTRATION_LEVELS.find((level) => hhi >= level.min) ?? CONCENTRATION_LEVELS[3];
 }
 
 /** Median of the known values; null when there is none. */
@@ -48,6 +117,13 @@ export function summarizeSectors(
     const lives = allLives.filter((c) => c.sector === id);
     const listed = companies.filter((c) => c.sector === id && c.status !== "delisted");
     const recentRate = lives.reduce((sum, c) => sum + (c.recentRate ?? 0), 0);
+    const active = listed.filter((c) => c.status === "active");
+    const earning = listed.filter((c) => (c.recentRate ?? 0) > 0);
+    const listedRate = earning.reduce((sum, c) => sum + (c.recentRate ?? 0), 0);
+    const top = earning.reduce<CompanySeries | null>(
+      (best, c) => (!best || (c.recentRate ?? 0) > (best.recentRate ?? 0) ? c : best),
+      null,
+    );
 
     const summary: SectorSummary = {
       id,
@@ -57,6 +133,16 @@ export function summarizeSectors(
       weight: marketRate > 0 ? recentRate / marketRate : null,
       dynamics: median(listed.map((c) => c.scores.dynamics)),
       activity: median(listed.map((c) => c.scores.activity)),
+      employees: listed.reduce((sum, c) => sum + (c.latest.employees ?? 0), 0),
+      capital: listed.reduce((sum, c) => sum + (c.latest.capital ?? 0), 0),
+      hhi:
+        listedRate > 0
+          ? earning.reduce((sum, c) => sum + ((c.recentRate ?? 0) / listedRate) ** 2, 0)
+          : null,
+      leader:
+        top && listedRate > 0 ? { company: top, share: (top.recentRate ?? 0) / listedRate } : null,
+      revenuePerEmployee: median(active.map(revenuePerEmployee)),
+      revenueToCapital: median(active.map(revenueToCapital)),
     };
     summaries.set(id, summary);
 
@@ -153,4 +239,54 @@ export function sectorShareHistory(
     }
   });
   return out;
+}
+
+/** One column of the sector × consortium table: a consortium, or the independent corporations. */
+export interface MatrixColumn {
+  consortium: Consortium | null;
+  /** Its listed corporations. */
+  listed: number;
+  /** Share of the market's real revenue over 30 days. */
+  weight: number;
+}
+
+export interface SectorMatrix {
+  columns: MatrixColumn[];
+  /** One row per sector holding listed corporations; each cell heaviest first. */
+  rows: { sector: SectorSummary; cells: CompanySeries[][] }[];
+  /** Listed corporations not filed under a sector yet. */
+  unfiled: CompanySeries[];
+}
+
+/**
+ * Where each consortium stands, sector by sector, on the latest report: its listed members in
+ * each sector, and the independent corporations last. Membership is today's.
+ */
+export function sectorConsortiumMatrix(market: Market): SectorMatrix {
+  const listed = market.companies.filter((c) => c.status !== "delisted");
+  const byRate = (a: CompanySeries, b: CompanySeries) =>
+    (b.recentRate ?? -1) - (a.recentRate ?? -1) || a.latest.rank - b.latest.rank;
+  const column = (consortium: Consortium | null): MatrixColumn => {
+    const members = listed.filter((c) => (c.consortium?.id ?? null) === (consortium?.id ?? null));
+    return {
+      consortium,
+      listed: members.length,
+      weight: members.reduce((sum, c) => sum + (c.scores.weight ?? 0), 0),
+    };
+  };
+  const columns = [...market.consortiums.map(column).filter((col) => col.listed > 0), column(null)];
+  const rows = [...market.sectors.values()]
+    .filter((sector) => sector.listed > 0)
+    .map((sector) => ({
+      sector,
+      cells: columns.map((col) =>
+        listed
+          .filter(
+            (c) =>
+              c.sector === sector.id && (c.consortium?.id ?? null) === (col.consortium?.id ?? null),
+          )
+          .sort(byRate),
+      ),
+    }));
+  return { columns, rows, unfiled: listed.filter((c) => c.sector === null).sort(byRate) };
 }
