@@ -565,7 +565,13 @@ export function buildMarket(dataset: Dataset): Market {
     balances.set(sheet.companyId, [...(balances.get(sheet.companyId) ?? []), sheet]);
   for (const c of allLives)
     c.valuation = summarizeValuation(
-      new LifeValuation(c, ratings.get(c.id) ?? [], params, balances.get(c.id) ?? []),
+      new LifeValuation(
+        c,
+        ratings.get(c.id) ?? [],
+        params,
+        balances.get(c.id) ?? [],
+        operations.get(c.id) ?? [],
+      ),
       operations.get(c.id) ?? [],
     );
 
@@ -671,7 +677,7 @@ export function refoundingMarkers(
 
 /** A life's valuation with its ratings and balance sheets, under the settings in force or others. */
 export function lifeValuation(
-  market: Pick<Market, "ratings" | "balances" | "valuation">,
+  market: Pick<Market, "ratings" | "balances" | "operations" | "valuation">,
   life: CompanySeries,
   params: ValuationParams = market.valuation.params,
 ): LifeValuation {
@@ -680,5 +686,6 @@ export function lifeValuation(
     market.ratings.get(life.id) ?? [],
     params,
     market.balances.get(life.id) ?? [],
+    market.operations.get(life.id) ?? [],
   );
 }

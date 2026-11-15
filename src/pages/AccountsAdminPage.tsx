@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { ImperialDate } from "../components/figures.tsx";
 import { MovementsTable } from "../components/MovementsTable.tsx";
@@ -12,6 +12,7 @@ import {
   type InvestorAccount,
 } from "../domain/investors.ts";
 import { formatInteger } from "../domain/numbers.ts";
+import { accountCash, type MarketOrder, type MarketTrade } from "../domain/trading.ts";
 import { SignIn } from "./ReportsPage.tsx";
 import "./BoursePage.css";
 import "./InvestorPage.css";
@@ -240,19 +241,91 @@ function DepositForm({
   );
 }
 
-function AccountsAdmin() {
+/** Corporations an account is declared an insider of (DG, employee): no trading their shares. */
+function InsiderEditor({
+  account,
+  companies,
+  onDone,
+}: {
+  account: InvestorAccount;
+  companies: readonly { profileId: string; name: string }[];
+  onDone: (saved: boolean) => void;
+}) {
   const { source } = useData();
+  const [chosen, setChosen] = useState<string[]>(account.insiderOf);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const save = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await source.setInsiders(account.id, chosen);
+      onDone(true);
+    } catch (err) {
+      setError(errorText(err));
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="accounts__insiders">
+      <label className="field">
+        <span className="label">
+          Initié de (DG, employé) : ces titres lui sont fermés · Ctrl ou Maj pour plusieurs
+        </span>
+        <select
+          multiple
+          size={8}
+          value={chosen}
+          onChange={(e) => setChosen([...e.target.selectedOptions].map((o) => o.value))}
+        >
+          {companies.map((c) => (
+            <option key={c.profileId} value={c.profileId}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <div className="accounts__actions">
+        <button type="button" className="button" disabled={busy} onClick={() => void save()}>
+          {busy ? "Enregistrement…" : "Enregistrer"}
+        </button>
+        <button type="button" className="linklike" onClick={() => onDone(false)}>
+          annuler
+        </button>
+      </div>
+      {error ? (
+        <p className="note note--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AccountsAdmin() {
+  const { source, state } = useData();
+  const market = state.status === "ready" ? state.market : null;
   const [accounts, setAccounts] = useState<InvestorAccount[] | null>(null);
   const [movements, setMovements] = useState<CashMovement[]>([]);
+  const [orders, setOrders] = useState<MarketOrder[]>([]);
+  const [trades, setTrades] = useState<MarketTrade[]>([]);
+  const [insiderFor, setInsiderFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState("");
   const [handover, setHandover] = useState<{ login: string; password: string } | null>(null);
 
   const refresh = useCallback(() => {
-    Promise.all([source.investorAccounts(), source.cashMovements()]).then(
-      ([a, m]) => {
+    Promise.all([
+      source.investorAccounts(),
+      source.cashMovements(),
+      source.marketOrders(),
+      source.marketTrades(),
+    ]).then(
+      ([a, m, o, t]) => {
         setAccounts(a);
         setMovements(m);
+        setOrders(o);
+        setTrades(t);
         setError(null);
       },
       (err: unknown) => setError(errorText(err)),
@@ -265,6 +338,15 @@ function AccountsAdmin() {
     for (const m of movements) map.set(m.accountId, [...(map.get(m.accountId) ?? []), m]);
     return map;
   }, [movements]);
+  const companies = useMemo(
+    () =>
+      (market?.companies ?? [])
+        .map((c) => ({ profileId: c.profileId, name: c.name }))
+        .sort((a, b) => a.name.localeCompare(b.name, "fr")),
+    [market],
+  );
+  const companyName = (profileId: string) =>
+    companies.find((c) => c.profileId === profileId)?.name ?? "corporation inconnue";
   const nameOf = (id: string) => {
     const a = accounts?.find((x) => x.id === id);
     return a ? `${a.login} · ${a.displayName}` : "?";
@@ -415,37 +497,75 @@ function AccountsAdmin() {
                 </thead>
                 <tbody>
                   {(accounts ?? []).map((a) => {
-                    const cash = cashBalance(byAccount.get(a.id) ?? []);
+                    const cash = accountCash(
+                      byAccount.get(a.id) ?? [],
+                      trades.filter((t) => t.accountId === a.id),
+                      orders.filter((o) => o.accountId === a.id),
+                    );
                     return (
-                      <tr key={a.id}>
-                        <th scope="row">
-                          <strong>{a.login}</strong> {a.displayName}
-                          {a.closedAt ? <span className="bourse__off"> · fermé</span> : null}
-                        </th>
-                        <td className="num">{formatInteger(cash.balance)} ¢</td>
-                        <td className="num secondary">
-                          {cash.pending > 0 ? `${formatInteger(cash.pending)} ¢` : "—"}
-                        </td>
-                        <td className="secondary">
-                          {a.mustChangePassword ? (
-                            <span className="bourse__off">temporaire</span>
-                          ) : (
-                            "choisi"
-                          )}
-                        </td>
-                        <td className="accounts__row-actions">
-                          <button
-                            type="button"
-                            className="linklike"
-                            onClick={() => setSelected(a.id)}
-                          >
-                            dépôt
-                          </button>
-                          <button type="button" className="linklike" onClick={() => void reset(a)}>
-                            nouveau mot de passe
-                          </button>
-                        </td>
-                      </tr>
+                      <Fragment key={a.id}>
+                        <tr>
+                          <th scope="row">
+                            <strong>{a.login}</strong> {a.displayName}
+                            {a.closedAt ? <span className="bourse__off"> · fermé</span> : null}
+                            {a.insiderOf.length > 0 ? (
+                              <span className="accounts__insider-list">
+                                initié de {a.insiderOf.map(companyName).join(", ")}
+                              </span>
+                            ) : null}
+                          </th>
+                          <td className="num">{formatInteger(cash.balance)} ¢</td>
+                          <td className="num secondary">
+                            {cash.pending > 0 ? `${formatInteger(cash.pending)} ¢` : "—"}
+                          </td>
+                          <td className="secondary">
+                            {a.mustChangePassword ? (
+                              <span className="bourse__off">temporaire</span>
+                            ) : (
+                              "choisi"
+                            )}
+                          </td>
+                          <td className="accounts__row-actions">
+                            <button
+                              type="button"
+                              className="linklike"
+                              onClick={() => setSelected(a.id)}
+                            >
+                              dépôt
+                            </button>
+                            <button
+                              type="button"
+                              className="linklike"
+                              onClick={() => void reset(a)}
+                            >
+                              nouveau mot de passe
+                            </button>
+                            {market ? (
+                              <button
+                                type="button"
+                                className="linklike"
+                                onClick={() => setInsiderFor(insiderFor === a.id ? null : a.id)}
+                              >
+                                initiés
+                              </button>
+                            ) : null}
+                          </td>
+                        </tr>
+                        {insiderFor === a.id ? (
+                          <tr>
+                            <td colSpan={5}>
+                              <InsiderEditor
+                                account={a}
+                                companies={companies}
+                                onDone={(saved) => {
+                                  setInsiderFor(null);
+                                  if (saved) refresh();
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
                     );
                   })}
                 </tbody>

@@ -6,6 +6,7 @@ import {
   type CashMovement,
   type InvestorAccount,
 } from "../domain/investors.ts";
+import type { MarketOrder, MarketSession, MarketTrade } from "../domain/trading.ts";
 import { VALUATION_METHOD } from "../domain/valuation.ts";
 import type {
   ApiKey,
@@ -65,7 +66,7 @@ const MISSING_INVESTOR_TABLES =
   "tables des comptes investisseurs absentes : exécuter la migration 20261121000000_comptes_investisseurs.sql.";
 
 const ACCOUNT_COLUMNS =
-  "user_id, login, display_name, must_change_password, note, closed_at, created_at";
+  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of";
 
 interface AccountRow {
   user_id: string;
@@ -75,6 +76,8 @@ interface AccountRow {
   note: string | null;
   closed_at: string | null;
   created_at: string;
+  /** Absent before the migration of the market sessions. */
+  insider_of?: (number | string)[] | null;
 }
 
 interface MovementRow {
@@ -96,6 +99,7 @@ const accountOf = (r: AccountRow): InvestorAccount => ({
   note: r.note,
   closedAt: r.closed_at,
   createdAt: r.created_at,
+  insiderOf: (r.insider_of ?? []).map(String),
 });
 
 const movementOf = (r: MovementRow): CashMovement => ({
@@ -108,6 +112,115 @@ const movementOf = (r: MovementRow): CashMovement => ({
   requestedAt: r.requested_at,
   settledAt: r.settled_at,
 });
+
+interface SessionRow {
+  id: number;
+  opened_on: string;
+  closed_on: string | null;
+  report_date: string | null;
+  status: MarketSession["status"];
+  prices: {
+    company_id: number | string;
+    shares: number;
+    reference: number;
+    premium: number;
+    price: number;
+    buy: number;
+    sell: number;
+    demand: number;
+    supply: number;
+  }[];
+}
+
+const sessionOf = (r: SessionRow): MarketSession => ({
+  id: String(r.id),
+  openedOn: r.opened_on,
+  closedOn: r.closed_on,
+  reportDate: r.report_date,
+  status: r.status,
+  prices: (r.prices ?? []).map((p) => ({
+    companyId: String(p.company_id),
+    shares: Number(p.shares),
+    reference: Number(p.reference),
+    premium: Number(p.premium),
+    price: Number(p.price),
+    buy: Number(p.buy),
+    sell: Number(p.sell),
+    demand: Number(p.demand),
+    supply: Number(p.supply),
+  })),
+});
+
+interface OrderRow {
+  id: number;
+  session_id: number;
+  account_id: string;
+  company_id: number;
+  side: MarketOrder["side"];
+  quantity: number;
+  limit_price: number | string;
+  reserved: number;
+  status: MarketOrder["status"];
+  filled_quantity: number;
+  fill_price: number | string | null;
+  reason: string | null;
+  created_at: string;
+  closed_at: string | null;
+}
+
+const orderOf = (r: OrderRow): MarketOrder => ({
+  id: String(r.id),
+  sessionId: String(r.session_id),
+  accountId: r.account_id,
+  companyId: String(r.company_id),
+  side: r.side,
+  quantity: Number(r.quantity),
+  limitPrice: Number(r.limit_price),
+  reserved: Number(r.reserved),
+  status: r.status,
+  filledQuantity: Number(r.filled_quantity),
+  fillPrice: r.fill_price === null ? null : Number(r.fill_price),
+  reason: r.reason,
+  createdAt: r.created_at,
+  closedAt: r.closed_at,
+});
+
+interface TradeRow {
+  id: number;
+  session_id: number;
+  order_id: number;
+  account_id: string;
+  company_id: number;
+  side: MarketTrade["side"];
+  quantity: number;
+  price: number | string;
+  amount: number;
+  commission: number;
+  created_at: string;
+}
+
+const tradeOf = (r: TradeRow): MarketTrade => ({
+  id: String(r.id),
+  sessionId: String(r.session_id),
+  orderId: String(r.order_id),
+  accountId: r.account_id,
+  companyId: String(r.company_id),
+  side: r.side,
+  quantity: Number(r.quantity),
+  price: Number(r.price),
+  amount: Number(r.amount),
+  commission: Number(r.commission),
+  createdAt: r.created_at,
+});
+
+const MISSING_MARKET_TABLES =
+  "tables de la séance absentes : exécuter la migration 20261122000000_seances_marche.sql.";
+
+/** Errors of the market functions. */
+function marketWriteMessage(error: { message: string; code?: string }): Error {
+  if (error.code === "PGRST202" || isMissingTable(error)) return new Error(MISSING_MARKET_TABLES);
+  return writeMessage(error);
+}
 
 /** Errors of the account functions: the database speaks French already. */
 function investorWriteMessage(error: { message: string; code?: string }): Error {
@@ -504,6 +617,90 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     async settleWithdrawal(id) {
       const { error } = await client.rpc("settle_withdrawal", { p_id: Number(id) });
       if (error) throw investorWriteMessage(error);
+    },
+    async setInsiders(accountId, profileIds) {
+      const { data, error } = await client
+        .from("investor_accounts")
+        .update({ insider_of: profileIds.map(Number) })
+        .eq("user_id", accountId)
+        .select("user_id");
+      if (error) throw marketWriteMessage(error);
+      if (!data || data.length === 0)
+        throw new Error("modification refusée ou compte introuvable.");
+    },
+    async marketSessions() {
+      const { data, error } = await client
+        .from("market_sessions")
+        .select("id, opened_on, closed_on, report_date, status, prices")
+        .order("opened_at", { ascending: false })
+        .limit(60);
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des séances impossible : ${error.message}`);
+      }
+      return (data as SessionRow[]).map(sessionOf);
+    },
+    async marketOrders() {
+      const { data, error } = await client
+        .from("market_orders")
+        .select(
+          "id, session_id, account_id, company_id, side, quantity, limit_price, reserved, status, filled_quantity, fill_price, reason, created_at, closed_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des ordres impossible : ${error.message}`);
+      }
+      return (data as OrderRow[]).map(orderOf);
+    },
+    async marketTrades() {
+      const { data, error } = await client
+        .from("market_trades")
+        .select(
+          "id, session_id, order_id, account_id, company_id, side, quantity, price, amount, commission, created_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des exécutions impossible : ${error.message}`);
+      }
+      return (data as TradeRow[]).map(tradeOf);
+    },
+    async placeOrder({ companyId, side, quantity, limit }) {
+      const { error } = await client.rpc("place_order", {
+        p_company: Number(companyId),
+        p_side: side,
+        p_quantity: quantity,
+        p_limit: limit,
+      });
+      if (error) throw marketWriteMessage(error);
+    },
+    async cancelOrder(id) {
+      const { error } = await client.rpc("cancel_order", { p_id: Number(id) });
+      if (error) throw marketWriteMessage(error);
+    },
+    async openSession(date) {
+      const { error } = await client.rpc("open_session", { p_date: date });
+      if (error) throw marketWriteMessage(error);
+    },
+    async closeSession(sessionId, reportDate, prices, params) {
+      const { error } = await client.rpc("close_session", {
+        p_session: Number(sessionId),
+        p_report: reportDate,
+        p_prices: prices.map((p) => ({
+          company_id: Number(p.companyId),
+          shares: p.shares,
+          reference: p.reference,
+          premium: p.premium,
+          price: p.price,
+          buy: p.buy,
+          sell: p.sell,
+          demand: p.demand,
+          supply: p.supply,
+        })),
+        p_params: params,
+      });
+      if (error) throw marketWriteMessage(error);
     },
     async requestSignIn(email: string) {
       const { error } = await client.auth.signInWithOtp({

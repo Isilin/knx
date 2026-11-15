@@ -9,7 +9,13 @@ import {
 import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanySeries } from "./market.ts";
 import type { CompanyRating, RatingCategory, RatingConfidence } from "./rating.ts";
-import { listingSteps, stepOn, type ListingState, type SecurityOperation } from "./securities.ts";
+import {
+  listingSteps,
+  stepOn,
+  type ListingState,
+  type ListingStep,
+  type SecurityOperation,
+} from "./securities.ts";
 import type { IsoDate } from "./types.ts";
 
 /**
@@ -76,6 +82,25 @@ export interface ValuationParams {
   declaredWeight: number;
   /** Days over which a stock fades to nothing without a new figure: it sells. */
   stockLife: number;
+  /**
+   * Weight of a declared figure once the corporation is listed: real credits ride on its price,
+   * so only what the Agence audited should count.
+   */
+  listedDeclaredWeight: number;
+  /** Share of each trade's amount the exchange keeps, from buyers and sellers alike. */
+  commission: number;
+  /** Gap between the buying and selling price around the fixing price (half on each side). */
+  spread: number;
+  /** How far the premium moves for a net demand of the whole share count. */
+  premiumSensitivity: number;
+  /** Sessions after which half of a premium is gone. */
+  premiumHalfLife: number;
+  /** Largest premium or discount on the KNX price. */
+  premiumBand: number;
+  /** Share of a corporation's shares the players may hold together. */
+  holdCap: number;
+  /** Share of a corporation's shares one player may hold. */
+  playerCap: number;
 }
 
 export const DEFAULT_VALUATION: ValuationParams = {
@@ -106,6 +131,14 @@ export const DEFAULT_VALUATION: ValuationParams = {
   stockWeight: 1,
   declaredWeight: 0.5,
   stockLife: 30,
+  listedDeclaredWeight: 0,
+  commission: 0.01,
+  spread: 0.02,
+  premiumSensitivity: 0.5,
+  premiumHalfLife: 2,
+  premiumBand: 0.25,
+  holdCap: 0.2,
+  playerCap: 0.05,
 };
 
 /** Bounds of each lever, checked before publishing settings. */
@@ -124,6 +157,12 @@ export const PARAM_BOUNDS = {
   introductionPrice: [1, 1_000_000],
   assetWeight: [0, 1],
   stockLife: [1, 365],
+  commission: [0, 0.1],
+  spread: [0, 0.2],
+  premiumSensitivity: [0, 5],
+  premiumHalfLife: [0.5, 52],
+  premiumBand: [0, 0.9],
+  cap: [0, 1],
 } as const;
 
 /** A published version of the settings. The latest one is in force. */
@@ -185,6 +224,14 @@ export function cleanParams(raw: unknown): ValuationParams {
     stockWeight: num(r.stockWeight, d.stockWeight),
     declaredWeight: num(r.declaredWeight, d.declaredWeight),
     stockLife: num(r.stockLife, d.stockLife),
+    listedDeclaredWeight: num(r.listedDeclaredWeight, d.listedDeclaredWeight),
+    commission: num(r.commission, d.commission),
+    spread: num(r.spread, d.spread),
+    premiumSensitivity: num(r.premiumSensitivity, d.premiumSensitivity),
+    premiumHalfLife: num(r.premiumHalfLife, d.premiumHalfLife),
+    premiumBand: num(r.premiumBand, d.premiumBand),
+    holdCap: num(r.holdCap, d.holdCap),
+    playerCap: num(r.playerCap, d.playerCap),
   };
 }
 
@@ -224,6 +271,16 @@ export function checkParams(params: ValuationParams): void {
   within("Poids d'un chiffre déclaré", params.declaredWeight, b.assetWeight);
   within("Durée de vie du stock", params.stockLife, b.stockLife);
   whole("Durée de vie du stock", params.stockLife);
+  within("Chiffre déclaré, corporation cotée", params.listedDeclaredWeight, b.assetWeight);
+  within("Commission", params.commission, b.commission);
+  within("Écart achat-vente", params.spread, b.spread);
+  within("Sensibilité de la prime", params.premiumSensitivity, b.premiumSensitivity);
+  within("Demi-vie de la prime", params.premiumHalfLife, b.premiumHalfLife);
+  within("Bande de la prime", params.premiumBand, b.premiumBand);
+  within("Plafond des joueurs", params.holdCap, b.cap);
+  within("Plafond par joueur", params.playerCap, b.cap);
+  if (params.playerCap > params.holdCap)
+    throw new Error("Plafond par joueur : pas plus que le plafond des joueurs réunis");
 }
 
 /** The settings in force: the latest published version, or the defaults. */
@@ -339,6 +396,8 @@ class RevenueBook {
 export interface CountedAsset extends KnownFigure {
   /** Credits counted in the value: amount × item weight × source weight (× fading, stock). */
   counted: number;
+  /** Weight of its source: 1 audited, the declared weight otherwise. */
+  trust: number;
   /** Stock only: share left after fading, 0–1. */
   fade?: number;
 }
@@ -398,6 +457,7 @@ export class LifeValuation {
   readonly params: ValuationParams;
   private readonly ratings: readonly CompanyRating[];
   private readonly sheets: readonly BalanceSheet[];
+  private readonly steps: ListingStep[];
   private readonly book: RevenueBook;
   private readonly cache = new Map<number, ValuationPoint | null>();
 
@@ -406,11 +466,13 @@ export class LifeValuation {
     ratings: readonly CompanyRating[],
     params: ValuationParams,
     sheets: readonly BalanceSheet[] = [],
+    operations: readonly SecurityOperation[] = [],
   ) {
     this.life = life;
     this.ratings = ratings;
     this.params = params;
     this.sheets = sheets;
+    this.steps = listingSteps(operations);
     this.book = new RevenueBook(life.points, params);
   }
 
@@ -418,6 +480,10 @@ export class LifeValuation {
   assetsOn(date: IsoDate): Record<BalanceItem, CountedAsset | null> {
     const { params } = this;
     const figures = figuresOn(this.sheets, date);
+    // Listed, real credits ride on the price: a declared figure weighs what the levers say then.
+    const state = stepOn(this.steps, date)?.state;
+    const listed = state === "listed" || state === "suspended";
+    const declared = listed ? params.listedDeclaredWeight : params.declaredWeight;
     const weights: Record<BalanceItem, number> = {
       land: params.landWeight,
       building: params.buildingWeight,
@@ -431,11 +497,12 @@ export class LifeValuation {
         counted[item] = null;
         continue;
       }
-      const trust = figure.source === "audited" ? 1 : params.declaredWeight;
+      const trust = figure.source === "audited" ? 1 : declared;
       const fade =
         item === "stock" ? Math.max(0, 1 - figureAge(figure, date) / params.stockLife) : undefined;
       counted[item] = {
         ...figure,
+        trust,
         counted: figure.amount * weights[item] * trust * (fade ?? 1),
         ...(fade === undefined ? {} : { fade }),
       };

@@ -151,7 +151,7 @@ function Receipt({
                 <td className="receipt__why">
                   {formatInteger(asset.amount)} ¢ × {formatShare(ITEM_WEIGHT[item](params))}
                   {asset.source === "declared"
-                    ? ` × ${formatShare(params.declaredWeight)} (déclaré)`
+                    ? ` × ${formatShare(asset.trust)} (déclaré)`
                     : " (audité)"}
                   {asset.fade !== undefined ? ` × ${formatShare(asset.fade)} (fraîcheur)` : null}
                   {" · "}

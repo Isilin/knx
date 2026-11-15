@@ -74,14 +74,18 @@ function BalanceForm({ market, dataset }: { market: Market; dataset: Dataset }) 
         market.ratings.get(company.id) ?? [],
         market.valuation.params,
         sheets,
+        market.operations.get(company.id) ?? [],
       ).on(date)
     : null;
   const after =
     company && planned
-      ? new LifeValuation(company, market.ratings.get(company.id) ?? [], market.valuation.params, [
-          ...sheets,
-          { ...planned, id: "aperçu" },
-        ]).on(date)
+      ? new LifeValuation(
+          company,
+          market.ratings.get(company.id) ?? [],
+          market.valuation.params,
+          [...sheets, { ...planned, id: "aperçu" }],
+          market.operations.get(company.id) ?? [],
+        ).on(date)
       : null;
 
   const submit = async (event: FormEvent) => {

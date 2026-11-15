@@ -1,5 +1,12 @@
 import type { ResolvedRows } from "../domain/identity.ts";
 import type { CashMovement, InvestorAccount } from "../domain/investors.ts";
+import type {
+  MarketOrder,
+  MarketSession,
+  MarketTrade,
+  OrderSide,
+  SessionPrice,
+} from "../domain/trading.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
   BalanceSheetDraft,
@@ -129,6 +136,29 @@ export interface DataSource {
   recordDeposit(accountId: string, amount: number, note: string | null): Promise<void>;
   /** The withdrawal was paid in the game. */
   settleWithdrawal(id: string): Promise<void>;
+  /** Pages an account is declared an insider of (operators only). */
+  setInsiders(accountId: string, profileIds: string[]): Promise<void>;
+  /** Market sessions, the latest first (public). */
+  marketSessions(): Promise<MarketSession[]>;
+  /** The signed-in player's orders and trades; every account's for an operator. */
+  marketOrders(): Promise<MarketOrder[]>;
+  marketTrades(): Promise<MarketTrade[]>;
+  placeOrder(draft: {
+    companyId: string;
+    side: OrderSide;
+    quantity: number;
+    limit: number;
+  }): Promise<void>;
+  cancelOrder(id: string): Promise<void>;
+  /** Opens the first session (each close opens the next). */
+  openSession(date: string): Promise<void>;
+  /** Fills the session's orders at the prices fixed, then opens the next session. */
+  closeSession(
+    sessionId: string,
+    reportDate: string,
+    prices: SessionPrice[],
+    params: Record<string, number>,
+  ): Promise<void>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
   /** Signs in with an operator password; resolves once the session exists. */
