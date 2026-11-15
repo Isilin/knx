@@ -253,10 +253,10 @@ export function MarketPage() {
           <ImperialDate date={facts.date} />
         </Fact>
         <Fact
-          label="Écart"
+          label="Intervalle"
           detail={
             facts.previousDate
-              ? `depuis le ${formatImperialDate(facts.previousDate)}`
+              ? `depuis le relevé précédent, du ${formatImperialDate(facts.previousDate)}`
               : "premier relevé"
           }
         >
