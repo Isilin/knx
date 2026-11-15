@@ -127,6 +127,17 @@ describe("buildTimeline across lives", () => {
     expect(timeline.find((e) => e.title === "Destruction")?.companyId).toBe("1");
   });
 
+  it("names the refounding itself when its date cannot be estimated", () => {
+    const undated = buildMarket({
+      ...dataset,
+      companies: dataset.companies.map((c) => ({ ...c, profileId: "1", creationOverride: null })),
+    }).lives.get("1")!;
+    const titles = buildTimeline(undated, []).map((e) => [e.date, e.title]);
+    expect(titles).toContainEqual(["2026-11-11", "Refondation"]);
+    expect(titles).toContainEqual(["2026-11-11", "Destruction"]);
+    expect(titles.some(([, t]) => t === "Premier relevé après la refondation")).toBe(false);
+  });
+
   it("files an event under the life of its date", () => {
     expect(lifeAt(lives, "2026-11-05").id).toBe("1");
     expect(lifeAt(lives, "2026-11-12").id).toBe("2");

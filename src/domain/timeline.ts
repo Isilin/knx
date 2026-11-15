@@ -221,15 +221,21 @@ function lifeEntries(
       }),
     );
 
+  // Without a dated founding, the refounding itself is told at the new life's first report.
+  const dated = creation?.method === "manual" || creation?.method === "bounds";
   list.push(
     entry({
       key: key("first-seen"),
       companyId,
       date: company.firstSeen,
-      title: refounding ? "Premier relevé après la refondation" : "Premier relevé KNX",
+      title: !refounding
+        ? "Premier relevé KNX"
+        : dated
+          ? "Premier relevé après la refondation"
+          : "Refondation",
       note:
-        refounding && creation?.method !== "manual" && creation?.method !== "bounds"
-          ? "Nouvelle vie : l'âge et le CA moyen repartent de zéro."
+        refounding && !dated
+          ? "Constatée au premier relevé de la nouvelle vie : l'âge et le CA moyen repartent de zéro."
           : null,
     }),
   );

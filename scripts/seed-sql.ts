@@ -73,6 +73,18 @@ export function toSeedSql(dataset: Dataset): string {
     "",
   );
 
+  if (dataset.events.length > 0)
+    out.push(
+      "insert into public.company_events (company_id, occurred_on, kind, details, note, origin) values",
+      dataset.events
+        .map(
+          (e) =>
+            `  (${Number(e.companyId)}, ${text(e.date)}, ${text(e.kind)}, ${text(JSON.stringify(e.details))}::jsonb, ${nullable(e.note)}, ${text(e.origin)})`,
+        )
+        .join(",\n") + ";",
+      "",
+    );
+
   for (const snapshot of dataset.snapshots) {
     out.push(
       `insert into public.snapshots (taken_on, source) values (${text(snapshot.date)}, ${text(snapshot.source)});`,
