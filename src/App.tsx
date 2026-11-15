@@ -1,6 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router";
 import { Layout } from "./app/Layout.tsx";
 import { DataProvider } from "./data/DataProvider.tsx";
+import { BourseAdminPage } from "./pages/BourseAdminPage.tsx";
+import { BoursePage } from "./pages/BoursePage.tsx";
 import { CompaniesPage } from "./pages/CompaniesPage.tsx";
 import { CompanyPage } from "./pages/CompanyPage.tsx";
 import { ConsortiumsPage } from "./pages/ConsortiumsPage.tsx";
@@ -20,6 +22,8 @@ const router = createBrowserRouter([
       { path: "secteurs", element: <SectorsPage /> },
       { path: "consortiums", element: <ConsortiumsPage /> },
       { path: "etudes", element: <StudiesPage /> },
+      { path: "bourse", element: <BoursePage /> },
+      { path: "bourse/reglages", element: <BourseAdminPage /> },
       { path: "releves", element: <ReportsPage /> },
       { path: "*", element: <NotFoundPage /> },
     ],

@@ -154,8 +154,10 @@ fiches ; ce second fichier peut être rejoué sans doublon.
    (évènements de marché, dont la Faille ZD-385), `20261116000000_corporations_masquees.sql`
    (corporations masquées, dont MJ Immo), `20261117000000_notation_agence.sql` (notations et
    quartier des corporations), `20261118000000_fiches_vies.sql` (une fiche pour plusieurs
-   vies) et `20261119000000_adhesions_consortiums.sql` (consortiums datés : chaque consortium
-   actuel devient une période ouverte, à dater ensuite depuis les fiches), puis
+   vies), `20261119000000_adhesions_consortiums.sql` (consortiums datés : chaque consortium
+   actuel devient une période ouverte, à dater ensuite depuis les fiches) et
+   `20261120000000_cours_theorique.sql` (réglages de la valeur KNX et opérations sur titres ;
+   sans elle, le site tourne avec les réglages par défaut et aucune corporation introduite), puis
    `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
    seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
    consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket

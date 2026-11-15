@@ -7,6 +7,8 @@ import type {
   MarketEventDraft,
   ProfilePatch,
   RatingDraft,
+  SecurityOperationDraft,
+  ValuationSettingsDraft,
 } from "../domain/mutations.ts";
 import type {
   Dataset,
@@ -26,6 +28,8 @@ export type {
   PublishRequest,
   RatingDraft,
   ResolvedRows,
+  SecurityOperationDraft,
+  ValuationSettingsDraft,
 };
 
 export type Session =
@@ -87,6 +91,11 @@ export interface DataSource {
   publishRating(draft: RatingDraft): Promise<void>;
   /** Withdraws a published rating. */
   deleteRating(id: string): Promise<void>;
+  /** Publishes a new version of the theoretical value's settings; it takes effect at once. */
+  publishValuationSettings(draft: ValuationSettingsDraft): Promise<void>;
+  /** Records an operation on securities, already checked with `planOperation`. */
+  saveSecurityOperation(draft: SecurityOperationDraft): Promise<void>;
+  deleteSecurityOperation(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;

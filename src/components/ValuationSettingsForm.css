@@ -1,0 +1,229 @@
+/* Levers of the theoretical value, with the preview of their effect before publishing. */
+.levers,
+.ops {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-7) 0 var(--s-6);
+  border-top: 1px solid var(--filet);
+}
+
+.levers__groups {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--s-5) var(--s-6);
+  align-items: start;
+}
+
+.levers fieldset {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+  margin: 0;
+  padding: var(--s-3) 0 0;
+  border: 0;
+  border-top: 1px solid var(--filet-fort);
+}
+
+.levers legend {
+  float: left;
+  width: 100%;
+  margin-bottom: var(--s-1);
+  padding: 0;
+}
+
+.levers__pairs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.levers__field {
+  min-width: 0;
+}
+
+.levers__sub {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.levers__input {
+  display: flex;
+  align-items: center;
+  gap: var(--s-2);
+  min-width: 0;
+}
+
+.levers__input input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.levers__unit {
+  flex: none;
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.levers__help {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
+.levers__muted {
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.levers__impact {
+  display: grid;
+  gap: var(--s-3);
+  padding: var(--s-4);
+  border: 1px solid var(--filet);
+  background: var(--laque-2);
+}
+
+.levers__changes {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--or-clair);
+  font-size: var(--fs-sm);
+}
+
+.levers__summary {
+  font-size: var(--fs-sm);
+}
+
+.levers__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+
+.levers__table th,
+.levers__table td {
+  padding: var(--s-1) var(--s-3) var(--s-1) 0;
+  border-bottom: 1px solid var(--filet);
+  text-align: left;
+  font-weight: 400;
+}
+
+.levers__table thead th {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.levers__table a {
+  color: var(--ivoire);
+}
+
+.levers__table .num {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.levers__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-3);
+}
+
+/* Operations: the form beside the recorded journal. */
+.ops__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--s-6) var(--s-7);
+  align-items: start;
+}
+
+.ops-form {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.ops-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--s-3);
+}
+
+.ops-form__preview {
+  padding: var(--s-3);
+  border-left: 2px solid var(--estime);
+  background: var(--estime-fond);
+  font-size: var(--fs-sm);
+}
+
+.ops__journal {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.ops__journal ol {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--fs-sm);
+}
+
+.ops__journal li {
+  display: grid;
+  grid-template-columns: 8em minmax(0, 1fr) auto;
+  gap: var(--s-3);
+  align-items: baseline;
+  padding: var(--s-2) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.ops__journal .idate {
+  color: var(--gris);
+}
+
+.ops__journal a {
+  color: var(--ivoire);
+}
+
+.ops__journal strong {
+  font-weight: 500;
+}
+
+@media (max-width: 1100px) {
+  .levers__groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .ops__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .levers__groups,
+  .levers__pairs,
+  .ops-form__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ops__journal li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .ops__journal li .idate {
+    grid-column: 1 / -1;
+  }
+}
+
+.levers__column {
+  display: grid;
+  gap: var(--s-5);
+  min-width: 0;
+}
