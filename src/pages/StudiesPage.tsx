@@ -13,26 +13,80 @@ import {
   formatShare,
 } from "../domain/numbers.ts";
 import { sectorShort } from "../domain/sectors.ts";
-import { districtSectors, eventShock, revenueQuality, supplyChain } from "../domain/studies.ts";
+import {
+  districtSectors,
+  eventShock,
+  revenueQuality,
+  SUPPLY_CHAIN,
+  supplyChain,
+  type ChainLink,
+} from "../domain/studies.ts";
 import "./SectorsPage.css";
 import "./StudiesPage.css";
 
-/** `+2 semaines`, `−1 semaine`, `même semaine`. */
-function lagText(weeks: number): string {
+/** `2 semaines après les usines`, `la même semaine`. */
+function lagText(weeks: number, supplier: string): string {
   if (weeks === 0) return "la même semaine";
   const n = Math.abs(weeks);
-  return `${n} semaine${n > 1 ? "s" : ""} ${weeks > 0 ? "après les usines" : "avant les usines"}`;
+  return `${n} semaine${n > 1 ? "s" : ""} ${weeks > 0 ? "après" : "avant"} les ${supplier.toLowerCase()}`;
 }
 
-function SupplyChain() {
+/** Tier colours: ivory upstream, greys downstream; every line is labelled at its end. */
+const TIER_COLORS = ["var(--ivoire)", "var(--gris)", "var(--gris-2)"];
+
+/** One link of the chain: how the customer's changes follow its supplier's, lag by lag. */
+function LinkBars({ link }: { link: ChainLink }) {
+  const supplier = SUPPLY_CHAIN[link.from].label;
+  const customer = SUPPLY_CHAIN[link.to].label;
+  const strong = link.best !== null && link.best.r >= 0.3;
+  return (
+    <div className="chain-link">
+      <h3 className="label">
+        {supplier} → {customer}
+      </h3>
+      <p className="studies__lead">
+        {link.best === null
+          ? "Trop peu d'heptades mesurables pour le dire."
+          : strong
+            ? `Les variations se ressemblent le plus en lisant les ${customer.toLowerCase()} ${lagText(link.best.lagWeeks, supplier)} (corrélation ${formatDecimal(link.best.r)}).`
+            : `Aucun lien net : la plus forte corrélation ne dépasse pas ${formatDecimal(link.best.r)}.`}
+      </p>
+      <ol
+        className="lag-bars"
+        aria-label={`Corrélation selon le décalage des ${customer.toLowerCase()}, en heptades`}
+      >
+        {link.correlations.map((c) => (
+          <li
+            key={c.lagWeeks}
+            className={c.lagWeeks === link.best?.lagWeeks ? "is-best" : undefined}
+            title={`${c.lagWeeks > 0 ? "+" : ""}${c.lagWeeks} : ${c.r === null ? "non mesurable" : formatDecimal(c.r)} (${c.n} paires)`}
+          >
+            <span className="lag-bars__bar">
+              {c.r !== null ? (
+                <span
+                  className={c.r >= 0 ? "is-up" : "is-down"}
+                  style={{ height: `${Math.abs(c.r) * 50}%` }}
+                />
+              ) : null}
+            </span>
+            <span className="lag-bars__lag">
+              {c.lagWeeks % 2 === 0 ? (c.lagWeeks > 0 ? `+${c.lagWeeks}` : c.lagWeeks) : ""}
+            </span>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
+
+function SupplyChainSection() {
   const market = useMarket();
   const chain = useMemo(() => supplyChain(market), [market]);
   const markers = useMemo(() => marketMarkers(market.marketEvents), [market.marketEvents]);
-  const strong = chain.best !== null && chain.best.r >= 0.3;
   return (
     <section className="sectors__section" aria-labelledby="filiere">
       <div className="section-head">
-        <h2 id="filiere">De l'usine aux boutiques</h2>
+        <h2 id="filiere">De l'usine à l'atelier</h2>
         <p>
           <span className="estimated">recette réelle par jour</span> sur 30 jours, chaque heptade
         </p>
@@ -42,77 +96,40 @@ function SupplyChain() {
           Pas assez de relevés couverts par les secteurs pour suivre la filière.
         </p>
       ) : (
-        <div className="studies__pair">
-          <div>
-            <TimeChart
-              label="Recette réelle par jour des usines et des boutiques qu'elles fournissent"
-              formatValue={(v) => `${formatInteger(v)} ¢/j`}
-              height={280}
-              zeroBased
-              markers={markers}
-              series={[
-                {
-                  id: "upstream",
-                  label: "Usines",
-                  color: "var(--ivoire)",
-                  points: chain.points.map((p) => ({ date: p.date, value: p.upstream })),
-                },
-                {
-                  id: "downstream",
-                  label: "Boutiques",
-                  color: "var(--gris)",
-                  points: chain.points.map((p) => ({ date: p.date, value: p.downstream })),
-                },
-              ]}
-              endLabel={(s) => s.label}
-            />
+        <>
+          <TimeChart
+            label="Recette réelle par jour des usines, des boutiques et bars qu'elles fournissent, et des ateliers qui s'y approvisionnent"
+            formatValue={(v) => `${formatInteger(v)} ¢/j`}
+            height={300}
+            zeroBased
+            markers={markers}
+            series={SUPPLY_CHAIN.map((tier, index) => ({
+              id: tier.id,
+              label: tier.label,
+              color: TIER_COLORS[index],
+              points: chain.points.map((p) => ({ date: p.date, value: p.values[index] })),
+            }))}
+            endLabel={(s) => s.label}
+          />
+          <div className="studies__links">
+            {chain.links.map((link) => (
+              <LinkBars key={`${link.from}-${link.to}`} link={link} />
+            ))}
           </div>
-          <div>
-            <h3 className="label">Les boutiques suivent-elles les usines ?</h3>
-            <p className="studies__lead">
-              {chain.best === null
-                ? "Trop peu d'heptades mesurables pour le dire."
-                : strong
-                  ? `Les variations se ressemblent le plus quand on lit les boutiques ${lagText(chain.best.lagWeeks)} (corrélation ${formatDecimal(chain.best.r)}).`
-                  : `Aucun lien net : la plus forte corrélation ne dépasse pas ${formatDecimal(chain.best.r)}.`}
-            </p>
-            <ol
-              className="lag-bars"
-              aria-label="Corrélation selon le décalage des boutiques, en heptades"
-            >
-              {chain.correlations.map((c) => (
-                <li
-                  key={c.lagWeeks}
-                  className={c.lagWeeks === chain.best?.lagWeeks ? "is-best" : undefined}
-                  title={`${c.lagWeeks > 0 ? "+" : ""}${c.lagWeeks} : ${c.r === null ? "non mesurable" : formatDecimal(c.r)} (${c.n} paires)`}
-                >
-                  <span className="lag-bars__bar">
-                    {c.r !== null ? (
-                      <span
-                        className={c.r >= 0 ? "is-up" : "is-down"}
-                        style={{ height: `${Math.abs(c.r) * 50}%` }}
-                      />
-                    ) : null}
-                  </span>
-                  <span className="lag-bars__lag">
-                    {c.lagWeeks % 2 === 0 ? (c.lagWeeks > 0 ? `+${c.lagWeeks}` : c.lagWeeks) : ""}
-                  </span>
-                </li>
-              ))}
-            </ol>
-            <p className="sectors__note">
-              Corrélation des variations sur quatre heptades, les boutiques (armes, équipement,
-              spécialisées) décalées de −8 à +8 heptades : à droite, elles bougent après les usines.
-              Lecture fragile : relevés irréguliers, petits secteurs, et un lien n'est pas une
-              cause.
-            </p>
-          </div>
-        </div>
+          <p className="sectors__note">
+            Pour chaque maillon, corrélation des variations sur quatre heptades, le client décalé de
+            −8 à +8 heptades : à droite, il bouge après son fournisseur. Lecture fragile : relevés
+            irréguliers, petits secteurs, et un lien n'est pas une cause.
+          </p>
+        </>
       )}
       <p className="sectors__note">
-        Les boutiques achètent au prix des usines : une part de la recette des usines est une
-        dépense des boutiques. Seule la dernière période où les corporations classées font au moins
-        90 % des recettes du marché est lue
+        Les usines produisent à coût fixe ; les boutiques d'armes, d'équipement, spécialisées et les
+        bars leur achètent au prix que fixe chaque usine ; les ateliers se fournissent auprès des
+        boutiques et des bars. Une part de la recette de chaque étage est donc une dépense de
+        l'étage suivant. Technopôles, banques et agences immobilières restent hors de la chaîne.
+        Seule la dernière période où les corporations classées font au moins 90 % des recettes du
+        marché est lue
         {chain.points.length > 0 ? (
           <>
             , depuis le <ImperialDate date={chain.points[0].date} />
@@ -385,7 +402,7 @@ export function StudiesPage() {
           </p>
         </div>
       </header>
-      <SupplyChain />
+      <SupplyChainSection />
       <Shock />
       <Districts />
       <Quality />

@@ -70,7 +70,7 @@ describe("correlation", () => {
 });
 
 describe("supplyChain", () => {
-  // The shops follow the factories two weeks later.
+  // Shops and bars follow the factories two weeks later; the workshops follow them two weeks on.
   const m = market({
     Factory: {
       rate: bursts(2_000, 3_000, 0),
@@ -78,19 +78,35 @@ describe("supplyChain", () => {
       sector: "usine-production",
     },
     Shop: { rate: bursts(600, 900, 14), capital: () => 1_000_000, sector: "boutique-armes" },
-    Bar: { rate: () => 500, capital: () => 1_000_000, sector: "bar-restaurant" },
+    Bar: { rate: bursts(300, 450, 14), capital: () => 1_000_000, sector: "bar-restaurant" },
+    Workshop: {
+      rate: bursts(400, 600, 28),
+      capital: () => 1_000_000,
+      sector: "atelier-personnalisation",
+    },
+    Bank: { rate: () => 800, capital: () => 1_000_000, sector: "banque" },
   });
   const chain = supplyChain(m);
 
-  it("follows both ends of the chain week by week", () => {
+  it("follows each tier of the chain week by week, banks left out", () => {
     expect(chain.points.length).toBeGreaterThan(20);
     expect(chain.points.at(-1)?.date).toBe(dates.at(-1));
-    expect(chain.correlations).toHaveLength(17);
+    const last = chain.points.at(-1)!.values;
+    expect(last).toHaveLength(3);
+    // Shops and bars add up in the middle tier; the bank's 800 a day is nowhere.
+    expect(last[1]).toBeCloseTo(900, -1);
+    expect(chain.links.map((l) => [l.from, l.to])).toEqual([
+      [0, 1],
+      [1, 2],
+    ]);
+    expect(chain.links[0].correlations).toHaveLength(17);
   });
 
-  it("finds the shops' delay behind the factories", () => {
-    expect(chain.best?.lagWeeks).toBe(2);
-    expect(chain.best?.r).toBeGreaterThan(0.9);
+  it("finds each customer's delay behind its supplier", () => {
+    for (const link of chain.links) {
+      expect(link.best?.lagWeeks).toBe(2);
+      expect(link.best?.r).toBeGreaterThan(0.9);
+    }
   });
 });
 

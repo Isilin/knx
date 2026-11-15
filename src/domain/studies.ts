@@ -33,67 +33,55 @@ export function correlation(a: readonly number[], b: readonly number[]): number 
   return va > 0 && vb > 0 ? cov / Math.sqrt(va * vb) : null;
 }
 
-/** The two ends of the production chain: factories sell to the shops, which sell to players. */
-export const SUPPLY_CHAIN = {
-  upstream: ["usine-production"] as SectorId[],
-  downstream: ["boutique-armes", "boutique-equipement", "boutique-specialisee"] as SectorId[],
-};
+/**
+ * The production chain, upstream first. Factories produce at a fixed cost; shops and bars buy
+ * from them at the price each factory sets; workshops get their supplies from the shops and the
+ * bars. Technoparks, banks and estate agencies sit outside the chain.
+ */
+export const SUPPLY_CHAIN = [
+  { id: "usines", label: "Usines", sectors: ["usine-production"] },
+  {
+    id: "revendeurs",
+    label: "Boutiques et bars",
+    sectors: ["boutique-armes", "boutique-equipement", "boutique-specialisee", "bar-restaurant"],
+  },
+  { id: "ateliers", label: "Ateliers", sectors: ["atelier-personnalisation"] },
+] as const satisfies readonly { id: string; label: string; sectors: readonly SectorId[] }[];
+
+export type ChainTier = (typeof SUPPLY_CHAIN)[number];
+
+export interface ChainLink {
+  /** Indexes in `SUPPLY_CHAIN`: the supplier and its customer. */
+  from: number;
+  to: number;
+  /** Correlation of the 4-week revenue changes, the customer shifted by `lagWeeks`. */
+  correlations: { lagWeeks: number; r: number | null; n: number }[];
+  /** The strongest correlation, if any is measured; near ties go to the shorter delay. */
+  best: { lagWeeks: number; r: number } | null;
+}
 
 export interface SupplyChain {
-  /** Weekly points over the stretch where filed corporations make enough of the market. */
-  points: { date: IsoDate; upstream: number; downstream: number }[];
-  /** Correlation of the 4-week revenue changes, the shops shifted by `lagWeeks`. */
-  correlations: { lagWeeks: number; r: number | null; n: number }[];
-  /** The strongest correlation, if any is measured. */
-  best: { lagWeeks: number; r: number } | null;
+  /** Weekly points over the stretch where filed corporations make enough of the market: real
+   * revenue per day of each tier, in the order of `SUPPLY_CHAIN`. */
+  points: { date: IsoDate; values: number[] }[];
+  /** Each link of the chain, supplier first. */
+  links: ChainLink[];
 }
 
 const WEEK = 7;
 const CHANGE_WEEKS = 4;
 const MAX_LAG_WEEKS = 8;
 
-/**
- * Factories against the shops they supply: real revenue per day over the 30 days before each
- * week, and how the 4-week changes of the two move together when the shops are shifted by a few
- * weeks. A positive lag means the factories move first. Only the latest stretch where filed
- * corporations earn at least `SECTOR_COVERAGE` of the market is read. Estimated, and fragile:
- * reports are irregular and the sectors are small.
- */
-export function supplyChain(market: Market): SupplyChain {
-  const latest = toDayNumber(market.latestDate);
-  const first = toDayNumber(market.dates[0]) + 30;
-  const grid: number[] = [];
-  for (let day = latest; day >= first; day -= WEEK) grid.unshift(day);
-
-  const rows: { day: number; upstream: number; downstream: number; covered: boolean }[] = [];
-  for (const day of grid) {
-    let all = 0;
-    let filed = 0;
-    let upstream = 0;
-    let downstream = 0;
-    for (const life of market.allLives) {
-      const rate = earnedBetween(life, day - 30, day) / 30;
-      if (rate <= 0) continue;
-      all += rate;
-      if (!life.sector) continue;
-      filed += rate;
-      if (SUPPLY_CHAIN.upstream.includes(life.sector)) upstream += rate;
-      if (SUPPLY_CHAIN.downstream.includes(life.sector)) downstream += rate;
-    }
-    rows.push({ day, upstream, downstream, covered: all > 0 && filed / all >= SECTOR_COVERAGE });
-  }
-  // The latest unbroken stretch of covered weeks.
-  let start = rows.length;
-  while (start > 0 && rows[start - 1].covered) start--;
-  const run = rows.slice(start);
-
-  const change = (key: "upstream" | "downstream") =>
+/** How the changes of a customer follow those of its supplier, lag by lag. */
+function link(run: readonly { values: number[] }[], from: number, to: number): ChainLink {
+  const change = (tier: number) =>
     run.map((r, k) => {
-      const before = run[k - CHANGE_WEEKS]?.[key];
-      return before && before > 0 && r[key] > 0 ? Math.log(r[key] / before) : null;
+      const before = run[k - CHANGE_WEEKS]?.values[tier];
+      const now = r.values[tier];
+      return before && before > 0 && now > 0 ? Math.log(now / before) : null;
     });
-  const up = change("upstream");
-  const down = change("downstream");
+  const up = change(from);
+  const down = change(to);
   const correlations = [];
   for (let lag = -MAX_LAG_WEEKS; lag <= MAX_LAG_WEEKS; lag++) {
     const a: number[] = [];
@@ -109,7 +97,6 @@ export function supplyChain(market: Market): SupplyChain {
     correlations.push({ lagWeeks: lag, r: a.length >= 12 ? correlation(a, b) : null, n: a.length });
   }
   const best = correlations.reduce<{ lagWeeks: number; r: number } | null>(
-    // Near ties go to the shorter delay: the simpler reading.
     (top, c) =>
       c.r !== null &&
       (!top ||
@@ -119,14 +106,49 @@ export function supplyChain(market: Market): SupplyChain {
         : top,
     null,
   );
+  return { from, to, correlations, best };
+}
+
+/**
+ * The production chain week by week: real revenue per day over the 30 days before each week, for
+ * each tier, and for each link how the customer's 4-week changes follow the supplier's when
+ * shifted by a few weeks (a positive lag: the supplier moves first). Only the latest stretch where
+ * filed corporations earn at least `SECTOR_COVERAGE` of the market is read. Estimated, and
+ * fragile: reports are irregular and the sectors are small.
+ */
+export function supplyChain(market: Market): SupplyChain {
+  const latest = toDayNumber(market.latestDate);
+  const first = toDayNumber(market.dates[0]) + 30;
+  const grid: number[] = [];
+  for (let day = latest; day >= first; day -= WEEK) grid.unshift(day);
+  const tierOf = new Map<SectorId, number>(
+    SUPPLY_CHAIN.flatMap((tier, index) => tier.sectors.map((s) => [s, index] as const)),
+  );
+
+  const rows: { day: number; values: number[]; covered: boolean }[] = [];
+  for (const day of grid) {
+    let all = 0;
+    let filed = 0;
+    const values = SUPPLY_CHAIN.map(() => 0);
+    for (const life of market.allLives) {
+      const rate = earnedBetween(life, day - 30, day) / 30;
+      if (rate <= 0) continue;
+      all += rate;
+      if (!life.sector) continue;
+      filed += rate;
+      const tier = tierOf.get(life.sector);
+      if (tier !== undefined) values[tier] += rate;
+    }
+    rows.push({ day, values, covered: all > 0 && filed / all >= SECTOR_COVERAGE });
+  }
+  // The latest unbroken stretch of covered weeks.
+  let start = rows.length;
+  while (start > 0 && rows[start - 1].covered) start--;
+  const run = rows.slice(start);
+
   return {
-    points: run.map((r) => ({
-      date: fromDayNumber(r.day),
-      upstream: r.upstream,
-      downstream: r.downstream,
-    })),
-    correlations,
-    best,
+    points: run.map((r) => ({ date: fromDayNumber(r.day), values: r.values })),
+    links: SUPPLY_CHAIN.slice(1).map((_, index) => link(run, index, index + 1)),
   };
 }
 
