@@ -1,0 +1,202 @@
+.studies__pair {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  gap: var(--s-7);
+}
+
+.studies__pair > div {
+  min-width: 0;
+}
+
+.studies__pair h3 {
+  margin-bottom: var(--s-3);
+}
+
+.studies__lead {
+  max-width: 72ch;
+  margin-bottom: var(--s-4);
+  color: var(--ivoire);
+}
+
+/* Correlation by lag: thin grey columns around a zero line, the strongest one in ivory. */
+.lag-bars {
+  display: grid;
+  grid-template-columns: repeat(17, minmax(0, 1fr));
+  gap: 3px;
+  height: 140px;
+  margin: 0 0 var(--s-2);
+  padding: 0;
+  list-style: none;
+}
+
+.lag-bars li {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: var(--s-1);
+}
+
+.lag-bars__bar {
+  position: relative;
+  background: linear-gradient(var(--filet-fort), var(--filet-fort)) center / 100% 1px no-repeat;
+}
+
+.lag-bars__bar span {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: var(--gris-2);
+}
+
+.lag-bars__bar .is-up {
+  bottom: 50%;
+}
+
+.lag-bars__bar .is-down {
+  top: 50%;
+}
+
+.lag-bars li.is-best .lag-bars__bar span {
+  background: var(--ivoire);
+}
+
+.lag-bars__lag {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+
+.studies__districts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--s-5);
+  margin-bottom: var(--s-5);
+}
+
+.studies__districts > div {
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--filet-fort);
+}
+
+.studies__district-value {
+  margin-top: var(--s-1);
+  font-size: var(--fs-fig);
+  font-weight: 300;
+}
+
+.studies__district-detail {
+  display: flex;
+  align-items: center;
+  gap: var(--s-1);
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+.studies .sectors__table td small {
+  margin-left: var(--s-1);
+  font-size: var(--fs-cap);
+}
+
+/* Retention: bars either side of zero, the sign written beside. */
+.retention-bars,
+.studies__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--filet);
+}
+
+.retention-bars li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr) 72px 20px;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 34px;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.retention-bars a,
+.studies__list a {
+  color: var(--ivoire);
+  text-decoration: none;
+}
+
+.retention-bars a:hover,
+.studies__list a:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+.retention-bars__track {
+  position: relative;
+  height: 8px;
+  background: var(--laque-3);
+}
+
+.retention-bars__zero {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  left: 50%;
+  width: 1px;
+  background: var(--filet-fort);
+}
+
+.retention-bars__track .is-up,
+.retention-bars__track .is-down {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--gris-2);
+}
+
+.retention-bars__value {
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.retention-bars small {
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+  text-align: right;
+}
+
+.studies__list li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 84px 72px;
+  align-items: center;
+  gap: var(--s-3);
+  min-height: 34px;
+  border-bottom: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.studies__list li > a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studies__list li > .estimated {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.studies__list-sector {
+  color: var(--gris);
+  font-size: var(--fs-cap);
+}
+
+@media (max-width: 1000px) {
+  .studies__pair {
+    grid-template-columns: 1fr;
+    gap: var(--s-6);
+  }
+
+  .studies__districts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
