@@ -98,6 +98,7 @@ export function buildTimeline(
     record: lives.reduce((a, b) => (b.record.chiffre > a.record.chiffre ? b : a)),
   };
   const list: TimelineEntry[] = [];
+  membershipEntries(list, lives);
   lives.forEach((life, index) =>
     lifeEntries(
       list,
@@ -116,6 +117,31 @@ interface Page {
   /** The life that reached the page's best rank, and the one that set its record. */
   best: CompanySeries;
   record: CompanySeries;
+}
+
+/**
+ * Consortium moves typed by the operator: a joining, a leaving, or both on the same day (a move
+ * from one consortium to another). A membership since before the history begins has no joining.
+ */
+function membershipEntries(list: TimelineEntry[], lives: readonly CompanySeries[]): void {
+  const periods = lives[lives.length - 1].memberships;
+  const push = (key: string, date: IsoDate, title: string) =>
+    list.push(entry({ key, companyId: lifeAt(lives, date).id, date, title, origin: "manual" }));
+  periods.forEach((m, i) => {
+    const before = periods[i - 1];
+    const after = periods[i + 1];
+    const name = m.consortium.name;
+    if (m.joinedOn !== null && before?.leftOn !== m.joinedOn)
+      push(`membership-${i}-join`, m.joinedOn, `Rejoint le consortium ${name}`);
+    if (m.leftOn === null) return;
+    if (after && after.joinedOn === m.leftOn)
+      push(
+        `membership-${i}-move`,
+        m.leftOn,
+        `Quitte le consortium ${name} pour ${after.consortium.name}`,
+      );
+    else push(`membership-${i}-leave`, m.leftOn, `Quitte le consortium ${name}`);
+  });
 }
 
 /** Other pages that carried the name: listed once, with the current life. */

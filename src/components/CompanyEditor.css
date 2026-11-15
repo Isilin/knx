@@ -11,7 +11,7 @@
 
 .profile-editor__grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--s-5) var(--s-6);
   align-items: start;
 }
@@ -95,5 +95,63 @@
 @media (max-width: 720px) {
   .profile-editor__grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Dated consortiums: one hairline row per period. */
+.memberships {
+  display: grid;
+  gap: var(--s-3);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.memberships legend {
+  margin-bottom: var(--s-2);
+  padding: 0;
+}
+
+.memberships__empty {
+  margin: 0;
+  color: var(--gris);
+}
+
+.memberships__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--filet);
+}
+
+.memberships__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: var(--s-4);
+  align-items: start;
+  padding: var(--s-3) 0;
+  border-bottom: 1px solid var(--filet);
+}
+
+.memberships__remove {
+  align-self: center;
+}
+
+.memberships__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s-3);
+}
+
+@media (max-width: 720px) {
+  .memberships__row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .memberships__row .field:first-child {
+    grid-column: 1 / -1;
   }
 }

@@ -5,8 +5,10 @@ import { formatImperialDate } from "../domain/imperial.ts";
 import type { CompanySeries } from "../domain/market.ts";
 import { DISTRICT_LABELS, isDistrict, type District } from "../domain/rating.ts";
 import { isSectorId, SECTORS, type SectorId } from "../domain/sectors.ts";
-import type { Consortium } from "../domain/types.ts";
+import type { Consortium, IsoDate } from "../domain/types.ts";
 import { toLogoBlob } from "../lib/image.ts";
+import { MembershipEditor } from "./MembershipEditor.tsx";
+import { checkRows, toRows } from "./membershipRows.ts";
 import "./CompanyEditor.css";
 
 type LogoChange =
@@ -20,14 +22,25 @@ interface CompanyEditorProps {
   /** The life before it on the page, if the corporation was refounded. */
   previousLife: CompanySeries | null;
   consortiums: readonly Consortium[];
+  /** Date of the latest report: the default date of a consortium move. */
+  latestDate: IsoDate;
   onClose: () => void;
 }
 
-/** The operator's form for what the game does not publish: logo, consortium, sector, founding. */
-export function CompanyEditor({ company, previousLife, consortiums, onClose }: CompanyEditorProps) {
+/**
+ * The operator's form for what the game does not publish: logo, sector, district, founding, and
+ * the dated consortiums of the page.
+ */
+export function CompanyEditor({
+  company,
+  previousLife,
+  consortiums,
+  latestDate,
+  onClose,
+}: CompanyEditorProps) {
   const { change } = useData();
   const id = useId();
-  const [consortiumId, setConsortiumId] = useState(company.consortium?.id ?? "");
+  const [memberships, setMemberships] = useState(() => toRows(company.memberships));
   const [sector, setSector] = useState<SectorId | "">(company.sector ?? "");
   const [district, setDistrict] = useState<District | "">(company.district ?? "");
   const [founded, setFounded] = useState(
@@ -66,15 +79,22 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
+    const periods = checkRows(memberships, consortiums);
+    if (periods.error !== null) {
+      setError(`Consortiums : ${periods.error}.`);
+      return;
+    }
+    const before = checkRows(toRows(company.memberships), consortiums).drafts;
+    const membershipsChanged = JSON.stringify(before) !== JSON.stringify(periods.drafts);
     setBusy(true);
     setError(null);
     try {
       await change(async (source) => {
         await source.updateProfile(company.profileId, {
-          consortiumId: consortiumId || null,
           sector: sector || null,
           district: district || null,
         });
+        if (membershipsChanged) await source.setMemberships(company.profileId, periods.drafts);
         // The founding date is the current life's: a refounding restarts the age.
         await source.updateCompany(company.id, { creationOverride: founded || null });
         if (logo.kind === "set") await source.setLogo(company.profileId, logo.blob);
@@ -135,21 +155,6 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
         </div>
 
         <label className="field">
-          <span className="label">Consortium</span>
-          <select value={consortiumId} onChange={(e) => setConsortiumId(e.target.value)}>
-            <option value="">Indépendante</option>
-            {consortiums.map((k) => (
-              <option key={k.id} value={k.id}>
-                {k.name}
-              </option>
-            ))}
-          </select>
-          <small className="profile-editor__hint">
-            <Link to="/releves#consortiums">Gérer la liste des consortiums</Link>
-          </small>
-        </label>
-
-        <label className="field">
           <span className="label">Secteur d'activité</span>
           <select
             value={sector}
@@ -200,6 +205,16 @@ export function CompanyEditor({ company, previousLife, consortiums, onClose }: C
           </small>
         </label>
       </div>
+
+      <MembershipEditor
+        rows={memberships}
+        onChange={setMemberships}
+        consortiums={consortiums}
+        latestDate={latestDate}
+      />
+      <p className="profile-editor__hint">
+        <Link to="/releves#consortiums">Gérer la liste des consortiums</Link>
+      </p>
 
       {error ? (
         <p className="note note--error" role="alert">

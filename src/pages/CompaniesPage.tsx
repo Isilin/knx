@@ -16,7 +16,8 @@ export function CompaniesPage() {
             {delisted > 0
               ? `, et ${delisted} fermée${delisted > 1 ? "s" : ""} dont KNX garde la mémoire`
               : ""}
-            . Triez par n'importe quelle colonne ; les indicateurs en violet sont calculés par KNX.
+            . Triez par n'importe quelle colonne, filtrez par groupe ou par secteur : l'adresse
+            garde vos filtres. Les indicateurs en violet sont calculés par KNX.
           </p>
         </div>
       </header>
@@ -24,6 +25,7 @@ export function CompaniesPage() {
         companies={market.companies}
         variant="full"
         caption="Toutes les corporations suivies par KNX"
+        sectors={market.sectors}
       />
     </div>
   );

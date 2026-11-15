@@ -6,7 +6,14 @@ const scores = (
   activity: number | null,
   dynamics: number | null,
   weight: number | null = null,
-): CompanyScores => ({ activity, dynamics, weight });
+): CompanyScores => ({
+  activity,
+  dynamics,
+  weight,
+  sectorWeight: null,
+  dynamicsVsSector: null,
+  activityVsSector: null,
+});
 
 function company(name: string, s: CompanyScores, status: CompanyStatus = "active"): CompanySeries {
   return { name, slug: name.toLowerCase(), status, scores: s } as CompanySeries;

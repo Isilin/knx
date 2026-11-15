@@ -216,15 +216,18 @@ describe("withdraw", () => {
 });
 
 describe("profile edits", () => {
-  it("updates a page and detaches it when its consortium goes", () => {
+  it("updates a page; an undated consortium logged before dates becomes a membership", () => {
     const edited = applyOp(base, {
       type: "updateProfile",
       id: "1",
       patch: { consortiumId: "k1", sector: "banque" },
     });
-    expect(edited.profiles[0]).toMatchObject({ consortiumId: "k1", sector: "banque" });
+    expect(edited.profiles[0]).toMatchObject({ sector: "banque" });
+    expect(edited.memberships).toEqual([
+      { id: "legacy-1", profileId: "1", consortiumId: "k1", joinedOn: null, leftOn: null },
+    ]);
     const removed = applyOp(edited, { type: "deleteConsortium", id: "k1" });
-    expect(removed.profiles[0].consortiumId).toBeNull();
+    expect(removed.memberships).toEqual([]);
   });
 
   it("sends page fields of an older life edit to its page", () => {
@@ -233,10 +236,44 @@ describe("profile edits", () => {
       id: "2",
       patch: { consortiumId: "k1", creationOverride: "2026-01-01" },
     });
-    expect(edited.profiles[1].consortiumId).toBe("k1");
+    expect(edited.memberships.map((m) => [m.profileId, m.consortiumId])).toEqual([["2", "k1"]]);
     expect(edited.companies[1].creationOverride).toBe("2026-01-01");
     const logo = applyOp(edited, { type: "setLogo", id: "2", url: "data:logo" });
     expect(logo.profiles[1].logoUrl).toBe("data:logo");
+  });
+
+  it("replaces the dated memberships of a page, in order", () => {
+    const withTwo = applyOp(
+      { ...base, consortiums: [...base.consortiums, { id: "k2", name: "Autre", color: "bleu" }] },
+      {
+        type: "setMemberships",
+        profileId: "1",
+        memberships: [
+          { id: "b", profileId: "1", consortiumId: "k2", joinedOn: "2026-06-01", leftOn: null },
+          { id: "a", profileId: "1", consortiumId: "k1", joinedOn: null, leftOn: "2026-06-01" },
+        ],
+      },
+    );
+    expect(withTwo.memberships.map((m) => m.id)).toEqual(["a", "b"]);
+    const cleared = applyOp(withTwo, { type: "setMemberships", profileId: "1", memberships: [] });
+    expect(cleared.memberships).toEqual([]);
+  });
+
+  it("refuses overlapping memberships and unknown consortiums", () => {
+    const overlap = [
+      { id: "a", profileId: "1", consortiumId: "k1", joinedOn: null, leftOn: "2026-06-02" },
+      { id: "b", profileId: "1", consortiumId: "k1", joinedOn: "2026-06-01", leftOn: null },
+    ];
+    expect(() =>
+      applyOp(base, { type: "setMemberships", profileId: "1", memberships: overlap }),
+    ).toThrow("se chevauchent");
+    expect(() =>
+      applyOp(base, {
+        type: "setMemberships",
+        profileId: "1",
+        memberships: [{ ...overlap[0], consortiumId: "nope" }],
+      }),
+    ).toThrow("consortium introuvable");
   });
 
   it("refuses duplicate consortium names", () => {
@@ -273,7 +310,8 @@ describe("normalizeDataset", () => {
 
   it("keeps the pages it is given", () => {
     const { profiles, companies } = normalizeDataset({
-      profiles: [{ id: "p", consortiumId: null, sector: "banque", logoUrl: null, hidden: false }],
+      profiles: [{ id: "p", consortiumId: "k1", sector: "banque", logoUrl: null, hidden: false }],
+      consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
       companies: [
         { id: "1", profileId: "p", name: "Paradox", closedOn: "2026-11-11" },
         { id: "2", profileId: "p", name: "Paradox" },
@@ -281,15 +319,34 @@ describe("normalizeDataset", () => {
       snapshots: [],
     });
     expect(profiles).toEqual([
-      {
-        id: "p",
-        consortiumId: null,
-        sector: "banque",
-        district: null,
-        logoUrl: null,
-        hidden: false,
-      },
+      { id: "p", sector: "banque", district: null, logoUrl: null, hidden: false },
     ]);
     expect(companies.map((c) => c.profileId)).toEqual(["p", "p"]);
+  });
+
+  it("turns the undated consortium of an older base into a membership since always", () => {
+    const { memberships } = normalizeDataset({
+      profiles: [{ id: "p", consortiumId: "k1" }],
+      companies: [{ id: "1", profileId: "p", name: "Alpha" }],
+      consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
+      snapshots: [],
+    });
+    expect(memberships).toEqual([
+      { id: "legacy-p", profileId: "p", consortiumId: "k1", joinedOn: null, leftOn: null },
+    ]);
+  });
+
+  it("reads dated memberships when the base serves them, and ignores the undated field", () => {
+    const { memberships } = normalizeDataset({
+      profiles: [{ id: "p", consortiumId: "k1" }],
+      memberships: [
+        { id: "9", profileId: "p", consortiumId: "k1", joinedOn: "2026-02-01", leftOn: null },
+        { id: "10", profileId: "p", consortiumId: "gone", joinedOn: null, leftOn: "2026-02-01" },
+      ],
+      companies: [{ id: "1", profileId: "p", name: "Alpha" }],
+      consortiums: [{ id: "k1", name: "Maison", color: "cyan" }],
+      snapshots: [],
+    });
+    expect(memberships.map((m) => m.id)).toEqual(["9"]);
   });
 });

@@ -211,3 +211,48 @@
 .chip--grade {
   gap: var(--s-2);
 }
+
+/* Sector under the name: a quiet link to the cote filtered on it. */
+.cote__sector-tag {
+  color: var(--gris);
+  text-decoration: none;
+}
+
+.cote__sector-tag:hover {
+  color: var(--ivoire);
+  text-decoration: underline;
+  text-decoration-color: var(--or-sombre);
+  text-underline-offset: 0.22em;
+}
+
+/* The chosen sector, as a whole: one line of facts under the filters. */
+.cote__sector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-2) var(--s-3);
+  margin: 0 0 var(--s-4);
+  color: var(--gris);
+  font-size: var(--fs-sm);
+}
+
+.cote__sector strong {
+  color: var(--ivoire);
+  font-weight: 500;
+}
+
+.cote__sector > * + *::before {
+  content: "·";
+  margin-right: var(--s-3);
+  color: var(--gris-2);
+}
+
+@media (max-width: 640px) {
+  .cote__sector {
+    flex-direction: column;
+    gap: var(--s-1);
+  }
+
+  .cote__sector > * + *::before {
+    content: none;
+  }
+}

@@ -1,12 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router";
 import { formatImperialDate, formatPti, imperialYear } from "../domain/imperial.ts";
-import type { CompanySeries } from "../domain/market.ts";
+import { slugify, type CompanySeries } from "../domain/market.ts";
 import type { Consortium } from "../domain/types.ts";
-import { formatPercent, formatScore2 } from "../domain/numbers.ts";
+import { formatPercent, formatScore, formatScore2, formatShare } from "../domain/numbers.ts";
 import { CATEGORY_INFO, RATING_METHOD, ratingCode, type RatingCategory } from "../domain/rating.ts";
 import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
+import type { SectorSummary } from "../domain/sectorStats.ts";
+import { SECTORS, sectorLabel, sectorShort, type SectorId } from "../domain/sectors.ts";
 import { useFocus } from "../hooks/focus.tsx";
+import { coteSearch, useCoteFilters, type StatusFilter } from "../hooks/useCoteFilters.ts";
 import { useFollowed } from "../hooks/useFollowed.ts";
 import { Amount, Change, Estimated, GroupTag, groupColor, RankChange } from "./figures.tsx";
 import { FollowButton } from "./FollowButton.tsx";
@@ -26,6 +29,8 @@ type SortKey =
   | "dynamics"
   | "activity"
   | "weight"
+  | "sectorWeight"
+  | "vsSector"
   | "projection"
   | "rating"
   | "risk";
@@ -233,6 +238,35 @@ const COLUMNS: Record<SortKey, Column> = {
         <span className="estimated">{formatPercent(c.scores.weight).replace("+", "")}</span>
       ),
   },
+  sectorWeight: {
+    key: "sectorWeight",
+    label: "Poids sect.",
+    title: "Part des recettes de son secteur sur 30 jours",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.scores.sectorWeight,
+    render: (c) =>
+      c.scores.sectorWeight === null ? (
+        <span className="amount--none">—</span>
+      ) : (
+        <span
+          className="estimated"
+          title={`${formatShare(c.scores.sectorWeight)} des recettes de son secteur sur 30 jours`}
+        >
+          {formatShare(c.scores.sectorWeight)}
+        </span>
+      ),
+  },
+  vsSector: {
+    key: "vsSector",
+    label: "Écart sect.",
+    title:
+      "Dynamique de la corporation moins la dynamique médiane de son secteur, en points : positive, elle fait mieux que la corporation type de son secteur",
+    numeric: true,
+    secondary: true,
+    value: (c) => c.scores.dynamicsVsSector,
+    render: (c) => score(c.scores.dynamicsVsSector),
+  },
 };
 
 const VARIANTS = {
@@ -249,29 +283,60 @@ const VARIANTS = {
     "dynamics",
     "activity",
     "weight",
+    "sectorWeight",
+    "vsSector",
     "projection",
     "rating",
     "risk",
   ],
 } as const satisfies Record<string, readonly SortKey[]>;
 
-type StatusFilter = "listed" | "active" | "idle" | "delisted" | "followed";
-
 interface CoteTableProps {
   companies: CompanySeries[];
   variant: keyof typeof VARIANTS;
   caption: string;
+  /** Each sector on the latest report, for the line shown under a sector filter. */
+  sectors?: ReadonlyMap<SectorId, SectorSummary>;
 }
 
-export function CoteTable({ companies, variant, caption }: CoteTableProps) {
+/** What a sector stands for in the market, under the filters when one is chosen. */
+function SectorLine({ summary }: { summary: SectorSummary }) {
+  return (
+    <p className="cote__sector">
+      <strong>{summary.label}</strong>
+      <span>
+        {summary.listed} corporation{summary.listed > 1 ? "s" : ""} cotée
+        {summary.listed > 1 ? "s" : ""}
+      </span>
+      {summary.weight !== null ? (
+        <span>
+          <span className="estimated">{formatShare(summary.weight)}</span> des recettes du marché
+          sur 30 jours
+        </span>
+      ) : null}
+      {summary.dynamics !== null ? (
+        <span title="Dynamique médiane des corporations cotées du secteur : recettes des 30 derniers jours face aux 90 précédents (−100 à +100)">
+          dynamique médiane <span className="estimated">{formatScore(summary.dynamics)}</span>
+        </span>
+      ) : null}
+    </p>
+  );
+}
+
+export function CoteTable({ companies, variant, caption, sectors }: CoteTableProps) {
   const navigate = useNavigate();
   const { focused, setFocused } = useFocus();
   const { followed } = useFollowed();
   const [sort, setSort] = useState<{ key: SortKey; dir: 1 | -1 }>({ key: "rank", dir: 1 });
-  const [status, setStatus] = useState<StatusFilter>("listed");
-  const [group, setGroup] = useState<string | null>(null);
-  const [grade, setGrade] = useState<RatingCategory | "unrated" | null>(null);
-  const [query, setQuery] = useState("");
+  // The full cote keeps its filters in the address: shareable, and reachable from a sector link.
+  const inAddress = variant === "full";
+  const [filters, setFilters] = useCoteFilters(inAddress);
+  const { status, group, sector, grade, query } = filters;
+  /** Where a sector tag leads: the same filters with that sector, or the full cote. */
+  const sectorHref = (id: SectorId) =>
+    inAddress
+      ? `?${coteSearch({ ...filters, sector: id })}`
+      : `/corporations?${coteSearch({ status: "listed", group: null, sector: id, grade: null, query: "" })}`;
 
   const groups = useMemo(() => {
     const counts = new Map<string, { consortium: Consortium; count: number }>();
@@ -282,6 +347,16 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
       }
     return [...counts.values()].sort((a, b) => b.count - a.count);
   }, [companies]);
+
+  // Sectors of the listed corporations, in the fixed order of the list.
+  const sectorChips = useMemo(
+    () =>
+      SECTORS.map(({ id }) => ({
+        id,
+        count: companies.filter((c) => c.sector === id && c.status !== "delisted").length,
+      })).filter((s) => s.count > 0 || s.id === sector),
+    [companies, sector],
+  );
 
   // Categories held by listed corporations, best first; empty until the Agence rates someone.
   const grades = useMemo(() => {
@@ -317,7 +392,8 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         if (status === "idle" && c.status !== "idle") return false;
         if (status === "delisted" && c.status !== "delisted") return false;
         if (status === "followed" && !followed.includes(c.slug)) return false;
-        if (group && c.consortium?.id !== group) return false;
+        if (group && (c.consortium ? slugify(c.consortium.name) : null) !== group) return false;
+        if (sector && c.sector !== sector) return false;
         if (grade === "unrated" && c.rating) return false;
         if (grade && grade !== "unrated" && c.rating?.category !== grade) return false;
         if (
@@ -342,7 +418,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         const cmp = typeof va === "string" ? va.localeCompare(String(vb), "fr") : va - Number(vb);
         return cmp * sort.dir || a.latest.rank - b.latest.rank;
       });
-  }, [companies, sort, status, group, grade, query, followed]);
+  }, [companies, sort, status, group, sector, grade, query, followed]);
 
   const columns = VARIANTS[variant].map((key) => COLUMNS[key]);
 
@@ -374,7 +450,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
               type="button"
               className="chip"
               aria-pressed={status === chip.id}
-              onClick={() => setStatus(chip.id)}
+              onClick={() => setFilters({ status: chip.id })}
             >
               {chip.label} <small>{chip.count}</small>
             </button>
@@ -382,16 +458,35 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
         </div>
         {groups.length > 0 ? (
           <div className="chips" role="group" aria-label="Groupe">
-            {groups.map(({ consortium, count }) => (
+            {groups.map(({ consortium, count }) => {
+              const slug = slugify(consortium.name);
+              return (
+                <button
+                  key={consortium.id}
+                  type="button"
+                  className="chip"
+                  aria-pressed={group === slug}
+                  onClick={() => setFilters({ group: group === slug ? null : slug })}
+                >
+                  <i style={{ background: groupColor(consortium) }} aria-hidden="true" />
+                  {consortium.name} <small>{count}</small>
+                </button>
+              );
+            })}
+          </div>
+        ) : null}
+        {sectorChips.length > 0 ? (
+          <div className="chips" role="group" aria-label="Secteur d'activité">
+            {sectorChips.map((s) => (
               <button
-                key={consortium.id}
+                key={s.id}
                 type="button"
                 className="chip"
-                aria-pressed={group === consortium.id}
-                onClick={() => setGroup(group === consortium.id ? null : consortium.id)}
+                title={sectorLabel(s.id) ?? undefined}
+                aria-pressed={sector === s.id}
+                onClick={() => setFilters({ sector: sector === s.id ? null : s.id })}
               >
-                <i style={{ background: groupColor(consortium) }} aria-hidden="true" />
-                {consortium.name} <small>{count}</small>
+                {sectorShort(s.id)} <small>{s.count}</small>
               </button>
             ))}
           </div>
@@ -404,7 +499,7 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
                 type="button"
                 className="chip chip--grade"
                 aria-pressed={grade === g.id}
-                onClick={() => setGrade(grade === g.id ? null : g.id)}
+                onClick={() => setFilters({ grade: grade === g.id ? null : g.id })}
               >
                 {g.id === "unrated" ? (
                   "Non notées"
@@ -423,10 +518,12 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
             type="search"
             placeholder="Filtrer par nom"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setFilters({ query: e.target.value })}
           />
         </label>
       </div>
+
+      {sector && sectors?.get(sector) ? <SectorLine summary={sectors.get(sector)!} /> : null}
 
       <div className="cote__scroll">
         <table className={`cote__table cote__table--${variant}`}>
@@ -511,6 +608,15 @@ export function CoteTable({ companies, variant, caption }: CoteTableProps) {
                                 <Link to={`/corporations/${c.slug}`}>{c.name}</Link>
                                 <span className="cote__sub">
                                   <GroupTag consortium={c.consortium} />
+                                  {c.sector ? (
+                                    <Link
+                                      className="cote__sector-tag"
+                                      to={sectorHref(c.sector)}
+                                      title={`Toutes les corporations du secteur ${sectorLabel(c.sector)}`}
+                                    >
+                                      {sectorShort(c.sector)}
+                                    </Link>
+                                  ) : null}
                                   {c.status === "idle" ? (
                                     <span className="tag">à l'arrêt</span>
                                   ) : null}

@@ -18,17 +18,19 @@ import { RatingForm } from "../components/RatingForm.tsx";
 import { RatingPanel } from "../components/RatingPanel.tsx";
 import { RiskPanel } from "../components/RiskPanel.tsx";
 import { Seal } from "../components/Seal.tsx";
+import { SectorPanel } from "../components/SectorPanel.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import { creationReliability } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
 import { formatImperialAge, imperialAge, type ImperialAge } from "../domain/imperial.ts";
-import { acrossLives, refoundingMarkers, smoothedRealDaily } from "../domain/market.ts";
+import { acrossLives, refoundingMarkers, slugify, smoothedRealDaily } from "../domain/market.ts";
 import { marketEventsBetween, marketMarkers } from "../domain/marketEvents.ts";
 import { formatInteger, formatPercent } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, DISTRICT_LABELS } from "../domain/rating.ts";
 import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
+import { sectorShareHistory } from "../domain/sectorStats.ts";
 import { sectorLabel } from "../domain/sectors.ts";
 import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
 import { useTween } from "../hooks/useTween.ts";
@@ -187,6 +189,20 @@ export function CompanyPage() {
       ),
     [market.marketEvents, lives],
   );
+  // The listed corporations of its sector, heaviest first, and its share of the sector over time.
+  const sectorPeers = useMemo(
+    () =>
+      company?.sector
+        ? market.companies
+            .filter((c) => c.sector === company.sector && c.status !== "delisted")
+            .sort(
+              (a, b) =>
+                (b.recentRate ?? -1) - (a.recentRate ?? -1) || a.latest.rank - b.latest.rank,
+            )
+        : [],
+    [market, company],
+  );
+  const sectorHistory = useMemo(() => sectorShareHistory(market, lives), [market, lives]);
   const periodChange =
     visible.length > 1 && visible[0].chiffre > 0
       ? visible[visible.length - 1].chiffre / visible[0].chiffre - 1
@@ -290,7 +306,17 @@ export function CompanyPage() {
             ) : null}
           </div>
           <div className="company__meta">
-            <GroupTag consortium={company.consortium} />
+            {company.consortium ? (
+              <Link
+                className="company__meta-link"
+                to={`/corporations?groupe=${slugify(company.consortium.name)}`}
+                title={`Les corporations du consortium ${company.consortium.name}`}
+              >
+                <GroupTag consortium={company.consortium} />
+              </Link>
+            ) : (
+              <GroupTag consortium={null} />
+            )}
             {company.status === "delisted" ? (
               <span className="company__status">
                 Fermée · dernier relevé le <ImperialDate date={latest.date} />
@@ -298,7 +324,15 @@ export function CompanyPage() {
             ) : company.status === "idle" ? (
               <span className="company__status">À l'arrêt · chiffre publié à 0</span>
             ) : null}
-            {company.sector ? <span>{sectorLabel(company.sector)}</span> : null}
+            {company.sector ? (
+              <Link
+                className="company__meta-link"
+                to={`/corporations?secteur=${company.sector}`}
+                title={`Les corporations du secteur ${sectorLabel(company.sector)}`}
+              >
+                {sectorLabel(company.sector)}
+              </Link>
+            ) : null}
             {company.district ? <span>{DISTRICT_LABELS[company.district]}</span> : null}
             {company.formerNames.length > 0 ? (
               <span>Anciennement {company.formerNames.toReversed().join(", ")}</span>
@@ -333,6 +367,7 @@ export function CompanyPage() {
           company={company}
           previousLife={previousLife}
           consortiums={market.consortiums}
+          latestDate={market.latestDate}
           onClose={() => setEditingSlug(null)}
         />
       ) : null}
@@ -768,6 +803,16 @@ export function CompanyPage() {
             </p>
           )}
         </section>
+      ) : null}
+
+      {company.sector && company.status !== "delisted" && market.sectors.get(company.sector) ? (
+        <SectorPanel
+          company={company}
+          summary={market.sectors.get(company.sector)!}
+          peers={sectorPeers}
+          history={sectorHistory}
+          markers={markers}
+        />
       ) : null}
 
       <div className="company__pair">
