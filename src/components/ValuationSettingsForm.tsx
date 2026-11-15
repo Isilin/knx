@@ -2,16 +2,11 @@ import { useId, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { useData } from "../data/DataProvider.tsx";
 import { todayIn } from "../domain/dates.ts";
-import type { Market } from "../domain/market.ts";
+import { lifeValuation, type Market } from "../domain/market.ts";
 import { cleanSettings } from "../domain/mutations.ts";
 import { formatCompact, formatInteger, formatPercent } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, RATING_METHOD } from "../domain/rating.ts";
-import {
-  checkParams,
-  DEFAULT_VALUATION,
-  LifeValuation,
-  type ValuationParams,
-} from "../domain/valuation.ts";
+import { checkParams, DEFAULT_VALUATION, type ValuationParams } from "../domain/valuation.ts";
 import { changedLevers } from "./bourseText.ts";
 import { Change } from "./figures.tsx";
 import "./ValuationSettingsForm.css";
@@ -114,6 +109,53 @@ const SIMPLE: {
     step: "1",
     help: "Cible du nombre de titres proposé à l'introduction.",
   },
+  {
+    key: "landWeight",
+    label: "Terrain",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Part du prix comptée : il se revend seul.",
+  },
+  {
+    key: "buildingWeight",
+    label: "Bâtiment",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Il se revend avec son terrain.",
+  },
+  {
+    key: "fittingsWeight",
+    label: "Aménagement",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Décoration, sécurités, ameublement : seulement avec la boutique installée.",
+  },
+  {
+    key: "stockWeight",
+    label: "Stock",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Part du prix d'achat comptée.",
+  },
+  {
+    key: "stockLife",
+    label: "Durée de vie du stock",
+    unit: "jours",
+    step: "1",
+    help: "Sans nouveau chiffre, le stock s'efface sur cette durée.",
+  },
+  {
+    key: "declaredWeight",
+    label: "Chiffre déclaré",
+    unit: "%",
+    step: "5",
+    percent: true,
+    help: "Poids d'un montant déclaré par la direction ; audité, il compte en entier.",
+  },
 ];
 
 const CATEGORIES = RATING_METHOD.categories.map(([c]) => c);
@@ -167,9 +209,7 @@ function impactOf(market: Market, params: ValuationParams): Impact[] {
     .filter((c) => c.status !== "delisted")
     .map((c) => {
       const before = c.valuation?.latest?.value ?? null;
-      const after =
-        new LifeValuation(c, market.ratings.get(c.id) ?? [], params).at(c.points.length - 1)
-          ?.value ?? null;
+      const after = lifeValuation(market, c, params).at(c.points.length - 1)?.value ?? null;
       return {
         slug: c.slug,
         name: c.name,
@@ -281,10 +321,20 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
       </div>
 
       <div className="levers__groups">
-        <fieldset>
-          <legend className="label">Recettes</legend>
-          {SIMPLE.slice(0, 5).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
-        </fieldset>
+        <div className="levers__column">
+          <fieldset>
+            <legend className="label">Recettes</legend>
+            {SIMPLE.slice(0, 5).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
+          </fieldset>
+          <fieldset>
+            <legend className="label">Bilan</legend>
+            <span className="levers__sub">Part comptée de chaque poste</span>
+            <div className="levers__pairs">
+              {SIMPLE.slice(12, 16).map((f) => field(f.key, f.label, f.unit, f.step))}
+            </div>
+            {SIMPLE.slice(16, 18).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
+          </fieldset>
+        </div>
         <div className="levers__column">
           <fieldset>
             <legend className="label">Âge et capital</legend>

@@ -1,3 +1,11 @@
+import {
+  BALANCE_ITEMS,
+  figureAge,
+  figuresOn,
+  type BalanceItem,
+  type BalanceSheet,
+  type KnownFigure,
+} from "./balance.ts";
 import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanySeries } from "./market.ts";
 import type { CompanyRating, RatingCategory, RatingConfidence } from "./rating.ts";
@@ -7,8 +15,9 @@ import type { IsoDate } from "./types.ts";
 /**
  * KNX theoretical value of a corporation, then its share price once introduced:
  *
- *   value = (revenue days × robust real revenue × maturity + capital weight × retained capital)
- *           × multiplier of the Agence's category
+ *   business = (revenue days × robust real revenue × maturity + capital weight × retained capital)
+ *              × multiplier of the Agence's category
+ *   value    = business + premises + stock
  *
  * - robust real revenue: KNX's real revenue per day over the window, each day capped at a few
  *   ordinary days of the corporation (a director can sell himself one item at any price, then
@@ -16,7 +25,11 @@ import type { IsoDate } from "./types.ts";
  * - maturity: age ÷ (age + half-maturity), bounded by one: a young house is worth less;
  * - retained capital: the lower of today's capital and its recent mean (an injection counts once
  *   it stays, a withdrawal at once), discounted because the director can take it out tomorrow;
- * - multiplier and band: from the rating in force that day, or the unrated ones.
+ * - multiplier and band: from the rating in force that day, or the unrated ones;
+ * - premises and stock: from the balance sheets the operator records (declared by the direction
+ *   or audited), each item at its own weight, a declared figure discounted; a stock fades as the
+ *   days pass without a new figure. A plot is worth its price whatever the rating: assets stay
+ *   out of the multiplier and the band.
  *
  * The whole history is computed with the settings in force: a theoretical value is a measure,
  * and a change of settings is published, not slipped into one day of the series.
@@ -51,6 +64,18 @@ export interface ValuationParams {
   minHistory: number;
   /** First share price KNX proposes at an introduction. */
   introductionPrice: number;
+  /** Share of the plot's price counted: it sells on its own. */
+  landWeight: number;
+  /** Share of the building's price counted: it sells with its plot. */
+  buildingWeight: number;
+  /** Share of the fittings counted (decoration, security, furniture): they sell with the shop. */
+  fittingsWeight: number;
+  /** Share of the stock's purchase cost counted. */
+  stockWeight: number;
+  /** Weight of a figure the direction declared, against one the Agence audited (counted in full). */
+  declaredWeight: number;
+  /** Days over which a stock fades to nothing without a new figure: it sells. */
+  stockLife: number;
 }
 
 export const DEFAULT_VALUATION: ValuationParams = {
@@ -75,6 +100,12 @@ export const DEFAULT_VALUATION: ValuationParams = {
   ratingValidity: 150,
   minHistory: 7,
   introductionPrice: 1000,
+  landWeight: 1,
+  buildingWeight: 0.8,
+  fittingsWeight: 0.5,
+  stockWeight: 1,
+  declaredWeight: 0.5,
+  stockLife: 30,
 };
 
 /** Bounds of each lever, checked before publishing settings. */
@@ -91,6 +122,8 @@ export const PARAM_BOUNDS = {
   ratingValidity: [1, 3650],
   minHistory: [1, 90],
   introductionPrice: [1, 1_000_000],
+  assetWeight: [0, 1],
+  stockLife: [1, 365],
 } as const;
 
 /** A published version of the settings. The latest one is in force. */
@@ -146,6 +179,12 @@ export function cleanParams(raw: unknown): ValuationParams {
     ratingValidity: num(r.ratingValidity, d.ratingValidity),
     minHistory: num(r.minHistory, d.minHistory),
     introductionPrice: num(r.introductionPrice, d.introductionPrice),
+    landWeight: num(r.landWeight, d.landWeight),
+    buildingWeight: num(r.buildingWeight, d.buildingWeight),
+    fittingsWeight: num(r.fittingsWeight, d.fittingsWeight),
+    stockWeight: num(r.stockWeight, d.stockWeight),
+    declaredWeight: num(r.declaredWeight, d.declaredWeight),
+    stockLife: num(r.stockLife, d.stockLife),
   };
 }
 
@@ -178,6 +217,13 @@ export function checkParams(params: ValuationParams): void {
   within("Historique minimal", params.minHistory, b.minHistory);
   whole("Historique minimal", params.minHistory);
   within("Cours d'introduction proposé", params.introductionPrice, b.introductionPrice);
+  within("Poids du terrain", params.landWeight, b.assetWeight);
+  within("Poids du bâtiment", params.buildingWeight, b.assetWeight);
+  within("Poids de l'aménagement", params.fittingsWeight, b.assetWeight);
+  within("Poids du stock", params.stockWeight, b.assetWeight);
+  within("Poids d'un chiffre déclaré", params.declaredWeight, b.assetWeight);
+  within("Durée de vie du stock", params.stockLife, b.stockLife);
+  whole("Durée de vie du stock", params.stockLife);
 }
 
 /** The settings in force: the latest published version, or the defaults. */
@@ -289,13 +335,29 @@ class RevenueBook {
 
 // ——— Value ———
 
+/** An asset of the balance sheet as the value counts it. */
+export interface CountedAsset extends KnownFigure {
+  /** Credits counted in the value: amount × item weight × source weight (× fading, stock). */
+  counted: number;
+  /** Stock only: share left after fading, 0–1. */
+  fade?: number;
+}
+
 export interface ValuationPoint {
   date: IsoDate;
-  /** Theoretical value of the corporation, in credits. */
+  /** Theoretical value of the corporation, in credits: business + premises + stock. */
   value: number;
-  /** Published range: value × (1 ± band). */
+  /** Published range: the business × (1 ± band), the assets as counted. */
   low: number;
   high: number;
+  /** Base × multiplier: the going concern, before what it owns. */
+  business: number;
+  /** Premises counted: plot, building, fittings. */
+  premises: number;
+  /** Stock counted. */
+  stock: number;
+  /** Each item of the balance sheet in force that day; null when never given. */
+  assets: Record<BalanceItem, CountedAsset | null>;
   /** Revenue days × revenue × maturity. */
   operating: number;
   /** Capital weight × retained capital. */
@@ -335,6 +397,7 @@ export class LifeValuation {
   readonly life: Pick<CompanySeries, "points">;
   readonly params: ValuationParams;
   private readonly ratings: readonly CompanyRating[];
+  private readonly sheets: readonly BalanceSheet[];
   private readonly book: RevenueBook;
   private readonly cache = new Map<number, ValuationPoint | null>();
 
@@ -342,11 +405,42 @@ export class LifeValuation {
     life: Pick<CompanySeries, "points">,
     ratings: readonly CompanyRating[],
     params: ValuationParams,
+    sheets: readonly BalanceSheet[] = [],
   ) {
     this.life = life;
     this.ratings = ratings;
     this.params = params;
+    this.sheets = sheets;
     this.book = new RevenueBook(life.points, params);
+  }
+
+  /** The balance sheet in force on `date`, each item counted at its weight. */
+  assetsOn(date: IsoDate): Record<BalanceItem, CountedAsset | null> {
+    const { params } = this;
+    const figures = figuresOn(this.sheets, date);
+    const weights: Record<BalanceItem, number> = {
+      land: params.landWeight,
+      building: params.buildingWeight,
+      fittings: params.fittingsWeight,
+      stock: params.stockWeight,
+    };
+    const counted = {} as Record<BalanceItem, CountedAsset | null>;
+    for (const item of BALANCE_ITEMS) {
+      const figure = figures[item];
+      if (!figure) {
+        counted[item] = null;
+        continue;
+      }
+      const trust = figure.source === "audited" ? 1 : params.declaredWeight;
+      const fade =
+        item === "stock" ? Math.max(0, 1 - figureAge(figure, date) / params.stockLife) : undefined;
+      counted[item] = {
+        ...figure,
+        counted: figure.amount * weights[item] * trust * (fade ?? 1),
+        ...(fade === undefined ? {} : { fade }),
+      };
+    }
+    return counted;
   }
 
   /** Value on the report at `index`; null when KNX cannot say (no age, too little history). */
@@ -387,12 +481,23 @@ export class LifeValuation {
     const operating = params.revenueDays * revenue.capped * maturity;
     const capital = params.capitalWeight * retainedCapital;
     const base = operating + capital;
-    const value = base * multiplier;
+    const business = base * multiplier;
+    const assets = this.assetsOn(p.date);
+    const premises =
+      (assets.land?.counted ?? 0) +
+      (assets.building?.counted ?? 0) +
+      (assets.fittings?.counted ?? 0);
+    const stock = assets.stock?.counted ?? 0;
+    const owned = premises + stock;
     return {
       date: p.date,
-      value,
-      low: value * (1 - band),
-      high: value * (1 + band),
+      value: business + owned,
+      low: business * (1 - band) + owned,
+      high: business * (1 + band) + owned,
+      business,
+      premises,
+      stock,
+      assets,
       operating,
       capital,
       base,

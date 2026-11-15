@@ -112,6 +112,9 @@ export function createLocalSource(): DataSource {
     saveSecurityOperation: ({ id, ...draft }) =>
       record({ type: "saveOperation", operation: { ...draft, id: id ?? newId() } }),
     deleteSecurityOperation: (id) => record({ type: "deleteOperation", id }),
+    saveBalanceSheet: ({ id, ...draft }) =>
+      record({ type: "saveBalance", sheet: { ...draft, id: id ?? newId() } }),
+    deleteBalanceSheet: (id) => record({ type: "deleteBalance", id }),
     async session(): Promise<Session> {
       return { state: "signed-in", email: "mode local", isAdmin: true };
     },

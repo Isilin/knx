@@ -1,3 +1,4 @@
+import type { BalanceSheet } from "./balance.ts";
 import type { CompanyRating, District } from "./rating.ts";
 import type { SectorId } from "./sectors.ts";
 import type { SecurityOperation } from "./securities.ts";
@@ -158,6 +159,8 @@ export interface Dataset {
   valuationSettings?: ValuationSettings[];
   /** Introductions, divisions, consolidations, suspensions and exits from the cote. */
   securityOperations?: SecurityOperation[];
+  /** Premises and stock declared by the directions or audited by the Agence. */
+  balanceSheets?: BalanceSheet[];
 }
 
 /** A report ready to publish: each row resolved to a corporation, or to a new one. */

@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import { BalanceManager } from "../components/BalanceManager.tsx";
 import { OperationsManager } from "../components/OperationsManager.tsx";
 import { ValuationSettingsForm } from "../components/ValuationSettingsForm.tsx";
 import { useData } from "../data/DataProvider.tsx";
@@ -15,9 +16,9 @@ export function BourseAdminPage() {
         <div>
           <h1>Réglages de la Bourse</h1>
           <p>
-            Les leviers de la valeur KNX et les opérations sur titres des corporations. Tout ce qui
-            est publié ici paraît sur la <Link to="/bourse">page Bourse</Link> : la cote suit une
-            méthode lisible par tous.
+            Les leviers de la valeur KNX, les opérations sur titres et les bilans des corporations.
+            Tout ce qui est publié ici paraît sur la <Link to="/bourse">page Bourse</Link> : la cote
+            suit une méthode lisible par tous.
           </p>
         </div>
         {source.kind === "supabase" && session?.state === "signed-in" ? (
@@ -51,6 +52,7 @@ export function BourseAdminPage() {
             market={state.market}
           />
           <OperationsManager market={state.market} dataset={state.dataset} />
+          <BalanceManager market={state.market} dataset={state.dataset} />
         </>
       )}
     </div>

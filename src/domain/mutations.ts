@@ -16,6 +16,7 @@ import {
   type MarketEvent,
   type PublishRequest,
 } from "./types.ts";
+import { BALANCE_ITEMS, isAssetSource, type BalanceSheet } from "./balance.ts";
 import { MAX_EVENT_SPAN } from "./marketEvents.ts";
 import { checkOperations, isOperationKind, type SecurityOperation } from "./securities.ts";
 import {
@@ -93,6 +94,50 @@ export type SecurityOperationDraft = Omit<SecurityOperation, "id"> & {
   id: string | null;
 };
 
+/** A balance sheet about to be recorded. */
+export type BalanceSheetDraft = Omit<BalanceSheet, "id"> & {
+  /** null records a new sheet. */
+  id: string | null;
+};
+
+/** Largest amount a balance sheet item takes. */
+const MAX_ASSET = 1_000_000_000_000;
+
+/** The life's first report date, and its closure; throws if it has no report. */
+function lifeSpan(
+  dataset: Dataset,
+  companyId: string,
+): { first: IsoDate; closedOn: IsoDate | null } {
+  const company = requireCompany(dataset, companyId);
+  const reported = dataset.snapshots
+    .filter((s) => s.rows.some((r) => r.companyId === companyId))
+    .map((s) => s.date)
+    .sort();
+  if (reported.length === 0) throw new Error("aucun relevé de cette corporation");
+  return { first: reported[0], closedOn: company.closedOn };
+}
+
+/**
+ * Checks a balance sheet against the corporation's life, in the operator's words, and returns
+ * it trimmed. Each item is a whole amount of credits, or left out (null).
+ */
+export function planBalance<T extends BalanceSheetDraft>(dataset: Dataset, draft: T): T {
+  const { first, closedOn } = lifeSpan(dataset, draft.companyId);
+  if (draft.date < first)
+    throw new Error(`date antérieure au premier relevé de la corporation (${first})`);
+  if (closedOn !== null && draft.date >= closedOn)
+    throw new Error("la corporation est fermée à cette date");
+  if (!isAssetSource(draft.source)) throw new Error("source inconnue");
+  for (const item of BALANCE_ITEMS) {
+    const amount = draft[item];
+    if (amount !== null && !(Number.isInteger(amount) && amount >= 0 && amount <= MAX_ASSET))
+      throw new Error("montants en crédits entiers, positifs");
+  }
+  if (BALANCE_ITEMS.every((item) => draft[item] === null))
+    throw new Error("aucun montant : renseigner au moins un poste");
+  return { ...draft, note: draft.note?.trim() || null };
+}
+
 /** Checks settings before they are published and trims the note. */
 export function cleanSettings(draft: ValuationSettingsDraft): ValuationSettingsDraft {
   checkParams(draft.params);
@@ -104,15 +149,10 @@ export function cleanSettings(draft: ValuationSettingsDraft): ValuationSettingsD
  * the operator's words, and returns it trimmed: only the fields its kind uses.
  */
 export function planOperation<T extends SecurityOperationDraft>(dataset: Dataset, draft: T): T {
-  const company = requireCompany(dataset, draft.companyId);
-  const reported = dataset.snapshots
-    .filter((s) => s.rows.some((r) => r.companyId === draft.companyId))
-    .map((s) => s.date)
-    .sort();
-  if (reported.length === 0) throw new Error("aucun relevé de cette corporation");
-  if (draft.date < reported[0])
-    throw new Error(`date antérieure au premier relevé de la corporation (${reported[0]})`);
-  if (company.closedOn !== null && draft.date >= company.closedOn)
+  const { first, closedOn } = lifeSpan(dataset, draft.companyId);
+  if (draft.date < first)
+    throw new Error(`date antérieure au premier relevé de la corporation (${first})`);
+  if (closedOn !== null && draft.date >= closedOn)
     throw new Error("la corporation est fermée à cette date");
   const operation = {
     ...draft,
@@ -164,7 +204,9 @@ export type LocalOp =
   | { type: "deleteRating"; id: string }
   | { type: "publishValuation"; settings: ValuationSettings }
   | { type: "saveOperation"; operation: SecurityOperation }
-  | { type: "deleteOperation"; id: string };
+  | { type: "deleteOperation"; id: string }
+  | { type: "saveBalance"; sheet: BalanceSheet }
+  | { type: "deleteBalance"; id: string };
 
 const blank = (id: string, name: string, profileId: string): CompanyMeta => ({
   id,
@@ -330,6 +372,19 @@ export function normalizeDataset(raw: unknown): Dataset {
         shares: o.shares == null ? null : Number(o.shares),
         ratio: o.ratio == null ? null : Number(o.ratio),
         note: o.note ?? null,
+      })),
+    balanceSheets: (Array.isArray(data.balanceSheets) ? data.balanceSheets : [])
+      .filter((b) => isAssetSource(b.source))
+      .map((b): BalanceSheet => ({
+        id: String(b.id),
+        companyId: String(b.companyId),
+        date: b.date,
+        land: b.land == null ? null : Number(b.land),
+        building: b.building == null ? null : Number(b.building),
+        fittings: b.fittings == null ? null : Number(b.fittings),
+        stock: b.stock == null ? null : Number(b.stock),
+        source: b.source,
+        note: b.note ?? null,
       })),
   };
 }
@@ -666,6 +721,20 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
           : [...list, operation],
       };
     }
+    case "saveBalance": {
+      const sheet = planBalance(dataset, op.sheet);
+      const list = dataset.balanceSheets ?? [];
+      const exists = list.some((b) => b.id === sheet.id);
+      return {
+        ...dataset,
+        balanceSheets: exists ? list.map((b) => (b.id === sheet.id ? sheet : b)) : [...list, sheet],
+      };
+    }
+    case "deleteBalance":
+      return {
+        ...dataset,
+        balanceSheets: (dataset.balanceSheets ?? []).filter((b) => b.id !== op.id),
+      };
     case "deleteOperation":
       checkRemoval(dataset, op.id);
       return {

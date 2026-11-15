@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { BalanceSheet } from "./balance.ts";
 import { addDays, daysBetween } from "./dates.ts";
 import { buildMarket, type CompanySeries } from "./market.ts";
 import { EMPTY_INPUTS, type CompanyRating, type RatingCategory } from "./rating.ts";
@@ -267,5 +268,81 @@ describe("share price", () => {
     expect(listing?.note).toBe("enquête de la DAI");
     const history = priceHistory(new LifeValuation(c, [], DEFAULT_VALUATION).history(), operations);
     expect(history.find((p) => p.date === "2026-11-12")?.value).toBeNull();
+  });
+});
+
+describe("balance sheets", () => {
+  const sheet = (
+    o: Partial<BalanceSheet> & Pick<BalanceSheet, "date" | "source">,
+  ): BalanceSheet => ({
+    id: `${o.date}-${o.source}`,
+    companyId: "Steady",
+    land: null,
+    building: null,
+    fittings: null,
+    stock: null,
+    note: null,
+    ...o,
+  });
+
+  it("adds the premises at their weights, outside the multiplier and the band", () => {
+    const base = datasetOf([steady]);
+    const plain = company(base, "Steady").valuation?.latest;
+    const owned = company(
+      {
+        ...base,
+        balanceSheets: [
+          sheet({
+            date: "2026-11-01",
+            source: "audited",
+            land: 1_000_000,
+            building: 2_000_000,
+            fittings: 400_000,
+          }),
+        ],
+      },
+      "Steady",
+    ).valuation?.latest;
+    if (!plain || !owned) throw new Error("no value");
+    // Audited: plot 100 %, building 80 %, fittings 50 %.
+    expect(owned.premises).toBe(1_000_000 + 1_600_000 + 200_000);
+    expect(owned.business).toBeCloseTo(plain.business, 6);
+    expect(owned.value - plain.value).toBeCloseTo(2_800_000, 6);
+    expect(owned.high - owned.low).toBeCloseTo(plain.high - plain.low, 6);
+  });
+
+  it("discounts a declared figure and fades a stock without a new one", () => {
+    const base = datasetOf([steady]);
+    const v = company(
+      {
+        ...base,
+        balanceSheets: [sheet({ date: addDays(LATEST, -15), source: "declared", stock: 800_000 })],
+      },
+      "Steady",
+    ).valuation?.latest;
+    // 800 000 × 100 % × 50 % (declared) × 50 % (15 days of 30).
+    expect(v?.stock).toBeCloseTo(200_000, 6);
+    expect(v?.assets.stock?.fade).toBeCloseTo(0.5, 6);
+    const gone = company(
+      {
+        ...base,
+        balanceSheets: [sheet({ date: addDays(LATEST, -40), source: "audited", stock: 800_000 })],
+      },
+      "Steady",
+    ).valuation?.latest;
+    expect(gone?.stock).toBe(0);
+  });
+
+  it("keeps each item's latest figure, and never reads a sheet ahead of its date", () => {
+    const base = datasetOf([steady]);
+    const sheets = [
+      sheet({ date: "2026-10-01", source: "audited", land: 500_000, stock: 100_000 }),
+      sheet({ date: addDays(LATEST, -3), source: "audited", stock: 300_000 }),
+      sheet({ date: "2026-12-01", source: "audited", land: 9_000_000 }),
+    ];
+    const v = company({ ...base, balanceSheets: sheets }, "Steady").valuation?.latest;
+    expect(v?.assets.land?.amount).toBe(500_000);
+    expect(v?.assets.land?.date).toBe("2026-10-01");
+    expect(v?.assets.stock?.amount).toBe(300_000);
   });
 });
