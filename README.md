@@ -87,6 +87,13 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   comparés chacun à la médiane de son secteur, puis la recette avant et après chaque adhésion ou
   départ daté (`src/domain/groupHistory.ts`). Tant qu'aucune adhésion n'est datée, chaque
   consortium compte ses membres actuels sur tout l'historique ; la page le signale.
+- **Page Études** (`/etudes`), lectures exploratoires (`src/domain/studies.ts`) : la filière de
+  production en trois étages, usines → boutiques et bars → ateliers (`SUPPLY_CHAIN` : recettes
+  semaine par semaine, et pour chaque maillon la corrélation des variations selon le décalage ;
+  technopôles, banques et agences immobilières hors chaîne), le choc de chaque évènement de marché par secteur (capital avant et après,
+  corporations au-delà de 30 M¢, recettes autour), les quartiers × secteurs, et la qualité des
+  recettes (rétention du profil de risque, médiane par secteur, corporations tenues sous le seuil
+  de piratage écartées). Des pistes, pas des verdicts : chaque section dit ses limites.
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;
