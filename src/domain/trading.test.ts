@@ -16,6 +16,7 @@ import {
   orderProblem,
   rankInvestors,
   reservationFor,
+  transferProblem,
   suggestedLimit,
   tradeAmounts,
   type Dividend,
@@ -369,5 +370,37 @@ describe("dividends", () => {
     expect(dividendProblem(1.5, { ...ok, shares: 0, total: 0 })).toMatch(/aucun investisseur/);
     expect(dividendProblem(0.01, { ...ok, total: 0 })).toMatch(/trop faible/);
     expect(dividendProblem(1.5, { ...ok, available: 400 })).toMatch(/450 crédits/);
+  });
+});
+
+describe("frozen accounts", () => {
+  const issue = (accountId: string, quantity: number, at: string): ShareIssue => ({
+    id: `t-${accountId}-${at}`,
+    companyId: "c",
+    accountId,
+    quantity,
+    reason: "transfer",
+    createdAt: at,
+  });
+
+  it("hands shares over with their share of the cost, received at no cost", () => {
+    const trades = [trade({ side: "buy", quantity: 100, price: 100 })];
+    // 100 shares for 10 100 credits (commission included); a quarter handed over.
+    const [giver] = holdings(trades, [], [issue("a", -25, "2026-11-20T00:00:00Z")]);
+    expect(giver.quantity).toBe(75);
+    expect(giver.cost).toBeCloseTo(10_100 * 0.75, 6);
+    const [heir] = holdings([], [], [issue("b", 25, "2026-11-20T00:00:00Z")]);
+    expect(heir).toMatchObject({ quantity: 25, cost: 0 });
+  });
+
+  it("explains a transmission that cannot be made", () => {
+    const free = { shares: 40, cash: 500 };
+    const ok = { toAccount: "heir", quantity: 40, amount: 500 };
+    expect(transferProblem(ok, free)).toBeNull();
+    expect(transferProblem({ ...ok, toAccount: null }, free)).toMatch(/compte qui reçoit/);
+    expect(transferProblem({ ...ok, quantity: null, amount: null }, free)).toMatch(/rien/);
+    expect(transferProblem({ ...ok, quantity: 41 }, free)).toMatch(/40 titres libres/);
+    expect(transferProblem({ ...ok, amount: 501 }, free)).toMatch(/500 crédits/);
+    expect(transferProblem({ ...ok, quantity: 1.5 }, free)).toMatch(/entier/);
   });
 });

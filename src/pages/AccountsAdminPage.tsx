@@ -2,9 +2,11 @@ import { Fragment, useCallback, useEffect, useMemo, useState, type FormEvent } f
 import { Link } from "react-router";
 import { ImperialDate } from "../components/figures.tsx";
 import { MovementsTable } from "../components/MovementsTable.tsx";
+import { FreezeForm, SuccessionPanel } from "../components/SuccessionPanel.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import {
   cashBalance,
+  FREEZE_INFO,
   isLogin,
   parseCredits,
   temporaryPassword,
@@ -14,10 +16,12 @@ import {
 import { formatInteger } from "../domain/numbers.ts";
 import {
   accountCash,
+  type AccountTransfer,
   type Dividend,
   type DividendPayment,
   type MarketOrder,
   type MarketTrade,
+  type ShareIssue,
 } from "../domain/trading.ts";
 import { SignIn } from "./ReportsPage.tsx";
 import "./BoursePage.css";
@@ -350,6 +354,10 @@ function AccountsAdmin() {
   const [trades, setTrades] = useState<MarketTrade[]>([]);
   const [dividends, setDividends] = useState<Dividend[]>([]);
   const [payments, setPayments] = useState<DividendPayment[]>([]);
+  const [issues, setIssues] = useState<ShareIssue[]>([]);
+  const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
+  // The row open under an account: its insiders, a freeze, or the settling of a frozen account.
+  const [panel, setPanel] = useState<{ id: string; kind: "freeze" | "settle" } | null>(null);
   const [insiderFor, setInsiderFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState("");
@@ -363,14 +371,18 @@ function AccountsAdmin() {
       source.marketTrades(),
       source.dividends(),
       source.dividendPayments(),
+      source.shareIssues(),
+      source.accountTransfers(),
     ]).then(
-      ([a, m, o, t, d, p]) => {
+      ([a, m, o, t, d, p, i, x]) => {
         setAccounts(a);
         setMovements(m);
         setOrders(o);
         setTrades(t);
         setDividends(d);
         setPayments(p);
+        setIssues(i);
+        setTransfers(x);
         setError(null);
       },
       (err: unknown) => setError(errorText(err)),
@@ -555,6 +567,12 @@ function AccountsAdmin() {
                           <th scope="row">
                             <strong>{a.login}</strong> {a.displayName}
                             {a.closedAt ? <span className="bourse__off"> · fermé</span> : null}
+                            {a.frozen ? (
+                              <span className="accounts__frozen">
+                                gelé · {FREEZE_INFO[a.frozen.reason].label.toLowerCase()}
+                                {a.frozen.note ? ` — ${a.frozen.note}` : ""}
+                              </span>
+                            ) : null}
                             {a.companyProfileId ? (
                               <span className="accounts__corporate">
                                 compte de {companyName(a.companyProfileId)}
@@ -601,8 +619,71 @@ function AccountsAdmin() {
                                 initiés
                               </button>
                             ) : null}
+                            {a.closedAt ? null : a.frozen ? (
+                              <button
+                                type="button"
+                                className="linklike"
+                                onClick={() =>
+                                  setPanel(
+                                    panel?.id === a.id && panel.kind === "settle"
+                                      ? null
+                                      : { id: a.id, kind: "settle" },
+                                  )
+                                }
+                              >
+                                dénouer
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="linklike"
+                                onClick={() =>
+                                  setPanel(
+                                    panel?.id === a.id && panel.kind === "freeze"
+                                      ? null
+                                      : { id: a.id, kind: "freeze" },
+                                  )
+                                }
+                              >
+                                geler
+                              </button>
+                            )}
                           </td>
                         </tr>
+                        {panel?.id === a.id && panel.kind === "freeze" && !a.frozen ? (
+                          <tr>
+                            <td colSpan={5}>
+                              <FreezeForm
+                                account={a}
+                                onDone={(saved) => {
+                                  setPanel(saved ? { id: a.id, kind: "settle" } : null);
+                                  if (saved) refresh();
+                                }}
+                              />
+                            </td>
+                          </tr>
+                        ) : null}
+                        {panel?.id === a.id && panel.kind === "settle" && a.frozen && market ? (
+                          <tr>
+                            <td colSpan={5}>
+                              <SuccessionPanel
+                                market={market}
+                                account={a}
+                                book={{
+                                  accounts: accounts ?? [],
+                                  movements,
+                                  orders,
+                                  trades,
+                                  issues,
+                                  payments,
+                                  dividends,
+                                  transfers,
+                                }}
+                                onDone={refresh}
+                              />
+                            </td>
+                          </tr>
+                        ) : null}
                         {insiderFor === a.id ? (
                           <tr>
                             <td colSpan={5}>
@@ -664,8 +745,9 @@ export function AccountsAdminPage() {
           <h1>Comptes investisseurs</h1>
           <p>
             Les joueurs investissent de vrais crédits de Dreadcast : ils les versent en jeu, KNX les
-            inscrit ici ; un retrait demandé sur le site est versé en jeu, puis réglé. Voir aussi
-            les <Link to="/bourse/reglages">réglages de la Bourse</Link>.
+            inscrit ici ; un retrait demandé sur le site est versé en jeu, puis réglé. À la mort
+            d'un personnage ou sur saisie de la DAI, le compte se gèle, puis se dénoue au cas par
+            cas. Voir aussi les <Link to="/bourse/reglages">réglages de la Bourse</Link>.
           </p>
         </div>
       </header>

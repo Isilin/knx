@@ -4,6 +4,7 @@ import { MovementsTable } from "../components/MovementsTable.tsx";
 import { CorporatePanel, TradingPanel } from "../components/TradingPanel.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import {
+  FREEZE_INFO,
   isLogin,
   MIN_PASSWORD,
   parseCredits,
@@ -403,6 +404,15 @@ function AccountView({ account }: { account: InvestorAccount }) {
         </p>
       ) : null}
 
+      {account.frozen ? (
+        <p className="note note--warn" role="status">
+          <strong>Compte gelé · {FREEZE_INFO[account.frozen.reason].label}</strong>
+          {account.frozen.note ? ` — ${account.frozen.note}` : ""}. Aucun ordre, souscription ni
+          retrait jusqu'à la levée du gel ; KNX dénoue le compte selon la décision RP. Les
+          dividendes continuent d'arriver.
+        </p>
+      ) : null}
+
       {book && state.status === "ready" && account.companyProfileId ? (
         <CorporatePanel
           market={state.market}
@@ -425,6 +435,7 @@ function AccountView({ account }: { account: InvestorAccount }) {
           dividends={book.dividends}
           payments={book.payments}
           cash={cash.available}
+          frozen={account.frozen !== null}
           onChange={refresh}
         />
       ) : null}
@@ -434,7 +445,12 @@ function AccountView({ account }: { account: InvestorAccount }) {
           <h2 id="mouvements" className="investor__h2">
             Mouvements de crédits
           </h2>
-          {book ? <MovementsTable movements={book.movements} onCancel={cancel} /> : null}
+          {book ? (
+            <MovementsTable
+              movements={book.movements}
+              onCancel={account.frozen ? undefined : cancel}
+            />
+          ) : null}
         </section>
         <aside className="investor__side">
           <div className="investor__box">
@@ -444,7 +460,7 @@ function AccountView({ account }: { account: InvestorAccount }) {
               réception, KNX les inscrit sur votre compte.
             </p>
           </div>
-          <WithdrawalForm available={cash.available} onDone={refresh} />
+          {account.frozen ? null : <WithdrawalForm available={cash.available} onDone={refresh} />}
           <RankingToggle account={account} />
           {changing ? (
             <PasswordChange account={account} forced={false} onDone={() => setChanging(false)} />

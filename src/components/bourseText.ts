@@ -191,6 +191,12 @@ export const LEVERS: {
     help: "Un ordre non servi faute d'atteindre sa limite passe à la séance suivante tant qu'il lui en reste, contre ces frais ; sans crédits pour les couvrir, il expire.",
   },
   {
+    key: "freeze",
+    label: "Gel des comptes",
+    read: () => "succession ou saisie de la DAI",
+    help: "À la mort d'un personnage ou sur saisie de la DAI, KNX gèle son compte : ordres et retraits annulés, les dividendes continuent d'arriver. Le compte se dénoue au cas par cas : transmission aux héritiers ou à l'Empire, vente au marché, rachat par la corporation.",
+  },
+  {
     key: "introductionPrice",
     label: "Cours d'introduction proposé",
     read: (p) => `${formatInteger(p.introductionPrice)} ¢`,

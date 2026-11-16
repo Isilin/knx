@@ -91,3 +91,37 @@
   font-size: var(--fs-cap);
   font-weight: 400;
 }
+
+.accounts__frozen {
+  display: block;
+  color: var(--alerte);
+  font-size: var(--fs-cap);
+  font-weight: 400;
+}
+
+.succession {
+  display: grid;
+  gap: var(--s-4);
+  padding: var(--s-2) 0 var(--s-4);
+}
+
+.succession__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  gap: var(--s-5) var(--s-7);
+  align-items: start;
+}
+
+.succession__holdings {
+  display: grid;
+  gap: var(--s-2);
+  margin: var(--s-2) 0 var(--s-4);
+  padding: 0;
+  list-style: none;
+}
+
+@media (max-width: 900px) {
+  .succession__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

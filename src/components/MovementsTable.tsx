@@ -44,7 +44,13 @@ export function MovementsTable({
                 <ImperialDate date={m.requestedAt.slice(0, 10)} />
               </td>
               {account ? <td>{account(m)}</td> : null}
-              <td>{CASH_KIND_LABELS[m.kind]}</td>
+              <td>
+                {m.transferId
+                  ? m.kind === "deposit"
+                    ? "Transmission reçue"
+                    : "Transmission cédée"
+                  : CASH_KIND_LABELS[m.kind]}
+              </td>
               <td className="num">
                 {m.kind === "deposit" ? "+" : "−"}
                 {formatInteger(m.amount)} ¢
@@ -57,7 +63,7 @@ export function MovementsTable({
               <td className="secondary movements__muted">{m.note ?? ""}</td>
               {onCancel ? (
                 <td>
-                  {m.kind === "withdrawal" && m.status === "requested" ? (
+                  {m.kind === "withdrawal" && m.status === "requested" && !m.transferId ? (
                     <button type="button" className="linklike" onClick={() => onCancel(m)}>
                       {cancelLabel}
                     </button>

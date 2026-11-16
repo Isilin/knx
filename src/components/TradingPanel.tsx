@@ -461,6 +461,7 @@ export function TradingPanel({
   dividends,
   payments,
   cash,
+  frozen = false,
   onChange,
 }: {
   market: Market;
@@ -476,6 +477,8 @@ export function TradingPanel({
   payments: readonly DividendPayment[];
   /** Credits free for a new buy order. */
   cash: number;
+  /** A frozen account: KNX alone handles its orders. */
+  frozen?: boolean;
   onChange: () => void;
 }) {
   const { source } = useData();
@@ -630,9 +633,11 @@ export function TradingPanel({
                     ) : null}
                     {o.reason ? <span className="trading__muted"> — {o.reason}</span> : null}
                   </span>
-                  <button type="button" className="linklike" onClick={() => void cancel(o)}>
-                    annuler
-                  </button>
+                  {frozen ? null : (
+                    <button type="button" className="linklike" onClick={() => void cancel(o)}>
+                      annuler
+                    </button>
+                  )}
                 </li>
               ))}
             </ol>
@@ -687,10 +692,18 @@ export function TradingPanel({
             </ol>
           )}
         </div>
-        <div className="trading__side">
-          <Offers market={market} account={account} offers={offers} cash={cash} onDone={onChange} />
-          <OrderForm market={market} account={account} free={free} onDone={onChange} />
-        </div>
+        {frozen ? null : (
+          <div className="trading__side">
+            <Offers
+              market={market}
+              account={account}
+              offers={offers}
+              cash={cash}
+              onDone={onChange}
+            />
+            <OrderForm market={market} account={account} free={free} onDone={onChange} />
+          </div>
+        )}
       </div>
     </section>
   );

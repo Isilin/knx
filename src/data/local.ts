@@ -219,6 +219,27 @@ export function createLocalSource(): DataSource {
     async cancelDividend() {
       throw new Error(INVESTORS_ONLY);
     },
+    async freezeAccount() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async unfreezeAccount() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async accountTransfers() {
+      return [];
+    },
+    async transferHoldings() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async sellForAccount() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async buybackShares() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async closeAccount() {
+      throw new Error(INVESTORS_ONLY);
+    },
     async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {

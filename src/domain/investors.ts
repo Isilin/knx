@@ -22,6 +22,29 @@ export interface InvestorAccount {
   publicRanking: boolean;
   /** Set for a corporation's own account: the page it belongs to. */
   companyProfileId: string | null;
+  /** Set while the account is frozen (a succession, a seizure). */
+  frozen: AccountFreeze | null;
+}
+
+/** Why an account is frozen: its holder died, or the DAI seized it. */
+export type FreezeReason = "succession" | "seizure";
+
+export const FREEZE_INFO: Record<FreezeReason, { label: string; help: string }> = {
+  succession: {
+    label: "Succession",
+    help: "Le personnage est mort : le compte attend la décision RP (héritiers, vente au marché, rachat par la corporation, confiscation).",
+  },
+  seizure: {
+    label: "Saisie de la DAI",
+    help: "La DAI enquête : le compte est figé jusqu'à la levée du gel ou une confiscation.",
+  },
+};
+
+export interface AccountFreeze {
+  reason: FreezeReason;
+  note: string | null;
+  /** When the account was frozen. */
+  since: string;
 }
 
 export type CashKind = "deposit" | "withdrawal";
@@ -37,6 +60,8 @@ export interface CashMovement {
   note: string | null;
   requestedAt: string;
   settledAt: string | null;
+  /** Set when the movement is one side of a transmission from a frozen account. */
+  transferId?: string | null;
 }
 
 export const CASH_KIND_LABELS: Record<CashKind, string> = {
