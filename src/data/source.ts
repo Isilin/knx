@@ -1,10 +1,15 @@
 import type { ResolvedRows } from "../domain/identity.ts";
 import type { CashMovement, InvestorAccount } from "../domain/investors.ts";
 import type {
+  Dividend,
+  DividendPayment,
+  DividendPolicy,
+  DividendPolicyKind,
   MarketOrder,
   MarketSession,
   MarketTrade,
   MarketOffer,
+  OfferKind,
   OrderSide,
   RankingEntry,
   ShareIssue,
@@ -176,9 +181,13 @@ export interface DataSource {
   marketOffers(): Promise<MarketOffer[]>;
   /** Shares issued to the signed-in account (endowment, divisions); every account's for an operator. */
   shareIssues(): Promise<ShareIssue[]>;
-  /** A corporation offers part of its shares in the open session (operators only). */
+  /**
+   * A corporation offers shares in the open session (operators only): shares it holds, or new
+   * ones (a capital increase, recorded at the close).
+   */
   createOffer(draft: {
     companyId: string;
+    kind: OfferKind;
     shares: number;
     price: number;
     note: string | null;
@@ -186,6 +195,26 @@ export interface DataSource {
   cancelOffer(id: string): Promise<void>;
   /** An investor subscribes to an open offer. */
   subscribe(offerId: string, quantity: number): Promise<void>;
+  /** Dividend policies of every corporation, as decided (public). */
+  dividendPolicies(): Promise<DividendPolicy[]>;
+  saveDividendPolicy(draft: {
+    companyId: string;
+    decidedOn: string;
+    policy: DividendPolicyKind;
+    note: string | null;
+  }): Promise<void>;
+  deleteDividendPolicy(id: string): Promise<void>;
+  /** Dividends announced, paid and withdrawn (public). */
+  dividends(): Promise<Dividend[]>;
+  /** What the signed-in account received; every account's for an operator. */
+  dividendPayments(): Promise<DividendPayment[]>;
+  /** A corporation announces a dividend in the open session, paid at its close (operators only). */
+  declareDividend(draft: {
+    companyId: string;
+    perShare: number;
+    note: string | null;
+  }): Promise<void>;
+  cancelDividend(id: string, reason: string | null): Promise<void>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
   /** Signs in with an operator password; resolves once the session exists. */

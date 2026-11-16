@@ -13,7 +13,8 @@ export type OperationKind =
   | "reverse_split"
   | "suspension"
   | "resumption"
-  | "withdrawal";
+  | "withdrawal"
+  | "capital_increase";
 
 export interface SecurityOperation {
   id: string;
@@ -21,7 +22,7 @@ export interface SecurityOperation {
   companyId: string;
   date: IsoDate;
   kind: OperationKind;
-  /** `introduction`: number of shares issued. */
+  /** `introduction`: number of shares issued; `capital_increase`: new shares created. */
   shares: number | null;
   /** `split`: each share becomes `ratio` shares; `reverse_split`: `ratio` shares become one. */
   ratio: number | null;
@@ -54,9 +55,24 @@ export const OPERATION_INFO: Record<OperationKind, { label: string; help: string
     label: "Sortie de cote",
     help: "La corporation quitte la cote : plus de cours par titre ; KNX continue d'estimer sa valeur.",
   },
+  capital_increase: {
+    label: "Augmentation de capital",
+    help: "Des titres nouveaux, vendus par une offre d'émission : le cours baisse d'autant tant que les fonds levés ne sont pas versés à la corporation en jeu. Inscrite par la clôture de la séance.",
+  },
 };
 
 export const OPERATION_KINDS = Object.keys(OPERATION_INFO) as OperationKind[];
+
+/**
+ * Kinds an operator records by hand. A capital increase creates shares that investors hold: only
+ * the close of an issue offer records it.
+ */
+export const MANUAL_KINDS = OPERATION_KINDS.filter((k) => k !== "capital_increase");
+
+/** Kinds that carry a number of shares. */
+export function carriesShares(kind: OperationKind): boolean {
+  return kind === "introduction" || kind === "capital_increase";
+}
 
 export function isOperationKind(value: unknown): value is OperationKind {
   return typeof value === "string" && value in OPERATION_INFO;
@@ -127,6 +143,14 @@ function nextStep(
     case "withdrawal":
       if (!listedOrSuspended) return { error: "la corporation n'est pas cotée" };
       return step("withdrawn", before.shares, before.introducedOn);
+    case "capital_increase": {
+      if (!listedOrSuspended) return { error: "la corporation n'est pas cotée" };
+      const added = op.shares ?? 0;
+      if (!Number.isInteger(added) || added < 1)
+        return { error: "nombre de titres entier, d'au moins 1" };
+      if (before.shares + added > MAX_SHARES) return { error: "trop de titres après l'émission" };
+      return step(before.state, before.shares + added, before.introducedOn);
+    }
   }
 }
 

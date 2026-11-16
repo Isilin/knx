@@ -5,14 +5,21 @@ import {
   allocateOffer,
   carryFee,
   clearingPrice,
+  dividendAmount,
+  dividendCost,
+  dividendProblem,
   fixingHistory,
+  holdersOf,
   holdings,
   offerProblem,
+  policyOf,
   orderProblem,
   rankInvestors,
   reservationFor,
   suggestedLimit,
   tradeAmounts,
+  type Dividend,
+  type DividendPolicy,
   type MarketOrder,
   type MarketSession,
   type MarketTrade,
@@ -131,13 +138,22 @@ describe("offers", () => {
   });
 
   it("explains an offer that cannot open", () => {
-    const context = { totalShares: 10_000, freeShares: 8000, reference: 100 };
+    const context = {
+      kind: "sale" as const,
+      totalShares: 10_000,
+      freeShares: 8000,
+      reference: 100,
+    };
     expect(offerProblem(5000, 100, context, P)).toMatch(/au plus 4900/);
     expect(offerProblem(1000, 100, { ...context, freeShares: 500 }, P)).toMatch(
       /500 titres libres/,
     );
     expect(offerProblem(1000, 130, context, P)).toMatch(/entre 80 et 120/);
     expect(offerProblem(1000, 95, context, P)).toBeNull();
+    // An issue creates its shares: the corporation needs none free, the cap still holds.
+    const issue = { ...context, kind: "issue" as const, freeShares: 0 };
+    expect(offerProblem(1000, 95, issue, P)).toBeNull();
+    expect(offerProblem(5000, 95, issue, P)).toMatch(/au plus 4900/);
   });
 });
 
@@ -254,5 +270,104 @@ describe("history and ranking", () => {
     // Before the 2-for-1 division, 100 ¢ for 1 000 shares reads 50 ¢ today.
     expect(history.map((h) => h.adjusted)).toEqual([50, 50]);
     expect(history[0].volume).toBe(3);
+  });
+});
+
+describe("dividends", () => {
+  const dividend = (d: Partial<Dividend>): Dividend => ({
+    id: String(++seq),
+    companyId: "c",
+    accountId: "corp",
+    sessionId: "s1",
+    perShare: 1.5,
+    status: "declared",
+    shares: 0,
+    total: 0,
+    note: null,
+    reason: null,
+    paidOn: null,
+    createdAt: "2026-11-15T10:00:00Z",
+    ...d,
+  });
+
+  it("rounds each holder down to the credit, without float slips", () => {
+    expect(dividendAmount(3, 1.5)).toBe(4);
+    // 100 × 0,29 is 28,999… in floating point: computed in hundredths, it is 29.
+    expect(dividendAmount(100, 0.29)).toBe(29);
+    expect(dividendAmount(1, 0.99)).toBe(0);
+    // Past the safe integers, the product goes through BigInt.
+    expect(dividendAmount(1_000_000_000_000, 999.99)).toBe(999_990_000_000_000);
+  });
+
+  it("pays the investors holding shares, never the corporation itself", () => {
+    const issues: ShareIssue[] = [
+      {
+        id: "e",
+        companyId: "c",
+        accountId: "corp",
+        quantity: 1000,
+        reason: "endowment",
+        createdAt: "2026-11-01T00:00:00Z",
+      },
+    ];
+    const trades = [
+      trade({ accountId: "corp", side: "sell", quantity: 300, price: 100 }),
+      trade({ accountId: "a", side: "buy", quantity: 200, price: 100 }),
+      trade({ accountId: "b", side: "buy", quantity: 100, price: 100 }),
+      trade({ accountId: "b", side: "sell", quantity: 100, price: 100 }),
+      trade({ accountId: "d", side: "buy", quantity: 100, price: 100 }),
+      trade({ accountId: "x", companyId: "other", side: "buy", quantity: 50, price: 100 }),
+    ];
+    const holders = holdersOf("c", trades, issues, new Set(["corp"]));
+    expect(holders).toEqual([
+      { accountId: "a", quantity: 200 },
+      { accountId: "d", quantity: 100 },
+    ]);
+    expect(dividendCost(holders, 0.75)).toEqual({ shares: 300, total: 150 + 75 });
+  });
+
+  it("holds an announced dividend, then spends it once paid", () => {
+    const corp = accountCash(
+      [],
+      [trade({ accountId: "corp", side: "sell", quantity: 10, price: 100 })],
+      [],
+      [],
+      [
+        dividend({ status: "declared", total: 200 }),
+        dividend({ status: "paid", total: 300 }),
+        dividend({ status: "cancelled", total: 999 }),
+      ],
+    );
+    // 1000 of proceeds, less 10 of commission.
+    expect(corp).toEqual({
+      balance: 990 - 300,
+      pending: 0,
+      reserved: 200,
+      available: 990 - 300 - 200,
+    });
+    const holder = accountCash(
+      [],
+      [],
+      [],
+      [{ id: "p", dividendId: "d", accountId: "a", shares: 10, amount: 15, createdAt: "" }],
+    );
+    expect(holder.balance).toBe(15);
+  });
+
+  it("reads the policy in force, and explains a dividend that cannot be announced", () => {
+    const policies: DividendPolicy[] = [
+      { id: "2", companyId: "c", decidedOn: "2026-11-10", policy: "distributing", note: null },
+      { id: "1", companyId: "c", decidedOn: "2026-10-01", policy: "accumulating", note: null },
+      { id: "3", companyId: "other", decidedOn: "2026-11-12", policy: "other", note: "rachats" },
+    ];
+    expect(policyOf(policies, "c")).toBe("distributing");
+    expect(policyOf(policies, "nobody")).toBe("none");
+    const ok = { policy: "distributing" as const, shares: 300, total: 450, available: 1000 };
+    expect(dividendProblem(1.5, ok)).toBeNull();
+    expect(dividendProblem(1.5, { ...ok, policy: "accumulating" })).toMatch(/politique/);
+    expect(dividendProblem(1.505, ok)).toMatch(/centième/);
+    expect(dividendProblem(1.5, { ...ok, shares: 0, total: 0 })).toMatch(/aucun investisseur/);
+    expect(dividendProblem(0.01, { ...ok, total: 0 })).toMatch(/trop faible/);
+    expect(dividendProblem(1.5, { ...ok, available: 400 })).toMatch(/450 crédits/);
   });
 });

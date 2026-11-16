@@ -18,7 +18,12 @@ import {
 } from "./types.ts";
 import { BALANCE_ITEMS, isAssetSource, type BalanceSheet } from "./balance.ts";
 import { MAX_EVENT_SPAN } from "./marketEvents.ts";
-import { checkOperations, isOperationKind, type SecurityOperation } from "./securities.ts";
+import {
+  carriesShares,
+  checkOperations,
+  isOperationKind,
+  type SecurityOperation,
+} from "./securities.ts";
 import {
   checkParams,
   cleanParams,
@@ -154,9 +159,21 @@ export function planOperation<T extends SecurityOperationDraft>(dataset: Dataset
     throw new Error(`date antérieure au premier relevé de la corporation (${first})`);
   if (closedOn !== null && draft.date >= closedOn)
     throw new Error("la corporation est fermée à cette date");
+  const stored = (dataset.securityOperations ?? []).find((o) => o.id === draft.id);
+  if (draft.kind === "capital_increase" || stored?.kind === "capital_increase") {
+    const unchanged =
+      stored?.kind === "capital_increase" &&
+      draft.kind === stored.kind &&
+      draft.date === stored.date &&
+      draft.shares === stored.shares;
+    if (!unchanged)
+      throw new Error(
+        "une augmentation de capital s'inscrit à la clôture d'une offre d'émission ; seule sa note se modifie",
+      );
+  }
   const operation = {
     ...draft,
-    shares: draft.kind === "introduction" ? draft.shares : null,
+    shares: carriesShares(draft.kind) ? draft.shares : null,
     ratio: draft.kind === "split" || draft.kind === "reverse_split" ? draft.ratio : null,
     note: draft.note?.trim() || null,
   };

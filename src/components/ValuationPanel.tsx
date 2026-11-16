@@ -18,7 +18,15 @@ import {
 import { CATEGORY_INFO, CONFIDENCE_INFO, ratingCode } from "../domain/rating.ts";
 import { useData } from "../data/DataProvider.tsx";
 import { OPERATION_INFO } from "../domain/securities.ts";
-import { fixingHistory, type MarketSession } from "../domain/trading.ts";
+import {
+  DIVIDEND_POLICY_INFO,
+  DIVIDEND_STATUS_LABELS,
+  fixingHistory,
+  policyHistory,
+  type Dividend,
+  type DividendPolicy,
+  type MarketSession,
+} from "../domain/trading.ts";
 import { priceHistory, type ValuationParams, type ValuationPoint } from "../domain/valuation.ts";
 import type { IsoDate } from "../domain/types.ts";
 import { listingLabel, operationDetail, operationMarkers } from "./bourseText.ts";
@@ -243,12 +251,17 @@ export function ValuationPanel({
   // A price curve needs two published prices; until then the value curve stands in.
   const { source } = useData();
   const [sessions, setSessions] = useState<MarketSession[]>([]);
+  const [policies, setPolicies] = useState<DividendPolicy[]>([]);
+  const [dividends, setDividends] = useState<Dividend[]>([]);
   useEffect(() => {
     if (!listing) return;
     let live = true;
-    source.marketSessions().then(
-      (list) => {
-        if (live) setSessions(list);
+    Promise.all([source.marketSessions(), source.dividendPolicies(), source.dividends()]).then(
+      ([list, decided, announced]) => {
+        if (!live) return;
+        setSessions(list);
+        setPolicies(decided);
+        setDividends(announced);
       },
       () => {},
     );
@@ -256,6 +269,10 @@ export function ValuationPanel({
       live = false;
     };
   }, [source, listing]);
+  const policy = policyHistory(policies, company.id).at(-1) ?? null;
+  const ownDividends = dividends.filter(
+    (d) => d.companyId === company.id && d.status !== "cancelled",
+  );
   const fixings = useMemo(
     () => (listing ? fixingHistory(sessions, company.id, listing.shares) : []),
     [sessions, company.id, listing],
@@ -478,6 +495,36 @@ export function ValuationPanel({
                     </li>
                   ))}
               </ol>
+            </>
+          ) : null}
+          {listing ? (
+            <>
+              <h3 className="label">Distribution</h3>
+              <p className="valuation__note">
+                <strong>{DIVIDEND_POLICY_INFO[policy?.policy ?? "none"].label}</strong>
+                {policy ? (
+                  <>
+                    {" "}
+                    depuis le <ImperialDate date={policy.decidedOn} />
+                    {policy.note ? ` — ${policy.note}` : null}
+                  </>
+                ) : null}
+                . {DIVIDEND_POLICY_INFO[policy?.policy ?? "none"].help}
+              </p>
+              {ownDividends.length > 0 ? (
+                <ol className="valuation__ops">
+                  {ownDividends.slice(0, 8).map((d) => (
+                    <li key={d.id}>
+                      <ImperialDate date={d.paidOn ?? d.createdAt.slice(0, 10)} />
+                      <span>
+                        <strong>Dividende</strong> · {formatPrice(d.perShare)} ¢ par titre ·{" "}
+                        {DIVIDEND_STATUS_LABELS[d.status]}
+                        {d.note ? <span className="valuation__op-note"> — {d.note}</span> : null}
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              ) : null}
             </>
           ) : null}
           <h3 className="label">Opérations sur titres</h3>

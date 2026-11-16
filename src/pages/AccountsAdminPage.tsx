@@ -12,7 +12,13 @@ import {
   type InvestorAccount,
 } from "../domain/investors.ts";
 import { formatInteger } from "../domain/numbers.ts";
-import { accountCash, type MarketOrder, type MarketTrade } from "../domain/trading.ts";
+import {
+  accountCash,
+  type Dividend,
+  type DividendPayment,
+  type MarketOrder,
+  type MarketTrade,
+} from "../domain/trading.ts";
 import { SignIn } from "./ReportsPage.tsx";
 import "./BoursePage.css";
 import "./InvestorPage.css";
@@ -342,6 +348,8 @@ function AccountsAdmin() {
   const [movements, setMovements] = useState<CashMovement[]>([]);
   const [orders, setOrders] = useState<MarketOrder[]>([]);
   const [trades, setTrades] = useState<MarketTrade[]>([]);
+  const [dividends, setDividends] = useState<Dividend[]>([]);
+  const [payments, setPayments] = useState<DividendPayment[]>([]);
   const [insiderFor, setInsiderFor] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState("");
@@ -353,12 +361,16 @@ function AccountsAdmin() {
       source.cashMovements(),
       source.marketOrders(),
       source.marketTrades(),
+      source.dividends(),
+      source.dividendPayments(),
     ]).then(
-      ([a, m, o, t]) => {
+      ([a, m, o, t, d, p]) => {
         setAccounts(a);
         setMovements(m);
         setOrders(o);
         setTrades(t);
+        setDividends(d);
+        setPayments(p);
         setError(null);
       },
       (err: unknown) => setError(errorText(err)),
@@ -534,6 +546,8 @@ function AccountsAdmin() {
                       byAccount.get(a.id) ?? [],
                       trades.filter((t) => t.accountId === a.id),
                       orders.filter((o) => o.accountId === a.id),
+                      payments.filter((p) => p.accountId === a.id),
+                      dividends.filter((d) => d.accountId === a.id),
                     );
                     return (
                       <Fragment key={a.id}>
