@@ -37,6 +37,10 @@ export interface MarketOrder {
   reason: string | null;
   createdAt: string;
   closedAt: string | null;
+  /** Sessions the order still lives, this one included (1–4). */
+  sessionsLeft: number;
+  /** Carry fees paid so far. */
+  feesPaid: number;
 }
 
 export interface MarketTrade {
@@ -206,6 +210,7 @@ export function accountCash(
   let balance = cash.balance;
   for (const t of trades)
     balance += t.side === "buy" ? -(t.amount + t.commission) : t.amount - t.commission;
+  for (const o of orders) balance -= o.feesPaid;
   const reserved = orders
     .filter((o) => o.status === "open" && o.side === "buy")
     .reduce((sum, o) => sum + o.reserved, 0);
@@ -257,6 +262,91 @@ export function lastPremiums(sessions: readonly MarketSession[]): Map<string, nu
     .sort((a, b) => (a.closedOn ?? "").localeCompare(b.closedOn ?? ""));
   for (const s of closed) for (const p of s.prices) out.set(p.companyId, p.premium);
   return out;
+}
+
+/** A corporation's price at one closed session. */
+export interface FixingPoint {
+  date: IsoDate;
+  reference: number;
+  premium: number;
+  price: number;
+  /** The price read with today's share count: divisions and consolidations never jump. */
+  adjusted: number;
+  demand: number;
+  supply: number;
+}
+
+/** Fixing prices of a corporation, oldest first, adjusted to its share count today. */
+export function fixingHistory(
+  sessions: readonly MarketSession[],
+  companyId: string,
+  sharesToday: number,
+): FixingPoint[] {
+  const out: FixingPoint[] = [];
+  for (const s of sessions) {
+    if (s.status !== "closed" || !s.closedOn) continue;
+    const p = s.prices.find((x) => x.companyId === companyId);
+    if (!p) continue;
+    out.push({
+      date: s.closedOn,
+      reference: p.reference,
+      premium: p.premium,
+      price: p.price,
+      adjusted: sharesToday > 0 ? (p.price * p.shares) / sharesToday : p.price,
+      demand: p.demand,
+      supply: p.supply,
+    });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
+
+/** Longest life of an order, in sessions. */
+export const MAX_SESSIONS = 4;
+
+/** Fee charged when an unfilled order moves to the next session: at least one credit. */
+export function carryFee(quantity: number, limit: number, params: ValuationParams): number {
+  return Math.max(1, Math.ceil(quantity * limit * params.carryFee));
+}
+
+/** What a public ranking entry carries: the site values the shares at today's KNX price. */
+export interface RankingEntry {
+  key: string;
+  displayName: string;
+  /** Deposits minus withdrawals paid. */
+  invested: number;
+  cash: number;
+  positions: { companyId: string; quantity: number }[];
+}
+
+export interface RankedInvestor {
+  key: string;
+  displayName: string;
+  wealth: number;
+  invested: number;
+  /** wealth ÷ invested − 1; null with nothing invested. */
+  performance: number | null;
+}
+
+/** Investors who chose to be ranked, best performance first. */
+export function rankInvestors(entries: readonly RankingEntry[], market: Market): RankedInvestor[] {
+  return entries
+    .map((e) => {
+      let wealth = e.cash;
+      for (const p of e.positions)
+        wealth += p.quantity * (market.byId.get(p.companyId)?.valuation?.listing?.price ?? 0);
+      return {
+        key: e.key,
+        displayName: e.displayName,
+        wealth,
+        invested: e.invested,
+        performance: e.invested > 0 ? wealth / e.invested - 1 : null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        (b.performance ?? -Infinity) - (a.performance ?? -Infinity) ||
+        a.displayName.localeCompare(b.displayName, "fr"),
+    );
 }
 
 /** Why an order cannot be placed, in the player's words; null when it can. */

@@ -5,6 +5,7 @@ import type {
   MarketSession,
   MarketTrade,
   OrderSide,
+  RankingEntry,
   SessionPrice,
 } from "../domain/trading.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
@@ -148,7 +149,13 @@ export interface DataSource {
     side: OrderSide;
     quantity: number;
     limit: number;
+    /** Sessions the order lives, 1–4. */
+    sessions: number;
   }): Promise<void>;
+  /** The signed-in player appears in the public ranking, or leaves it. */
+  setPublicRanking(value: boolean): Promise<void>;
+  /** Investors who chose to be ranked (public). */
+  publicRanking(): Promise<RankingEntry[]>;
   cancelOrder(id: string): Promise<void>;
   /** Opens the first session (each close opens the next). */
   openSession(date: string): Promise<void>;

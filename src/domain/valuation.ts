@@ -101,6 +101,8 @@ export interface ValuationParams {
   holdCap: number;
   /** Share of a corporation's shares one player may hold. */
   playerCap: number;
+  /** Share of an order's amount charged each time it is carried to the next session. */
+  carryFee: number;
 }
 
 export const DEFAULT_VALUATION: ValuationParams = {
@@ -139,6 +141,7 @@ export const DEFAULT_VALUATION: ValuationParams = {
   premiumBand: 0.25,
   holdCap: 0.2,
   playerCap: 0.05,
+  carryFee: 0.002,
 };
 
 /** Bounds of each lever, checked before publishing settings. */
@@ -163,6 +166,7 @@ export const PARAM_BOUNDS = {
   premiumHalfLife: [0.5, 52],
   premiumBand: [0, 0.9],
   cap: [0, 1],
+  carryFee: [0, 0.05],
 } as const;
 
 /** A published version of the settings. The latest one is in force. */
@@ -232,6 +236,7 @@ export function cleanParams(raw: unknown): ValuationParams {
     premiumBand: num(r.premiumBand, d.premiumBand),
     holdCap: num(r.holdCap, d.holdCap),
     playerCap: num(r.playerCap, d.playerCap),
+    carryFee: num(r.carryFee, d.carryFee),
   };
 }
 
@@ -279,6 +284,7 @@ export function checkParams(params: ValuationParams): void {
   within("Bande de la prime", params.premiumBand, b.premiumBand);
   within("Plafond des joueurs", params.holdCap, b.cap);
   within("Plafond par joueur", params.playerCap, b.cap);
+  within("Frais de report", params.carryFee, b.carryFee);
   if (params.playerCap > params.holdCap)
     throw new Error("Plafond par joueur : pas plus que le plafond des joueurs réunis");
 }

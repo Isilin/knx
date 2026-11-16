@@ -18,6 +18,8 @@ export interface InvestorAccount {
   createdAt: string;
   /** Pages (company profiles) the player is declared an insider of: no trading their shares. */
   insiderOf: string[];
+  /** The player chose to appear in the public ranking. */
+  publicRanking: boolean;
 }
 
 export type CashKind = "deposit" | "withdrawal";

@@ -171,6 +171,12 @@ export function createLocalSource(): DataSource {
     async cancelOrder() {
       throw new Error(INVESTORS_ONLY);
     },
+    async setPublicRanking() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async publicRanking() {
+      return [];
+    },
     async openSession() {
       throw new Error(INVESTORS_ONLY);
     },

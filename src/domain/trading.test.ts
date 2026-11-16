@@ -2,6 +2,9 @@ import { describe, expect, it } from "vite-plus/test";
 import type { CashMovement } from "./investors.ts";
 import {
   accountCash,
+  carryFee,
+  fixingHistory,
+  rankInvestors,
   fixingPlan,
   holdings,
   lastPremiums,
@@ -34,6 +37,8 @@ const order = (o: Partial<MarketOrder> & Pick<MarketOrder, "side" | "quantity">)
   reason: null,
   createdAt: `2026-11-15T10:00:${String(seq).padStart(2, "0")}Z`,
   closedAt: null,
+  sessionsLeft: 1,
+  feesPaid: 0,
   ...o,
 });
 
@@ -178,5 +183,71 @@ describe("session close", () => {
       session("3", null, 0.9),
     ]);
     expect(premiums.get("c")).toBe(0.05);
+  });
+});
+
+describe("phase 3", () => {
+  it("charges at least one credit to carry an order", () => {
+    expect(carryFee(10, 1000, P)).toBe(20);
+    expect(carryFee(1, 0.5, P)).toBe(1);
+  });
+
+  it("spends carry fees from the cash", () => {
+    const orders = [order({ side: "sell", quantity: 1, status: "expired", feesPaid: 30 })];
+    expect(accountCash([], [], orders).balance).toBe(-30);
+  });
+
+  it("ranks volunteers by what their account is worth against what they put in", () => {
+    const market = {
+      byId: new Map([["c", { valuation: { listing: { price: 200, shares: 1000 } } }]]),
+    } as unknown as Parameters<typeof rankInvestors>[1];
+    const ranked = rankInvestors(
+      [
+        {
+          key: "a",
+          displayName: "Ilsa",
+          invested: 10_000,
+          cash: 2000,
+          positions: [{ companyId: "c", quantity: 50 }],
+        },
+        { key: "b", displayName: "Moro", invested: 10_000, cash: 9000, positions: [] },
+        { key: "c", displayName: "Zed", invested: 0, cash: 0, positions: [] },
+      ],
+      market,
+    );
+    expect(ranked.map((r) => r.key)).toEqual(["a", "b", "c"]);
+    expect(ranked[0].performance).toBeCloseTo(0.2, 9);
+    expect(ranked[2].performance).toBeNull();
+  });
+
+  it("reads a corporation's fixings with today's share count", () => {
+    const session = (closedOn: string, shares: number, price: number): MarketSession => ({
+      id: closedOn,
+      openedOn: closedOn,
+      closedOn,
+      reportDate: closedOn,
+      status: "closed",
+      prices: [
+        {
+          companyId: "c",
+          shares,
+          reference: price,
+          premium: 0,
+          price,
+          buy: price,
+          sell: price,
+          demand: 0,
+          supply: 0,
+        },
+      ],
+    });
+    const history = fixingHistory(
+      [session("2026-11-14", 2000, 50), session("2026-11-07", 1000, 100)],
+      "c",
+      2000,
+    );
+    expect(history.map((h) => h.date)).toEqual(["2026-11-07", "2026-11-14"]);
+    // Before the 2-for-1 division, 100 ¢ for 1 000 shares reads 50 ¢ today.
+    expect(history.map((h) => h.adjusted)).toEqual([50, 50]);
   });
 });
