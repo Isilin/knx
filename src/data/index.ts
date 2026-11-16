@@ -52,8 +52,13 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     setPublicRanking: async (value) => (await get()).setPublicRanking(value),
     publicRanking: async () => (await get()).publicRanking(),
     openSession: async (date) => (await get()).openSession(date),
-    closeSession: async (id, report, prices, params) =>
-      (await get()).closeSession(id, report, prices, params),
+    closeSession: async (id, report, references, params) =>
+      (await get()).closeSession(id, report, references, params),
+    marketOffers: async () => (await get()).marketOffers(),
+    shareIssues: async () => (await get()).shareIssues(),
+    createOffer: async (draft) => (await get()).createOffer(draft),
+    cancelOffer: async (id) => (await get()).cancelOffer(id),
+    subscribe: async (offer, quantity) => (await get()).subscribe(offer, quantity),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>
       (await get()).signInWithPassword(email, password),

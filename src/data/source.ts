@@ -4,9 +4,10 @@ import type {
   MarketOrder,
   MarketSession,
   MarketTrade,
+  MarketOffer,
   OrderSide,
   RankingEntry,
-  SessionPrice,
+  ShareIssue,
 } from "../domain/trading.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
@@ -132,6 +133,8 @@ export interface DataSource {
     login: string;
     displayName: string;
     password: string;
+    /** A corporation's own account: the page it belongs to. */
+    profileId: string | null;
   }): Promise<void>;
   resetInvestorPassword(login: string, password: string): Promise<void>;
   recordDeposit(accountId: string, amount: number, note: string | null): Promise<void>;
@@ -159,13 +162,30 @@ export interface DataSource {
   cancelOrder(id: string): Promise<void>;
   /** Opens the first session (each close opens the next). */
   openSession(date: string): Promise<void>;
-  /** Fills the session's orders at the prices fixed, then opens the next session. */
+  /**
+   * Serves the session's offers and runs one auction per corporation, then opens the next
+   * session. The KNX price of each listed corporation breaks ties between equally good prices.
+   */
   closeSession(
     sessionId: string,
     reportDate: string,
-    prices: SessionPrice[],
+    references: { companyId: string; shares: number; reference: number }[],
     params: Record<string, number>,
   ): Promise<void>;
+  /** Open, closed and cancelled offers (public). */
+  marketOffers(): Promise<MarketOffer[]>;
+  /** Shares issued to the signed-in account (endowment, divisions); every account's for an operator. */
+  shareIssues(): Promise<ShareIssue[]>;
+  /** A corporation offers part of its shares in the open session (operators only). */
+  createOffer(draft: {
+    companyId: string;
+    shares: number;
+    price: number;
+    note: string | null;
+  }): Promise<void>;
+  cancelOffer(id: string): Promise<void>;
+  /** An investor subscribes to an open offer. */
+  subscribe(offerId: string, quantity: number): Promise<void>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
   /** Signs in with an operator password; resolves once the session exists. */

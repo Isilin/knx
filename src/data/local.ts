@@ -183,6 +183,21 @@ export function createLocalSource(): DataSource {
     async closeSession() {
       throw new Error(INVESTORS_ONLY);
     },
+    async marketOffers() {
+      return [];
+    },
+    async shareIssues() {
+      return [];
+    },
+    async createOffer() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async cancelOffer() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async subscribe() {
+      throw new Error(INVESTORS_ONLY);
+    },
     async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {

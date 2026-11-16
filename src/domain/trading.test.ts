@@ -2,22 +2,21 @@ import { describe, expect, it } from "vite-plus/test";
 import type { CashMovement } from "./investors.ts";
 import {
   accountCash,
+  allocateOffer,
   carryFee,
+  clearingPrice,
   fixingHistory,
-  rankInvestors,
-  fixingPlan,
   holdings,
-  lastPremiums,
-  nextPremium,
+  offerProblem,
   orderProblem,
-  premiumDecay,
+  rankInvestors,
   reservationFor,
-  sidePrices,
   suggestedLimit,
   tradeAmounts,
   type MarketOrder,
   type MarketSession,
   type MarketTrade,
+  type ShareIssue,
 } from "./trading.ts";
 import { DEFAULT_VALUATION } from "./valuation.ts";
 
@@ -39,6 +38,7 @@ const order = (o: Partial<MarketOrder> & Pick<MarketOrder, "side" | "quantity">)
   closedAt: null,
   sessionsLeft: 1,
   feesPaid: 0,
+  offerId: null,
   ...o,
 });
 
@@ -50,6 +50,7 @@ const trade = (
     id: String(++seq),
     sessionId: "s1",
     orderId: String(seq),
+    offerId: null,
     accountId: "a",
     companyId: "c",
     amount,
@@ -59,49 +60,110 @@ const trade = (
   };
 };
 
-describe("premium and prices", () => {
-  it("moves with net demand, fades by its half-life, stays in its band", () => {
-    expect(premiumDecay(P)).toBeCloseTo(Math.SQRT1_2, 9);
-    // 1 000 net shares bought out of 20 000 at sensitivity 0.5: +2.5 %.
-    expect(nextPremium(0, 1500, 500, 20_000, P)).toBeCloseTo(0.025, 9);
-    expect(nextPremium(0.1, 0, 0, 20_000, P)).toBeCloseTo(0.1 * Math.SQRT1_2, 9);
-    expect(nextPremium(0, 50_000, 0, 20_000, P)).toBe(P.premiumBand);
-    expect(nextPremium(0, 0, 50_000, 20_000, P)).toBe(-P.premiumBand);
-  });
-
-  it("splits the spread around the fixing price, to the hundredth", () => {
-    expect(sidePrices(1000, 0.1, P)).toEqual({ price: 1100, buy: 1111, sell: 1089 });
-    // A tiny price keeps its spread: the buy rounds up, the sell down.
-    expect(sidePrices(0.5, 0, P)).toEqual({ price: 0.5, buy: 0.51, sell: 0.49 });
-  });
-
+describe("amounts", () => {
   it("charges the commission on whole credits, and holds enough for a buy", () => {
     expect(tradeAmounts(3, 333.33, P)).toEqual({ amount: 1000, commission: 10 });
     expect(reservationFor(10, 1111, P)).toBe(11_110 + 112);
   });
 
-  it("suggests limits that fill an ordinary order", () => {
-    const { buy, sell } = sidePrices(1000, 0, P);
-    expect(suggestedLimit("buy", 1000, 0, P)).toBeGreaterThan(buy);
-    expect(suggestedLimit("sell", 1000, 0, P)).toBeLessThan(sell);
+  it("suggests limits 5 % around the KNX price", () => {
+    expect(suggestedLimit("buy", 1000)).toBe(1050);
+    expect(suggestedLimit("sell", 1000)).toBe(950);
+    expect(suggestedLimit("sell", 0.01)).toBe(0.01);
+  });
+
+  it("charges at least one credit to carry an order", () => {
+    expect(carryFee(10, 1000, P)).toBe(20);
+    expect(carryFee(1, 0.5, P)).toBe(1);
+  });
+});
+
+describe("auction", () => {
+  it("fixes the price that meets the most shares", () => {
+    const clearing = clearingPrice(
+      [
+        order({ side: "buy", quantity: 100, limitPrice: 110 }),
+        order({ side: "buy", quantity: 50, limitPrice: 100 }),
+        order({ side: "sell", quantity: 80, limitPrice: 95 }),
+        order({ side: "sell", quantity: 100, limitPrice: 105 }),
+      ],
+      100,
+    );
+    // At 105: 100 asked, 180 offered → 100 meet; at 100 or 95: 150 asked, 80 offered → 80.
+    expect(clearing).toEqual({ price: 105, volume: 100, demand: 100, supply: 180 });
+  });
+
+  it("breaks ties by imbalance, then by the KNX price, then by the lower price", () => {
+    const orders = [
+      order({ side: "buy", quantity: 10, limitPrice: 120 }),
+      order({ side: "sell", quantity: 10, limitPrice: 80 }),
+    ];
+    // Both limits meet 10 shares with no imbalance: the nearest to the KNX price wins.
+    expect(clearingPrice(orders, 115)?.price).toBe(120);
+    expect(clearingPrice(orders, 90)?.price).toBe(80);
+    // Equidistant: the lower.
+    expect(clearingPrice(orders, 100)?.price).toBe(80);
+  });
+
+  it("finds nothing when buyers bid under every seller", () => {
+    const orders = [
+      order({ side: "buy", quantity: 10, limitPrice: 90 }),
+      order({ side: "sell", quantity: 10, limitPrice: 100 }),
+    ];
+    expect(clearingPrice(orders, 95)).toBeNull();
+  });
+});
+
+describe("offers", () => {
+  it("serves everyone when the offer suffices", () => {
+    const subs = [order({ side: "buy", quantity: 30 }), order({ side: "buy", quantity: 20 })];
+    expect([...allocateOffer(subs, 100).values()]).toEqual([30, 20]);
+  });
+
+  it("shares an exceeded offer pro rata, the rounding left to the earliest", () => {
+    const subs = [
+      order({ side: "buy", quantity: 10 }),
+      order({ side: "buy", quantity: 10 }),
+      order({ side: "buy", quantity: 10 }),
+    ];
+    // 10 shares for 30 asked: 3 each, the 10th to the first.
+    expect([...allocateOffer(subs, 10).values()]).toEqual([4, 3, 3]);
+  });
+
+  it("explains an offer that cannot open", () => {
+    const context = { totalShares: 10_000, freeShares: 8000, reference: 100 };
+    expect(offerProblem(5000, 100, context, P)).toMatch(/au plus 4900/);
+    expect(offerProblem(1000, 100, { ...context, freeShares: 500 }, P)).toMatch(
+      /500 titres libres/,
+    );
+    expect(offerProblem(1000, 130, context, P)).toMatch(/entre 80 et 120/);
+    expect(offerProblem(1000, 95, context, P)).toBeNull();
   });
 });
 
 describe("accounts on the market", () => {
-  it("keeps shares at average cost and holds those offered for sale", () => {
+  it("keeps shares at average cost, counts issues, and holds those offered for sale", () => {
     const trades = [
       trade({ side: "buy", quantity: 10, price: 100 }),
       trade({ side: "buy", quantity: 10, price: 200 }),
       trade({ side: "sell", quantity: 5, price: 300 }),
     ];
-    const [h] = holdings(trades, [order({ side: "sell", quantity: 4 })]);
-    expect(h.quantity).toBe(15);
+    const split: ShareIssue = {
+      id: "i",
+      companyId: "c",
+      accountId: "a",
+      quantity: 15,
+      reason: "split",
+      createdAt: "2026-11-15T12:00:00Z",
+    };
+    const [h] = holdings(trades, [order({ side: "sell", quantity: 4 })], [split]);
+    // 15 shares after the trades, doubled by the division; the cost stays.
+    expect(h.quantity).toBe(30);
     expect(h.reserved).toBe(4);
-    // Cost 1010 + 2020 for 20 shares; 5 sold at the average cost leave 15 × 151,5.
     expect(h.cost).toBeCloseTo(15 * ((1010 + 2020) / 20), 6);
   });
 
-  it("counts trades and open buy orders in the cash", () => {
+  it("counts trades, open buy orders and carry fees in the cash", () => {
     const movements: CashMovement[] = [
       {
         id: "m1",
@@ -117,13 +179,13 @@ describe("accounts on the market", () => {
     const trades = [trade({ side: "buy", quantity: 10, price: 1000 })];
     const orders = [
       order({ side: "buy", quantity: 5, reserved: 6000 }),
-      order({ side: "buy", quantity: 1, reserved: 999, status: "cancelled" }),
+      order({ side: "sell", quantity: 1, status: "expired", feesPaid: 30 }),
     ];
     expect(accountCash(movements, trades, orders)).toEqual({
-      balance: 100_000 - 10_100,
+      balance: 100_000 - 10_100 - 30,
       pending: 0,
       reserved: 6000,
-      available: 100_000 - 10_100 - 6000,
+      available: 100_000 - 10_100 - 30 - 6000,
     });
   });
 
@@ -137,66 +199,7 @@ describe("accounts on the market", () => {
   });
 });
 
-describe("session close", () => {
-  it("fixes each listed corporation from its open orders and last premium", () => {
-    const orders = [
-      order({ side: "buy", quantity: 600 }),
-      order({ side: "sell", quantity: 200 }),
-      order({ side: "buy", quantity: 900, status: "cancelled" }),
-      order({ side: "buy", quantity: 50, companyId: "other" }),
-    ];
-    const [p] = fixingPlan(
-      [{ companyId: "c", shares: 20_000, reference: 1000, previousPremium: 0.02 }],
-      orders,
-      P,
-    );
-    expect(p.demand).toBe(600);
-    expect(p.supply).toBe(200);
-    expect(p.premium).toBeCloseTo(0.02 * Math.SQRT1_2 + 0.01, 9);
-    expect(p.price).toBeCloseTo(1000 * (1 + p.premium), 2);
-  });
-
-  it("reads each corporation's premium from the latest closed session", () => {
-    const session = (id: string, closedOn: string | null, premium: number): MarketSession => ({
-      id,
-      openedOn: "2026-11-01",
-      closedOn,
-      reportDate: closedOn,
-      status: closedOn ? "closed" : "open",
-      prices: [
-        {
-          companyId: "c",
-          shares: 1,
-          reference: 1,
-          premium,
-          price: 1,
-          buy: 1,
-          sell: 1,
-          demand: 0,
-          supply: 0,
-        },
-      ],
-    });
-    const premiums = lastPremiums([
-      session("2", "2026-11-14", 0.05),
-      session("1", "2026-11-07", 0.2),
-      session("3", null, 0.9),
-    ]);
-    expect(premiums.get("c")).toBe(0.05);
-  });
-});
-
-describe("phase 3", () => {
-  it("charges at least one credit to carry an order", () => {
-    expect(carryFee(10, 1000, P)).toBe(20);
-    expect(carryFee(1, 0.5, P)).toBe(1);
-  });
-
-  it("spends carry fees from the cash", () => {
-    const orders = [order({ side: "sell", quantity: 1, status: "expired", feesPaid: 30 })];
-    expect(accountCash([], [], orders).balance).toBe(-30);
-  });
-
+describe("history and ranking", () => {
   it("ranks volunteers by what their account is worth against what they put in", () => {
     const market = {
       byId: new Map([["c", { valuation: { listing: { price: 200, shares: 1000 } } }]]),
@@ -238,6 +241,7 @@ describe("phase 3", () => {
           sell: price,
           demand: 0,
           supply: 0,
+          volume: 3,
         },
       ],
     });
@@ -249,5 +253,6 @@ describe("phase 3", () => {
     expect(history.map((h) => h.date)).toEqual(["2026-11-07", "2026-11-14"]);
     // Before the 2-for-1 division, 100 ¢ for 1 000 shares reads 50 ¢ today.
     expect(history.map((h) => h.adjusted)).toEqual([50, 50]);
+    expect(history[0].volume).toBe(3);
   });
 });

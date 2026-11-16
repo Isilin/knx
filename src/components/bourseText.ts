@@ -158,24 +158,22 @@ export const LEVERS: {
   },
   {
     key: "commission",
-    label: "Commission et écart",
-    read: (p) =>
-      `commission ${formatShare(p.commission)} · écart achat-vente ${formatShare(p.spread)}`,
-    help: "À chaque séance, l'acheteur paie le fixing plus la moitié de l'écart, le vendeur reçoit le fixing moins l'autre moitié ; la commission s'ajoute de part et d'autre.",
+    label: "Commission",
+    read: (p) => `${formatShare(p.commission)} de chaque exécution`,
+    help: "Prélevée sur l'acheteur comme sur le vendeur, et sur le produit d'une offre : c'est la seule recette de la Bourse, qui n'est jamais contrepartie.",
   },
   {
-    key: "premium",
-    label: "Prime de marché",
-    read: (p) =>
-      `sensibilité ${formatFactor(p.premiumSensitivity)} · demi-vie ${formatFactor(p.premiumHalfLife)} séance${p.premiumHalfLife > 1 ? "s" : ""} · bornée à ± ${formatShare(p.premiumBand)}`,
-    help: "Le fixing s'écarte du cours KNX selon le solde des ordres : plus d'achats que de ventes, il monte ; la prime s'efface ensuite de séance en séance.",
+    key: "auction",
+    label: "Enchère de séance",
+    read: () => "le prix qui fait se rencontrer le plus de titres",
+    help: "À chaque clôture, entre les ordres des investisseurs : à égalité, le prix qui laisse le moins de titres sans contrepartie, puis le plus proche du cours KNX.",
   },
   {
-    key: "caps",
-    label: "Plafonds de détention",
+    key: "offers",
+    label: "Offres des corporations",
     read: (p) =>
-      `joueurs réunis ${formatShare(p.holdCap)} · par joueur ${formatShare(p.playerCap)}`,
-    help: "Part des titres d'une corporation que les joueurs peuvent détenir face à la Banque impériale, teneur de marché.",
+      `au plus ${formatShare(p.maxOffer)} des titres · prix à ± ${formatShare(p.offerBand)} du cours KNX`,
+    help: "Une corporation vend une partie de ses titres pendant une séance ; chacun est servi, au prorata si l'offre est dépassée, et le produit va à la corporation.",
   },
   {
     key: "carryFee",

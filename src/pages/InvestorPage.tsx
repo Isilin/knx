@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { MovementsTable } from "../components/MovementsTable.tsx";
-import { TradingPanel } from "../components/TradingPanel.tsx";
+import { CorporatePanel, TradingPanel } from "../components/TradingPanel.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import {
   isLogin,
@@ -14,9 +14,11 @@ import {
 import { formatInteger } from "../domain/numbers.ts";
 import {
   accountCash,
+  type MarketOffer,
   type MarketOrder,
   type MarketSession,
   type MarketTrade,
+  type ShareIssue,
 } from "../domain/trading.ts";
 import "./InvestorPage.css";
 
@@ -291,6 +293,8 @@ function AccountView({ account }: { account: InvestorAccount }) {
     orders: MarketOrder[];
     trades: MarketTrade[];
     sessions: MarketSession[];
+    offers: MarketOffer[];
+    issues: ShareIssue[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
@@ -301,8 +305,11 @@ function AccountView({ account }: { account: InvestorAccount }) {
       source.marketOrders(),
       source.marketTrades(),
       source.marketSessions(),
+      source.marketOffers(),
+      source.shareIssues(),
     ]).then(
-      ([movements, orders, trades, sessions]) => setBook({ movements, orders, trades, sessions }),
+      ([movements, orders, trades, sessions, offers, issues]) =>
+        setBook({ movements, orders, trades, sessions, offers, issues }),
       (err: unknown) => setError(errorText(err)),
     );
   }, [source]);
@@ -365,13 +372,23 @@ function AccountView({ account }: { account: InvestorAccount }) {
         </p>
       ) : null}
 
-      {book && state.status === "ready" ? (
+      {book && state.status === "ready" && account.companyProfileId ? (
+        <CorporatePanel
+          market={state.market}
+          account={account}
+          offers={book.offers}
+          trades={book.trades}
+          issues={book.issues}
+        />
+      ) : book && state.status === "ready" ? (
         <TradingPanel
           market={state.market}
           account={account}
           sessions={book.sessions}
           orders={book.orders}
           trades={book.trades}
+          offers={book.offers}
+          issues={book.issues}
           cash={cash.available}
           onChange={refresh}
         />

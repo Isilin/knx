@@ -140,13 +140,13 @@ function LastSession({ market }: { market: Market }) {
                   Cours KNX
                 </th>
                 <th scope="col" className="num">
-                  Prime
+                  Écart au cours KNX
                 </th>
                 <th scope="col" className="num">
                   Fixing
                 </th>
                 <th scope="col" className="num secondary">
-                  Achats / ventes
+                  Titres échangés
                 </th>
               </tr>
             </thead>
@@ -172,9 +172,7 @@ function LastSession({ market }: { market: Market }) {
                     <td className="num">
                       <span className="estimated">{formatPrice(p.price)} ¢</span>
                     </td>
-                    <td className="num secondary">
-                      {formatInteger(p.demand)} / {formatInteger(p.supply)}
-                    </td>
+                    <td className="num secondary">{formatInteger(p.volume)}</td>
                   </tr>
                 );
               })}
@@ -183,9 +181,10 @@ function LastSession({ market }: { market: Market }) {
         </div>
       ) : null}
       <p className="bourse__note">
-        Chaque heptade, les investisseurs passent leurs ordres ; à la clôture, le fixing s'écarte du
-        cours KNX selon le solde des ordres, et la Banque impériale sert chaque ordre compatible.{" "}
-        <Link to="/compte">Espace investisseur</Link>.
+        Chaque heptade, les corporations vendent une partie de leurs titres et les investisseurs
+        échangent entre eux ; à la clôture, une enchère fixe pour chaque titre le prix qui fait se
+        rencontrer le plus de titres. La Bourse n'est jamais contrepartie : elle perçoit une
+        commission. <Link to="/compte">Espace investisseur</Link>.
       </p>
     </section>
   );
@@ -264,8 +263,8 @@ export function BoursePage() {
             KNX estime chaque jour la valeur de toutes les corporations cotées au rapport, et publie
             un cours par titre pour celles dont la direction a demandé l'introduction en bourse. Le
             cours est théorique : il suit les relevés et la notation de l'Agence, pas des ordres
-            d'achat et de vente ; à chaque séance, le fixing s'en écarte selon les ordres des
-            investisseurs. Les chiffres en violet sont calculés par KNX.
+            d'achat et de vente. Le prix de séance, lui, naît de l'enchère entre investisseurs. Les
+            chiffres en violet sont calculés par KNX.
           </p>
         </div>
         <div className="bourse__head-actions">

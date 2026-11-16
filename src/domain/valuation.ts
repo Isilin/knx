@@ -89,18 +89,10 @@ export interface ValuationParams {
   listedDeclaredWeight: number;
   /** Share of each trade's amount the exchange keeps, from buyers and sellers alike. */
   commission: number;
-  /** Gap between the buying and selling price around the fixing price (half on each side). */
-  spread: number;
-  /** How far the premium moves for a net demand of the whole share count. */
-  premiumSensitivity: number;
-  /** Sessions after which half of a premium is gone. */
-  premiumHalfLife: number;
-  /** Largest premium or discount on the KNX price. */
-  premiumBand: number;
-  /** Share of a corporation's shares the players may hold together. */
-  holdCap: number;
-  /** Share of a corporation's shares one player may hold. */
-  playerCap: number;
+  /** Largest share of a corporation's shares one offer may sell. */
+  maxOffer: number;
+  /** How far an offer's price may stand from the KNX price, either way. */
+  offerBand: number;
   /** Share of an order's amount charged each time it is carried to the next session. */
   carryFee: number;
 }
@@ -135,12 +127,8 @@ export const DEFAULT_VALUATION: ValuationParams = {
   stockLife: 30,
   listedDeclaredWeight: 0,
   commission: 0.01,
-  spread: 0.02,
-  premiumSensitivity: 0.5,
-  premiumHalfLife: 2,
-  premiumBand: 0.25,
-  holdCap: 0.2,
-  playerCap: 0.05,
+  maxOffer: 0.49,
+  offerBand: 0.2,
   carryFee: 0.002,
 };
 
@@ -161,11 +149,8 @@ export const PARAM_BOUNDS = {
   assetWeight: [0, 1],
   stockLife: [1, 365],
   commission: [0, 0.1],
-  spread: [0, 0.2],
-  premiumSensitivity: [0, 5],
-  premiumHalfLife: [0.5, 52],
-  premiumBand: [0, 0.9],
-  cap: [0, 1],
+  maxOffer: [0.01, 0.99],
+  offerBand: [0, 0.9],
   carryFee: [0, 0.05],
 } as const;
 
@@ -230,12 +215,8 @@ export function cleanParams(raw: unknown): ValuationParams {
     stockLife: num(r.stockLife, d.stockLife),
     listedDeclaredWeight: num(r.listedDeclaredWeight, d.listedDeclaredWeight),
     commission: num(r.commission, d.commission),
-    spread: num(r.spread, d.spread),
-    premiumSensitivity: num(r.premiumSensitivity, d.premiumSensitivity),
-    premiumHalfLife: num(r.premiumHalfLife, d.premiumHalfLife),
-    premiumBand: num(r.premiumBand, d.premiumBand),
-    holdCap: num(r.holdCap, d.holdCap),
-    playerCap: num(r.playerCap, d.playerCap),
+    maxOffer: num(r.maxOffer, d.maxOffer),
+    offerBand: num(r.offerBand, d.offerBand),
     carryFee: num(r.carryFee, d.carryFee),
   };
 }
@@ -278,15 +259,9 @@ export function checkParams(params: ValuationParams): void {
   whole("Durée de vie du stock", params.stockLife);
   within("Chiffre déclaré, corporation cotée", params.listedDeclaredWeight, b.assetWeight);
   within("Commission", params.commission, b.commission);
-  within("Écart achat-vente", params.spread, b.spread);
-  within("Sensibilité de la prime", params.premiumSensitivity, b.premiumSensitivity);
-  within("Demi-vie de la prime", params.premiumHalfLife, b.premiumHalfLife);
-  within("Bande de la prime", params.premiumBand, b.premiumBand);
-  within("Plafond des joueurs", params.holdCap, b.cap);
-  within("Plafond par joueur", params.playerCap, b.cap);
+  within("Part maximale d'une offre", params.maxOffer, b.maxOffer);
+  within("Bande du prix d'offre", params.offerBand, b.offerBand);
   within("Frais de report", params.carryFee, b.carryFee);
-  if (params.playerCap > params.holdCap)
-    throw new Error("Plafond par joueur : pas plus que le plafond des joueurs réunis");
 }
 
 /** The settings in force: the latest published version, or the defaults. */

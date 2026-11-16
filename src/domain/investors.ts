@@ -20,6 +20,8 @@ export interface InvestorAccount {
   insiderOf: string[];
   /** The player chose to appear in the public ranking. */
   publicRanking: boolean;
+  /** Set for a corporation's own account: the page it belongs to. */
+  companyProfileId: string | null;
 }
 
 export type CashKind = "deposit" | "withdrawal";

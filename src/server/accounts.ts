@@ -24,6 +24,7 @@ export interface AccountDeps {
     login: string;
     display_name: string;
     created_by: string;
+    company_profile_id: number | null;
   }): Promise<{ error: string; code?: string } | null>;
   requirePasswordChange(id: string): Promise<{ error: string } | null>;
   /** Server log; never pass it a password or a token. */
@@ -34,7 +35,14 @@ const MAX_BODY = 2048;
 const TOKEN = /^Bearer\s+([A-Za-z0-9._-]{20,4096})$/;
 
 type Body =
-  | { action: "create"; login: string; displayName: string; password: string }
+  | {
+      action: "create";
+      login: string;
+      displayName: string;
+      password: string;
+      /** A corporation's own account: the page it belongs to. */
+      profileId: string | null;
+    }
   | { action: "reset"; login: string; password: string };
 
 /** The request body, checked; or the reasons it is refused. */
@@ -52,9 +60,18 @@ export function readAccountBody(
     const displayName = typeof v.displayName === "string" ? v.displayName.trim() : "";
     if (displayName.length < 1 || displayName.length > 60)
       details.push("nom du personnage : de 1 à 60 caractères");
+    const raw = v.profileId;
+    const profileId =
+      typeof raw === "string" && raw !== ""
+        ? raw
+        : typeof raw === "number" && Number.isInteger(raw)
+          ? String(raw)
+          : null;
+    if (raw != null && raw !== "" && (profileId === null || !/^\d{1,18}$/.test(profileId)))
+      details.push("corporation inconnue");
     return details.length > 0
       ? { ok: false, details }
-      : { ok: true, body: { action: "create", login, displayName, password } };
+      : { ok: true, body: { action: "create", login, displayName, password, profileId } };
   }
   if (v.action === "reset")
     return details.length > 0
@@ -114,13 +131,18 @@ export async function handleAccounts(request: Request, deps: AccountDeps): Promi
     login: body.login,
     display_name: body.displayName,
     created_by: caller.userId,
+    company_profile_id: body.profileId === null ? null : Number(body.profileId),
   });
   if (inserted) {
     // No account row: the auth user would be an orphan that cannot sign in to anything.
     await deps.deleteUser(created.id);
     deps.log("compte non enregistré", inserted.error);
     return inserted.code === "23505"
-      ? apiError(409, "identifiant_pris", `L'identifiant ${body.login} est déjà pris.`)
+      ? apiError(
+          409,
+          "identifiant_pris",
+          `L'identifiant ${body.login} est déjà pris, ou la corporation a déjà son compte.`,
+        )
       : apiError(500, "echec_enregistrement", "Le compte n'a pas pu être enregistré.");
   }
   return json(201, { ok: true, account: { id: created.id, login: body.login } });

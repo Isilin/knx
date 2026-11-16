@@ -68,10 +68,20 @@ function Handover({
   );
 }
 
-function CreateAccount({ taken, onDone }: { taken: ReadonlySet<string>; onDone: () => void }) {
+function CreateAccount({
+  taken,
+  companies,
+  onDone,
+}: {
+  taken: ReadonlySet<string>;
+  /** Pages that have no account of their own yet. */
+  companies: readonly { profileId: string; name: string }[];
+  onDone: () => void;
+}) {
   const { source } = useData();
   const [login, setLogin] = useState("");
   const [name, setName] = useState("");
+  const [profileId, setProfileId] = useState("");
   const [password, setPassword] = useState(() => temporaryPassword());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,10 +94,16 @@ function CreateAccount({ taken, onDone }: { taken: ReadonlySet<string>; onDone: 
     setBusy(true);
     setError(null);
     try {
-      await source.createInvestorAccount({ login, displayName: name.trim(), password });
+      await source.createInvestorAccount({
+        login,
+        displayName: name.trim(),
+        password,
+        profileId: profileId || null,
+      });
       setHandover({ login, password });
       setLogin("");
       setName("");
+      setProfileId("");
       setPassword(temporaryPassword());
       onDone();
     } catch (err) {
@@ -113,10 +129,27 @@ function CreateAccount({ taken, onDone }: { taken: ReadonlySet<string>; onDone: 
           />
         </label>
         <label className="field">
-          <span className="label">Personnage</span>
+          <span className="label">{profileId ? "DG, personnage" : "Personnage"}</span>
           <input required maxLength={60} value={name} onChange={(e) => setName(e.target.value)} />
         </label>
       </div>
+      <label className="field">
+        <span className="label">Compte de corporation (facultatif)</span>
+        <select value={profileId} onChange={(e) => setProfileId(e.target.value)}>
+          <option value="">Compte d'investisseur</option>
+          {companies.map((c) => (
+            <option key={c.profileId} value={c.profileId}>
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      {profileId ? (
+        <p className="bourse__note">
+          Un compte de corporation reçoit le produit de ses offres et se retire en jeu comme un
+          autre ; il ne passe pas d'ordres. Tenu par le DG.
+        </p>
+      ) : null}
       <label className="field">
         <span className="label">Mot de passe temporaire</span>
         <span className="investor__amount">
@@ -508,6 +541,11 @@ function AccountsAdmin() {
                           <th scope="row">
                             <strong>{a.login}</strong> {a.displayName}
                             {a.closedAt ? <span className="bourse__off"> · fermé</span> : null}
+                            {a.companyProfileId ? (
+                              <span className="accounts__corporate">
+                                compte de {companyName(a.companyProfileId)}
+                              </span>
+                            ) : null}
                             {a.insiderOf.length > 0 ? (
                               <span className="accounts__insider-list">
                                 initié de {a.insiderOf.map(companyName).join(", ")}
@@ -579,7 +617,13 @@ function AccountsAdmin() {
               onSelect={setSelected}
               onDone={refresh}
             />
-            <CreateAccount taken={taken} onDone={refresh} />
+            <CreateAccount
+              taken={taken}
+              companies={companies.filter(
+                (c) => !(accounts ?? []).some((a) => a.companyProfileId === c.profileId),
+              )}
+              onDone={refresh}
+            />
           </div>
         </div>
       </section>
