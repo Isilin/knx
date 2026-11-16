@@ -5,8 +5,12 @@ import type { InvestorAccount } from "../domain/investors.ts";
 import type { Market } from "../domain/market.ts";
 import { formatInteger, formatPercent, formatPrice } from "../domain/numbers.ts";
 import {
+  DIVIDEND_POLICY_INFO,
+  DIVIDEND_STATUS_LABELS,
   holdings,
+  OFFER_KIND_INFO,
   orderProblem,
+  policyHistory,
   ORDER_STATUS_LABELS,
   reservationFor,
   SIDE_LABELS,
@@ -14,6 +18,9 @@ import {
   tradable,
   carryFee,
   MAX_SESSIONS,
+  type Dividend,
+  type DividendPayment,
+  type DividendPolicy,
   type MarketOffer,
   type MarketOrder,
   type MarketSession,
@@ -208,23 +215,33 @@ function OrderForm({
   );
 }
 
-/** A corporation's own account: its shares and its offers. It sells through offers only. */
+/**
+ * A corporation's own account: its shares, its offers and its dividends. It sells through offers
+ * only.
+ */
 export function CorporatePanel({
   market,
   account,
   offers,
   trades,
   issues,
+  policies,
+  dividends,
 }: {
   market: Market;
   account: InvestorAccount;
   offers: readonly MarketOffer[];
   trades: readonly MarketTrade[];
   issues: readonly ShareIssue[];
+  policies: readonly DividendPolicy[];
+  /** Dividends this account announced or paid. */
+  dividends: readonly Dividend[];
 }) {
   const company = market.companies.find((c) => c.profileId === account.companyProfileId) ?? null;
   const held = holdings(trades, [], issues).find((h) => h.companyId === company?.id);
   const own = offers.filter((o) => o.accountId === account.id);
+  const policy = company ? (policyHistory(policies, company.id).at(-1) ?? null) : null;
+  const paid = dividends.filter((d) => d.status === "paid").reduce((sum, d) => sum + d.total, 0);
   return (
     <section className="trading" aria-labelledby="corporation">
       <div className="section-head">
@@ -251,7 +268,32 @@ export function CorporatePanel({
           </dd>
           <dd className="investor__detail">commission déduite</dd>
         </div>
+        <div>
+          <dt className="label">Politique de distribution</dt>
+          <dd className="investor__figure">
+            {DIVIDEND_POLICY_INFO[policy?.policy ?? "none"].label}
+          </dd>
+          <dd className="investor__detail">
+            {policy ? (
+              <>
+                depuis le <ImperialDate date={policy.decidedOn} />
+                {policy.note ? ` — ${policy.note}` : ""}
+              </>
+            ) : (
+              "rien d'annoncé : à faire enregistrer par KNX"
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="label">Dividendes versés</dt>
+          <dd className="investor__figure">
+            {formatInteger(paid)}
+            <span className="amount__unit"> ¢</span>
+          </dd>
+          <dd className="investor__detail">aux investisseurs, depuis ce compte</dd>
+        </div>
       </dl>
+      <h3 className="label trading__h3">Offres</h3>
       {own.length === 0 ? (
         <p className="trading__muted">Aucune offre pour l'instant.</p>
       ) : (
@@ -260,12 +302,35 @@ export function CorporatePanel({
             <li key={o.id}>
               <ImperialDate date={o.createdAt.slice(0, 10)} />
               <span>
+                <strong>{o.kind === "issue" ? "Émission" : "Vente"}</strong>{" "}
                 {formatInteger(o.sharesOffered)} titres à {formatPrice(o.price)} ¢ ·{" "}
                 {o.status === "open"
                   ? "en souscription"
                   : o.status === "cancelled"
                     ? "retirée"
                     : `${formatInteger(o.allocated)} vendus, ${formatInteger(o.proceeds)} ¢ levés`}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+      <h3 className="label trading__h3">Dividendes</h3>
+      {dividends.length === 0 ? (
+        <p className="trading__muted">
+          Aucun dividende. KNX l'annonce pendant une séance, à la demande du DG, si la politique le
+          prévoit ; le montant est retenu sur ce compte et versé à la clôture.
+        </p>
+      ) : (
+        <ol className="trading__orders">
+          {dividends.map((d) => (
+            <li key={d.id}>
+              <ImperialDate date={d.paidOn ?? d.createdAt.slice(0, 10)} />
+              <span>
+                {formatPrice(d.perShare)} ¢ par titre · {DIVIDEND_STATUS_LABELS[d.status]}
+                {d.status !== "cancelled"
+                  ? ` · ${formatInteger(d.total)} ¢ sur ${formatInteger(d.shares)} titres`
+                  : null}
+                {d.reason ? <span className="trading__muted"> — {d.reason}</span> : null}
               </span>
             </li>
           ))}
@@ -323,8 +388,9 @@ function Offers({
           return (
             <li key={o.id}>
               <span>
-                <strong>{company?.name ?? "corporation inconnue"}</strong> vend{" "}
-                {formatInteger(o.sharesOffered)} titres à {formatPrice(o.price)} ¢
+                <strong>{company?.name ?? "corporation inconnue"}</strong>{" "}
+                {o.kind === "issue" ? "émet" : "vend"} {formatInteger(o.sharesOffered)}{" "}
+                {o.kind === "issue" ? "titres nouveaux" : "titres"} à {formatPrice(o.price)} ¢
                 {company?.valuation?.listing?.price != null ? (
                   <span className="trading__muted">
                     {" "}
@@ -332,6 +398,12 @@ function Offers({
                   </span>
                 ) : null}
                 {o.note ? <span className="trading__muted"> — {o.note}</span> : null}
+                {o.kind === "issue" ? (
+                  <span className="trading__muted" title={OFFER_KIND_INFO.issue.help}>
+                    {" "}
+                    · augmentation de capital
+                  </span>
+                ) : null}
               </span>
               {insider ? (
                 <span className="trading__muted">fermé aux initiés</span>
@@ -386,6 +458,8 @@ export function TradingPanel({
   trades,
   offers,
   issues,
+  dividends,
+  payments,
   cash,
   onChange,
 }: {
@@ -396,6 +470,10 @@ export function TradingPanel({
   trades: readonly MarketTrade[];
   offers: readonly MarketOffer[];
   issues: readonly ShareIssue[];
+  /** Every dividend (public). */
+  dividends: readonly Dividend[];
+  /** What the player received. */
+  payments: readonly DividendPayment[];
   /** Credits free for a new buy order. */
   cash: number;
   onChange: () => void;
@@ -412,6 +490,11 @@ export function TradingPanel({
   const slugOf = (id: string) => market.byId.get(id)?.slug ?? null;
   const pending = orders.filter((o) => o.status === "open");
   const past = orders.filter((o) => o.status !== "open").slice(0, 30);
+  const announced = new Map(
+    dividends.filter((d) => d.status === "declared").map((d) => [d.companyId, d]),
+  );
+  const dividendOf = new Map(dividends.map((d) => [d.id, d]));
+  const received = payments.reduce((sum, p) => sum + p.amount, 0);
 
   const cancel = async (order: MarketOrder) => {
     if (
@@ -491,6 +574,13 @@ export function TradingPanel({
                           {h.reserved > 0 ? (
                             <span className="trading__muted"> · {h.reserved} en vente</span>
                           ) : null}
+                          {announced.has(h.companyId) ? (
+                            <span className="trading__muted">
+                              {" "}
+                              · dividende annoncé{" "}
+                              {formatPrice(announced.get(h.companyId)?.perShare ?? 0)} ¢ par titre
+                            </span>
+                          ) : null}
                         </th>
                         <td className="num">{formatInteger(h.quantity)}</td>
                         <td className="num">{price === null ? "—" : `${formatPrice(price)} ¢`}</td>
@@ -567,6 +657,33 @@ export function TradingPanel({
                   </span>
                 </li>
               ))}
+            </ol>
+          )}
+
+          <h3 className="label trading__h3">
+            Dividendes reçus{received > 0 ? ` · ${formatInteger(received)} ¢` : ""}
+          </h3>
+          {payments.length === 0 ? (
+            <p className="trading__muted">
+              Aucun dividende reçu. Une corporation qui distribue annonce son dividende pendant une
+              séance ; il est versé à la clôture à qui détient alors ses titres.
+            </p>
+          ) : (
+            <ol className="trading__orders">
+              {payments.map((p) => {
+                const d = dividendOf.get(p.dividendId);
+                return (
+                  <li key={p.id}>
+                    <ImperialDate date={d?.paidOn ?? p.createdAt.slice(0, 10)} />
+                    <span>
+                      <strong>{d ? nameOf(d.companyId) : "Dividende"}</strong> ·{" "}
+                      {formatInteger(p.shares)} titres
+                      {d ? ` × ${formatPrice(d.perShare)} ¢` : ""} ·{" "}
+                      <strong>{formatInteger(p.amount)} ¢</strong>
+                    </span>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>

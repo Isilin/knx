@@ -7,6 +7,9 @@ import {
   type InvestorAccount,
 } from "../domain/investors.ts";
 import type {
+  Dividend,
+  DividendPayment,
+  DividendPolicy,
   MarketOffer,
   MarketOrder,
   MarketSession,
@@ -237,6 +240,7 @@ const tradeOf = (r: TradeRow): MarketTrade => ({
 
 interface OfferRow {
   id: number;
+  kind: MarketOffer["kind"] | null;
   company_id: number;
   account_id: string;
   session_id: number;
@@ -251,6 +255,7 @@ interface OfferRow {
 
 const offerOf = (r: OfferRow): MarketOffer => ({
   id: String(r.id),
+  kind: r.kind ?? "sale",
   companyId: String(r.company_id),
   accountId: r.account_id,
   sessionId: String(r.session_id),
@@ -281,12 +286,91 @@ const issueOf = (r: IssueRow): ShareIssue => ({
   createdAt: r.created_at,
 });
 
+interface PolicyRow {
+  id: number;
+  company_id: number;
+  decided_on: string;
+  policy: DividendPolicy["policy"];
+  note: string | null;
+}
+
+const policyOf = (r: PolicyRow): DividendPolicy => ({
+  id: String(r.id),
+  companyId: String(r.company_id),
+  decidedOn: r.decided_on,
+  policy: r.policy,
+  note: r.note,
+});
+
+interface DividendRow {
+  id: number;
+  company_id: number;
+  account_id: string;
+  session_id: number;
+  per_share: number | string;
+  status: Dividend["status"];
+  shares: number;
+  total: number;
+  note: string | null;
+  reason: string | null;
+  paid_on: string | null;
+  created_at: string;
+}
+
+const dividendOf = (r: DividendRow): Dividend => ({
+  id: String(r.id),
+  companyId: String(r.company_id),
+  accountId: r.account_id,
+  sessionId: String(r.session_id),
+  perShare: Number(r.per_share),
+  status: r.status,
+  shares: Number(r.shares),
+  total: Number(r.total),
+  note: r.note,
+  reason: r.reason,
+  paidOn: r.paid_on,
+  createdAt: r.created_at,
+});
+
+interface PaymentRow {
+  id: number;
+  dividend_id: number;
+  account_id: string;
+  shares: number;
+  amount: number;
+  created_at: string;
+}
+
+const paymentOf = (r: PaymentRow): DividendPayment => ({
+  id: String(r.id),
+  dividendId: String(r.dividend_id),
+  accountId: r.account_id,
+  shares: Number(r.shares),
+  amount: Number(r.amount),
+  createdAt: r.created_at,
+});
+
 const MISSING_MARKET_TABLES =
   "tables de la séance absentes : exécuter la migration 20261122000000_seances_marche.sql.";
+
+const MISSING_DIVIDEND_TABLES =
+  "dividendes et émissions absents : exécuter la migration 20261125000000_modele_c_dividendes_capital.sql.";
+
+/** A table or column of the dividends migration is missing (42703: undefined column). */
+function isMissingDividends(error: { code?: string }): boolean {
+  return isMissingTable(error) || error.code === "42703" || error.code === "PGRST204";
+}
 
 /** Errors of the market functions. */
 function marketWriteMessage(error: { message: string; code?: string }): Error {
   if (error.code === "PGRST202" || isMissingTable(error)) return new Error(MISSING_MARKET_TABLES);
+  return writeMessage(error);
+}
+
+/** Errors of the dividend and issue functions. */
+function dividendWriteMessage(error: { message: string; code?: string }): Error {
+  if (error.code === "PGRST202" || isMissingDividends(error))
+    return new Error(MISSING_DIVIDEND_TABLES);
   return writeMessage(error);
 }
 
@@ -804,11 +888,12 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { data, error } = await client
         .from("market_offers")
         .select(
-          "id, company_id, account_id, session_id, shares_offered, price, status, allocated, proceeds, note, created_at",
+          "id, kind, company_id, account_id, session_id, shares_offered, price, status, allocated, proceeds, note, created_at",
         )
         .order("created_at", { ascending: false });
       if (error) {
         if (isMissingTable(error)) return [];
+        if (error.code === "42703") throw new Error(MISSING_DIVIDEND_TABLES);
         throw new Error(`Lecture des offres impossible : ${error.message}`);
       }
       return (data as OfferRow[]).map(offerOf);
@@ -824,14 +909,15 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       }
       return (data as IssueRow[]).map(issueOf);
     },
-    async createOffer({ companyId, shares, price, note }) {
+    async createOffer({ companyId, kind, shares, price, note }) {
       const { error } = await client.rpc("create_offer", {
         p_company: Number(companyId),
         p_shares: shares,
         p_price: price,
         p_note: note,
+        p_kind: kind,
       });
-      if (error) throw marketWriteMessage(error);
+      if (error) throw dividendWriteMessage(error);
     },
     async cancelOffer(id) {
       const { error } = await client.rpc("cancel_offer", { p_id: Number(id) });
@@ -843,6 +929,70 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         p_quantity: quantity,
       });
       if (error) throw marketWriteMessage(error);
+    },
+    async dividendPolicies() {
+      const { data, error } = await client
+        .from("dividend_policies")
+        .select("id, company_id, decided_on, policy, note")
+        .order("decided_on")
+        .order("id");
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des politiques de distribution impossible : ${error.message}`);
+      }
+      return (data as PolicyRow[]).map(policyOf);
+    },
+    async saveDividendPolicy({ companyId, decidedOn, policy, note }) {
+      const { error } = await client.from("dividend_policies").insert({
+        company_id: Number(companyId),
+        decided_on: decidedOn,
+        policy,
+        note: note?.trim() || null,
+      });
+      if (error) throw dividendWriteMessage(error);
+    },
+    async deleteDividendPolicy(id) {
+      const { error } = await client.from("dividend_policies").delete().eq("id", Number(id));
+      if (error) throw dividendWriteMessage(error);
+    },
+    async dividends() {
+      const { data, error } = await client
+        .from("dividends")
+        .select(
+          "id, company_id, account_id, session_id, per_share, status, shares, total, note, reason, paid_on, created_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des dividendes impossible : ${error.message}`);
+      }
+      return (data as DividendRow[]).map(dividendOf);
+    },
+    async dividendPayments() {
+      const { data, error } = await client
+        .from("dividend_payments")
+        .select("id, dividend_id, account_id, shares, amount, created_at")
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des dividendes reçus impossible : ${error.message}`);
+      }
+      return (data as PaymentRow[]).map(paymentOf);
+    },
+    async declareDividend({ companyId, perShare, note }) {
+      const { error } = await client.rpc("declare_dividend", {
+        p_company: Number(companyId),
+        p_per_share: perShare,
+        p_note: note,
+      });
+      if (error) throw dividendWriteMessage(error);
+    },
+    async cancelDividend(id, reason) {
+      const { error } = await client.rpc("cancel_dividend", {
+        p_id: Number(id),
+        p_reason: reason,
+      });
+      if (error) throw dividendWriteMessage(error);
     },
     async requestSignIn(email: string) {
       const { error } = await client.auth.signInWithOtp({

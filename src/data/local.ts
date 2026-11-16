@@ -198,6 +198,27 @@ export function createLocalSource(): DataSource {
     async subscribe() {
       throw new Error(INVESTORS_ONLY);
     },
+    async dividendPolicies() {
+      return [];
+    },
+    async saveDividendPolicy() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async deleteDividendPolicy() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async dividends() {
+      return [];
+    },
+    async dividendPayments() {
+      return [];
+    },
+    async declareDividend() {
+      throw new Error(INVESTORS_ONLY);
+    },
+    async cancelDividend() {
+      throw new Error(INVESTORS_ONLY);
+    },
     async signInWithPassword() {},
     async signOut() {},
     onSessionChange() {

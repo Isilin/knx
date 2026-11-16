@@ -305,13 +305,17 @@ export function OperationsManager({ market, dataset }: { market: Market; dataset
                       {operationDetail(op) ? ` · ${operationDetail(op)}` : null}
                       {op.note ? <span className="levers__muted"> — {op.note}</span> : null}
                     </span>
-                    <button
-                      type="button"
-                      className="linklike"
-                      onClick={() => void remove(op.id, label)}
-                    >
-                      retirer
-                    </button>
+                    {op.kind === "capital_increase" ? (
+                      <span className="levers__muted">par la séance</span>
+                    ) : (
+                      <button
+                        type="button"
+                        className="linklike"
+                        onClick={() => void remove(op.id, label)}
+                      >
+                        retirer
+                      </button>
+                    )}
                   </li>
                 );
               })}

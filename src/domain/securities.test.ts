@@ -157,6 +157,60 @@ describe("operations on securities", () => {
     expect(read.valuationSettings?.[0].id).toBe("4");
   });
 
+  it("adds the shares of a capital increase, which only a session records", () => {
+    const steps = checkOperations([
+      op({ kind: "introduction", date: "2026-10-01", shares: 1000 }),
+      op({ kind: "capital_increase", date: "2026-10-08", shares: 250 }),
+      op({ kind: "split", date: "2026-10-15", ratio: 2 }),
+    ]);
+    expect(steps.map((s) => s.shares)).toEqual([1000, 1250, 2500]);
+    expect(steps[1].state).toBe("listed");
+    expect(() =>
+      checkOperations([op({ kind: "capital_increase", date: "2026-10-01", shares: 10 })]),
+    ).toThrow(/n'est pas cotée/);
+
+    const dataset = datasetByName({
+      generatedAt: "2026-11-13T00:00:00Z",
+      companies: [{ name: "Listed" }],
+      snapshots: ["2026-11-10", "2026-11-11"].map((date) => ({
+        date,
+        source: "paste" as const,
+        rows: [{ name: "Listed", rank: 1, chiffre: 100, capital: 1000, employees: 1 }],
+      })),
+    });
+    const introduced = applyOp(dataset, {
+      type: "saveOperation",
+      operation: {
+        id: "i",
+        companyId: "Listed",
+        date: "2026-11-10",
+        kind: "introduction",
+        shares: 100,
+        ratio: null,
+        note: null,
+      },
+    });
+    const increase = {
+      id: null,
+      companyId: "Listed",
+      date: "2026-11-11",
+      kind: "capital_increase" as const,
+      shares: 20,
+      ratio: null,
+      note: null,
+    };
+    expect(() => planOperation(introduced, increase)).toThrow(/clôture d'une offre d'émission/);
+    // One recorded by a session keeps its figures; only its note changes.
+    const recorded = {
+      ...introduced,
+      securityOperations: [...(introduced.securityOperations ?? []), { ...increase, id: "ci" }],
+    };
+    expect(planOperation(recorded, { ...increase, id: "ci", note: " Levée " }).note).toBe("Levée");
+    expect(() => planOperation(recorded, { ...increase, id: "ci", shares: 30 })).toThrow(
+      /seule sa note/,
+    );
+  });
+
   it("proposes a round share count near the target price", () => {
     expect(proposeShares(2_812_000, 1000)).toBe(2500);
     expect(proposeShares(9_400_000, 1000)).toBe(10_000);

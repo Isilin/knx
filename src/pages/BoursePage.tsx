@@ -8,11 +8,26 @@ import type { CompanySeries } from "../domain/market.ts";
 import { formatCompact, formatInteger, formatPrice } from "../domain/numbers.ts";
 import type { Market } from "../domain/market.ts";
 import { OPERATION_INFO } from "../domain/securities.ts";
-import { rankInvestors, type MarketSession, type RankingEntry } from "../domain/trading.ts";
+import {
+  DIVIDEND_POLICY_INFO,
+  DIVIDEND_STATUS_LABELS,
+  policyOf,
+  rankInvestors,
+  type Dividend,
+  type DividendPolicy,
+  type MarketSession,
+  type RankingEntry,
+} from "../domain/trading.ts";
 import { DEFAULT_VALUATION, VALUATION_METHOD } from "../domain/valuation.ts";
 import "./BoursePage.css";
 
-function ListedTable({ listed }: { listed: CompanySeries[] }) {
+function ListedTable({
+  listed,
+  policies,
+}: {
+  listed: CompanySeries[];
+  policies: readonly DividendPolicy[];
+}) {
   return (
     <div className="bourse__scroll">
       <table className="ledger">
@@ -31,6 +46,9 @@ function ListedTable({ listed }: { listed: CompanySeries[] }) {
             </th>
             <th scope="col" className="num secondary">
               Titres
+            </th>
+            <th scope="col" className="secondary">
+              Distribution
             </th>
             <th scope="col" className="num">
               Valeur KNX
@@ -74,6 +92,9 @@ function ListedTable({ listed }: { listed: CompanySeries[] }) {
                   )}
                 </td>
                 <td className="num secondary">{formatInteger(listing.shares)}</td>
+                <td className="secondary">
+                  {DIVIDEND_POLICY_INFO[policyOf(policies, c.id)].label.toLowerCase()}
+                </td>
                 <td className="num">
                   {c.valuation?.latest ? (
                     <span className="estimated">{formatCompact(c.valuation.latest.value)} ¢</span>
@@ -181,11 +202,51 @@ function LastSession({ market }: { market: Market }) {
         </div>
       ) : null}
       <p className="bourse__note">
-        Chaque heptade, les corporations vendent une partie de leurs titres et les investisseurs
-        échangent entre eux ; à la clôture, une enchère fixe pour chaque titre le prix qui fait se
-        rencontrer le plus de titres. La Bourse n'est jamais contrepartie : elle perçoit une
-        commission. <Link to="/compte">Espace investisseur</Link>.
+        Chaque heptade, les corporations vendent ou émettent des titres, annoncent leurs dividendes,
+        et les investisseurs échangent entre eux ; à la clôture, une enchère fixe pour chaque titre
+        le prix qui fait se rencontrer le plus de titres. La Bourse n'est jamais contrepartie : elle
+        perçoit une commission. <Link to="/compte">Espace investisseur</Link>.
       </p>
+    </section>
+  );
+}
+
+/** Dividends announced for the open session, and the last ones paid. */
+function Dividends({ market }: { market: Market }) {
+  const { source } = useData();
+  const [dividends, setDividends] = useState<Dividend[] | null>(null);
+  useEffect(() => {
+    source.dividends().then(setDividends, () => setDividends([]));
+  }, [source]);
+  const shown = (dividends ?? []).filter((d) => d.status !== "cancelled").slice(0, 10);
+  if (shown.length === 0) return null;
+  return (
+    <section className="bourse__section" aria-labelledby="dividendes">
+      <div className="section-head">
+        <h2 id="dividendes">Dividendes</h2>
+        <p>annoncés pendant la séance, versés à sa clôture à qui détient alors les titres</p>
+      </div>
+      <ol className="bourse__journal">
+        {shown.map((d) => {
+          const company = market.byId.get(d.companyId);
+          return (
+            <li key={d.id}>
+              <ImperialDate date={d.paidOn ?? d.createdAt.slice(0, 10)} />
+              <span>
+                {company ? (
+                  <Link to={`/corporations/${company.slug}`}>{company.name}</Link>
+                ) : (
+                  "Corporation inconnue"
+                )}{" "}
+                · <strong>{formatPrice(d.perShare)} ¢ par titre</strong> ·{" "}
+                {DIVIDEND_STATUS_LABELS[d.status]}
+                {d.status === "paid" ? ` · ${formatInteger(d.total)} ¢ versés` : null}
+                {d.note ? <span className="bourse__muted"> — {d.note}</span> : null}
+              </span>
+            </li>
+          );
+        })}
+      </ol>
     </section>
   );
 }
@@ -225,8 +286,12 @@ function Ranking({ market }: { market: Market }) {
 
 export function BoursePage() {
   const market = useMarket();
-  const { session } = useData();
+  const { session, source } = useData();
   const isAdmin = session?.state === "signed-in" && session.isAdmin;
+  const [policies, setPolicies] = useState<DividendPolicy[]>([]);
+  useEffect(() => {
+    source.dividendPolicies().then(setPolicies, () => setPolicies([]));
+  }, [source]);
   const { params, versions } = market.valuation;
   const inForce = versions.at(-1) ?? null;
 
@@ -330,11 +395,13 @@ export function BoursePage() {
             fiche.
           </p>
         ) : (
-          <ListedTable listed={listed} />
+          <ListedTable listed={listed} policies={policies} />
         )}
       </section>
 
       <LastSession market={market} />
+
+      <Dividends market={market} />
 
       <Ranking market={market} />
 

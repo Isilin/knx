@@ -10,6 +10,8 @@ import type { ValuationParams } from "./valuation.ts";
  * close of each session (an heptade), one auction per corporation fixes the price that meets
  * the most shares between buy and sell limit orders; ties go to the least imbalance, then to the
  * price nearest the KNX price, then to the lower. The exchange keeps a commission on both sides.
+ * A corporation may also issue new shares (a capital increase) and pay dividends, announced during
+ * a session and paid at its close, before the auction.
  *
  * The database runs the close; this module mirrors it for the previews and the tests. Prices are
  * in credits to the hundredth; amounts settle in whole credits.
@@ -63,19 +65,39 @@ export interface MarketTrade {
   createdAt: string;
 }
 
-/** Shares given to an account outside a trade: a corporation's endowment, a division's adjustment. */
+/**
+ * Shares given to an account outside a trade: a corporation's endowment, a division's adjustment,
+ * the new shares of a capital increase (to the corporation, which sells them at once).
+ */
 export interface ShareIssue {
   id: string;
   companyId: string;
   accountId: string;
   quantity: number;
-  reason: "endowment" | "split" | "reverse_split";
+  reason: "endowment" | "split" | "reverse_split" | "capital_increase";
   createdAt: string;
 }
 
-/** A corporation selling part of its shares at a set price, during one session. */
+/** A sale of shares the corporation holds, or an issue of new ones (a capital increase). */
+export type OfferKind = "sale" | "issue";
+
+export const OFFER_KIND_INFO: Record<OfferKind, { label: string; short: string; help: string }> = {
+  sale: {
+    label: "Vente de titres détenus",
+    short: "vente",
+    help: "La corporation vend des titres qu'elle détient : le nombre de titres ne change pas.",
+  },
+  issue: {
+    label: "Émission de titres nouveaux (augmentation de capital)",
+    short: "émission",
+    help: "Les titres souscrits sont créés à la clôture : les détenteurs actuels sont dilués, les fonds levés vont à la corporation. Le cours KNX baisse d'autant tant que ces fonds ne sont pas versés à la corporation en jeu.",
+  },
+};
+
+/** A corporation selling shares at a set price, during one session. */
 export interface MarketOffer {
   id: string;
+  kind: OfferKind;
   companyId: string;
   /** The corporation's account, which receives the proceeds. */
   accountId: string;
@@ -210,20 +232,30 @@ export function holdings(
   return [...by.values()].filter((h) => h.quantity > 0 || h.reserved > 0);
 }
 
-/** Cash of an account once its trades, open orders and carry fees count. */
+/**
+ * Cash of an account once its trades, open orders, carry fees and dividends count: those it
+ * received, and, for a corporation, those it paid or announced.
+ */
 export function accountCash(
   movements: readonly CashMovement[],
   trades: readonly MarketTrade[],
   orders: readonly MarketOrder[],
+  received: readonly DividendPayment[] = [],
+  announced: readonly Dividend[] = [],
 ): { balance: number; pending: number; reserved: number; available: number } {
   const cash = cashBalance(movements);
   let balance = cash.balance;
   for (const t of trades)
     balance += t.side === "buy" ? -(t.amount + t.commission) : t.amount - t.commission;
   for (const o of orders) balance -= o.feesPaid;
-  const reserved = orders
+  for (const p of received) balance += p.amount;
+  let reserved = orders
     .filter((o) => o.status === "open" && o.side === "buy")
     .reduce((sum, o) => sum + o.reserved, 0);
+  for (const d of announced) {
+    if (d.status === "paid") balance -= d.total;
+    if (d.status === "declared") reserved += d.total;
+  }
   return { balance, pending: cash.pending, reserved, available: balance - cash.pending - reserved };
 }
 
@@ -415,13 +447,19 @@ export function tradable(market: Market, account: InvestorAccount): CompanySerie
 export function offerProblem(
   shares: number,
   price: number,
-  context: { totalShares: number; freeShares: number; reference: number | null },
+  context: {
+    kind: OfferKind;
+    totalShares: number;
+    /** Shares the corporation holds and has not offered yet (a sale only). */
+    freeShares: number;
+    reference: number | null;
+  },
   params: ValuationParams,
 ): string | null {
   if (!Number.isInteger(shares) || shares < 1) return "nombre de titres entier, d'au moins 1";
   const most = Math.floor(params.maxOffer * context.totalShares);
   if (shares > most) return `au plus ${most} titres par offre`;
-  if (shares > context.freeShares)
+  if (context.kind === "sale" && shares > context.freeShares)
     return `la corporation ne détient que ${context.freeShares} titres libres`;
   if (!(price > 0) || cents(price) !== price) return "prix positif, au centième près";
   if (context.reference !== null) {
@@ -430,5 +468,158 @@ export function offerProblem(
     if (price < low - 1e-9 || price > high + 1e-9)
       return `prix entre ${cents(low)} et ${cents(high)} ¢ (bande autour du cours KNX)`;
   }
+  return null;
+}
+
+/** What a corporation does with its profits, as its direction announces it. */
+export type DividendPolicyKind = "accumulating" | "distributing" | "other" | "none";
+
+export const DIVIDEND_POLICY_INFO: Record<DividendPolicyKind, { label: string; help: string }> = {
+  accumulating: {
+    label: "Accumulation",
+    help: "La corporation garde ses bénéfices pour grandir : pas de dividende, la valeur du titre doit en profiter.",
+  },
+  distributing: {
+    label: "Distribution",
+    help: "La corporation verse une partie de ses bénéfices en dividendes, annoncés à une séance.",
+  },
+  other: {
+    label: "Autre",
+    help: "Une politique propre, décrite par la direction.",
+  },
+  none: {
+    label: "Aucune",
+    help: "La corporation n'a rien annoncé : pas de dividende.",
+  },
+};
+
+export const DIVIDEND_POLICIES = Object.keys(DIVIDEND_POLICY_INFO) as DividendPolicyKind[];
+
+/** A policy decided on a date; the latest is in force. */
+export interface DividendPolicy {
+  id: string;
+  companyId: string;
+  decidedOn: IsoDate;
+  policy: DividendPolicyKind;
+  note: string | null;
+}
+
+/** Policies of a corporation, oldest first; the last one is in force. */
+export function policyHistory(
+  policies: readonly DividendPolicy[],
+  companyId: string,
+): DividendPolicy[] {
+  return policies
+    .filter((p) => p.companyId === companyId)
+    .sort((a, b) => a.decidedOn.localeCompare(b.decidedOn) || Number(a.id) - Number(b.id));
+}
+
+/** The policy in force: the latest decided; "none" while nothing was announced. */
+export function policyOf(
+  policies: readonly DividendPolicy[],
+  companyId: string,
+): DividendPolicyKind {
+  return policyHistory(policies, companyId).at(-1)?.policy ?? "none";
+}
+
+/** Policies under which a dividend can be announced. */
+export function paysDividends(policy: DividendPolicyKind): boolean {
+  return policy === "distributing" || policy === "other";
+}
+
+export type DividendStatus = "declared" | "paid" | "cancelled";
+
+export const DIVIDEND_STATUS_LABELS: Record<DividendStatus, string> = {
+  declared: "annoncé, versé à la clôture",
+  paid: "versé",
+  cancelled: "retiré",
+};
+
+/** A dividend announced during a session and paid at its close. */
+export interface Dividend {
+  id: string;
+  companyId: string;
+  /** The corporation's account, which pays. */
+  accountId: string;
+  sessionId: string;
+  perShare: number;
+  status: DividendStatus;
+  /** Shares served; forecast while announced. */
+  shares: number;
+  /** Credits held while announced, then paid. */
+  total: number;
+  note: string | null;
+  /** Why an announced dividend was not paid. */
+  reason: string | null;
+  paidOn: IsoDate | null;
+  createdAt: string;
+}
+
+/** What one investor received from a dividend. */
+export interface DividendPayment {
+  id: string;
+  dividendId: string;
+  accountId: string;
+  shares: number;
+  amount: number;
+  createdAt: string;
+}
+
+/** What a holder receives: shares × dividend per share, rounded down to the credit. */
+export function dividendAmount(shares: number, perShare: number): number {
+  const hundredths = Math.round(perShare * 100);
+  const product = shares * hundredths;
+  if (Number.isSafeInteger(product)) return Math.floor(product / 100);
+  return Number((BigInt(shares) * BigInt(hundredths)) / 100n);
+}
+
+/** Investors holding shares of a corporation, corporations' own accounts left out. */
+export function holdersOf(
+  companyId: string,
+  trades: readonly MarketTrade[],
+  issues: readonly ShareIssue[],
+  corporations: ReadonlySet<string>,
+): { accountId: string; quantity: number }[] {
+  const by = new Map<string, number>();
+  for (const i of issues)
+    if (i.companyId === companyId) by.set(i.accountId, (by.get(i.accountId) ?? 0) + i.quantity);
+  for (const t of trades)
+    if (t.companyId === companyId)
+      by.set(
+        t.accountId,
+        (by.get(t.accountId) ?? 0) + (t.side === "buy" ? t.quantity : -t.quantity),
+      );
+  return [...by]
+    .filter(([accountId, quantity]) => quantity > 0 && !corporations.has(accountId))
+    .map(([accountId, quantity]) => ({ accountId, quantity }));
+}
+
+/** Shares a dividend serves and what it costs the corporation. */
+export function dividendCost(
+  holders: readonly { quantity: number }[],
+  perShare: number,
+): { shares: number; total: number } {
+  let shares = 0;
+  let total = 0;
+  for (const h of holders) {
+    shares += h.quantity;
+    total += dividendAmount(h.quantity, perShare);
+  }
+  return { shares, total };
+}
+
+/** Why a dividend cannot be announced, in the operator's words; null when it can. */
+export function dividendProblem(
+  perShare: number,
+  context: { policy: DividendPolicyKind; shares: number; total: number; available: number },
+): string | null {
+  if (!paysDividends(context.policy))
+    return "la politique de la corporation ne prévoit pas de dividende : changez-la d'abord";
+  if (!(perShare > 0) || cents(perShare) !== perShare)
+    return "dividende par titre positif, au centième près";
+  if (context.shares === 0) return "aucun investisseur ne détient de titres de cette corporation";
+  if (context.total === 0) return "dividende trop faible : aucun détenteur ne recevrait un crédit";
+  if (context.total > context.available)
+    return `ce dividende coûte ${context.total} crédits ; la corporation n'en a que ${context.available} de disponibles`;
   return null;
 }

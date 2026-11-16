@@ -14,6 +14,9 @@ import {
 import { formatInteger } from "../domain/numbers.ts";
 import {
   accountCash,
+  type Dividend,
+  type DividendPayment,
+  type DividendPolicy,
   type MarketOffer,
   type MarketOrder,
   type MarketSession,
@@ -295,6 +298,9 @@ function AccountView({ account }: { account: InvestorAccount }) {
     sessions: MarketSession[];
     offers: MarketOffer[];
     issues: ShareIssue[];
+    policies: DividendPolicy[];
+    dividends: Dividend[];
+    payments: DividendPayment[];
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [changing, setChanging] = useState(false);
@@ -307,9 +313,22 @@ function AccountView({ account }: { account: InvestorAccount }) {
       source.marketSessions(),
       source.marketOffers(),
       source.shareIssues(),
+      source.dividendPolicies(),
+      source.dividends(),
+      source.dividendPayments(),
     ]).then(
-      ([movements, orders, trades, sessions, offers, issues]) =>
-        setBook({ movements, orders, trades, sessions, offers, issues }),
+      ([movements, orders, trades, sessions, offers, issues, policies, dividends, payments]) =>
+        setBook({
+          movements,
+          orders,
+          trades,
+          sessions,
+          offers,
+          issues,
+          policies,
+          dividends,
+          payments,
+        }),
       (err: unknown) => setError(errorText(err)),
     );
   }, [source]);
@@ -326,7 +345,15 @@ function AccountView({ account }: { account: InvestorAccount }) {
     }
   };
 
-  const cash = accountCash(book?.movements ?? [], book?.trades ?? [], book?.orders ?? []);
+  // Dividends this account pays, when it is a corporation's.
+  const paying = (book?.dividends ?? []).filter((d) => d.accountId === account.id);
+  const cash = accountCash(
+    book?.movements ?? [],
+    book?.trades ?? [],
+    book?.orders ?? [],
+    book?.payments ?? [],
+    paying,
+  );
   const figure = (value: number) => (book ? formatInteger(value) : "…");
 
   return (
@@ -338,7 +365,7 @@ function AccountView({ account }: { account: InvestorAccount }) {
             {figure(cash.balance)}
             <span className="amount__unit"> ¢</span>
           </dd>
-          <dd className="investor__detail">dépôts, retraits et ordres exécutés</dd>
+          <dd className="investor__detail">dépôts, retraits, ordres exécutés et dividendes</dd>
         </div>
         <div>
           <dt className="label">Disponible</dt>
@@ -349,12 +376,16 @@ function AccountView({ account }: { account: InvestorAccount }) {
           <dd className="investor__detail">pour un ordre ou un retrait</dd>
         </div>
         <div>
-          <dt className="label">Retenu par les ordres</dt>
+          <dt className="label">{account.companyProfileId ? "Retenu" : "Retenu par les ordres"}</dt>
           <dd className="investor__figure">
             {figure(cash.reserved)}
             <span className="amount__unit"> ¢</span>
           </dd>
-          <dd className="investor__detail">achats en attente de la séance</dd>
+          <dd className="investor__detail">
+            {account.companyProfileId
+              ? "dividendes annoncés, versés à la clôture"
+              : "achats en attente de la séance"}
+          </dd>
         </div>
         <div>
           <dt className="label">Retraits en attente</dt>
@@ -379,6 +410,8 @@ function AccountView({ account }: { account: InvestorAccount }) {
           offers={book.offers}
           trades={book.trades}
           issues={book.issues}
+          policies={book.policies}
+          dividends={paying}
         />
       ) : book && state.status === "ready" ? (
         <TradingPanel
@@ -389,6 +422,8 @@ function AccountView({ account }: { account: InvestorAccount }) {
           trades={book.trades}
           offers={book.offers}
           issues={book.issues}
+          dividends={book.dividends}
+          payments={book.payments}
           cash={cash.available}
           onChange={refresh}
         />

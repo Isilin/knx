@@ -161,8 +161,10 @@ fiches ; ce second fichier peut être rejoué sans doublon.
    ni bilan), `20261121000000_comptes_investisseurs.sql` (comptes des joueurs et mouvements
    de crédits) , `20261122000000_seances_marche.sql` (séances hebdomadaires, ordres, exécutions,
    initiés), `20261123000000_report_ordres_classement.sql` (report des ordres, classement
-   des investisseurs volontaires) et `20261124000000_modele_c_introduction.sql` (comptes de
-   corporation, offres de titres, enchère entre investisseurs), puis
+   des investisseurs volontaires), `20261124000000_modele_c_introduction.sql` (comptes de
+   corporation, offres de titres, enchère entre investisseurs) et
+   `20261125000000_modele_c_dividendes_capital.sql` (politiques de distribution, dividendes,
+   augmentations de capital), puis
    `supabase/seed.sql` pour charger l'historique. Sur une base déjà remplie, exécuter
    seulement les migrations manquantes : la fiche-identité garde les relevés, crée les
    consortiums, scinde Paradox (fermée puis rouverte le 11 novembre 2026) et ajoute le bucket

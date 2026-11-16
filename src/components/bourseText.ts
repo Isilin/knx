@@ -13,6 +13,8 @@ export function operationDetail(op: SecurityOperation): string {
       return `1 titre devient ${op.ratio}`;
     case "reverse_split":
       return `${op.ratio} titres n'en font plus qu'un`;
+    case "capital_increase":
+      return `${formatInteger(op.shares ?? 0)} titres nouveaux`;
     default:
       return "";
   }
@@ -25,6 +27,7 @@ const SHORT: Record<SecurityOperation["kind"], string> = {
   suspension: "Suspension",
   resumption: "Reprise",
   withdrawal: "Sortie de cote",
+  capital_increase: "Émission",
 };
 
 /** Chart rules at each operation on the corporation's securities. */
@@ -173,7 +176,13 @@ export const LEVERS: {
     label: "Offres des corporations",
     read: (p) =>
       `au plus ${formatShare(p.maxOffer)} des titres · prix à ± ${formatShare(p.offerBand)} du cours KNX`,
-    help: "Une corporation vend une partie de ses titres pendant une séance ; chacun est servi, au prorata si l'offre est dépassée, et le produit va à la corporation.",
+    help: "Une corporation vend une partie de ses titres, ou en émet de nouveaux (augmentation de capital), pendant une séance ; chacun est servi, au prorata si l'offre est dépassée, et le produit va à la corporation.",
+  },
+  {
+    key: "dividends",
+    label: "Dividendes",
+    read: () => "annoncés pendant la séance, versés à sa clôture",
+    help: "Une corporation qui distribue annonce un montant par titre, couvert par ses crédits KNX ; à la clôture, avant l'enchère, chaque détenteur reçoit sa part, arrondie au crédit inférieur. Qui achète à cette séance achète sans le dividende.",
   },
   {
     key: "carryFee",

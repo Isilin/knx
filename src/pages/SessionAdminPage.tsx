@@ -1,21 +1,24 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
+import {
+  DividendSection,
+  PolicySection,
+  type DividendBook,
+} from "../components/DividendsAdmin.tsx";
 import { ImperialDate } from "../components/figures.tsx";
 import { useData } from "../data/DataProvider.tsx";
 import { daysBetween } from "../domain/dates.ts";
-import type { InvestorAccount } from "../domain/investors.ts";
 import type { CompanySeries, Market } from "../domain/market.ts";
 import { formatInteger, formatPercent, formatPrice, formatShare } from "../domain/numbers.ts";
 import {
   allocateOffer,
   clearingPrice,
   holdings,
+  OFFER_KIND_INFO,
   offerProblem,
   type MarketOffer,
   type MarketOrder,
-  type MarketSession,
-  type MarketTrade,
-  type ShareIssue,
+  type OfferKind,
 } from "../domain/trading.ts";
 import { SignIn } from "./ReportsPage.tsx";
 import "./BoursePage.css";
@@ -24,13 +27,8 @@ import "./InvestorPage.css";
 
 const errorText = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
-interface Book {
-  sessions: MarketSession[];
-  orders: MarketOrder[];
-  trades: MarketTrade[];
+interface Book extends DividendBook {
   offers: MarketOffer[];
-  issues: ShareIssue[];
-  accounts: InvestorAccount[];
 }
 
 /** Listed corporations with a KNX price: what the close reads to break ties. */
@@ -59,6 +57,7 @@ function OfferForm({ market, book, onDone }: { market: Market; book: Book; onDon
     [market, book.accounts],
   );
   const [companyId, setCompanyId] = useState("");
+  const [kind, setKind] = useState<OfferKind>("sale");
   const [shares, setShares] = useState("");
   const [price, setPrice] = useState("");
   const [note, setNote] = useState("");
@@ -77,23 +76,37 @@ function OfferForm({ market, book, onDone }: { market: Market; book: Book; onDon
       ).find((h) => h.companyId === companyId)?.quantity ?? 0)
     : 0;
   const offered = book.offers
-    .filter((o) => o.companyId === companyId && o.status === "open")
+    .filter((o) => o.companyId === companyId && o.status === "open" && o.kind === "sale")
     .reduce((sum, o) => sum + o.sharesOffered, 0);
+  const issuing = book.offers.some(
+    (o) => o.companyId === companyId && o.status === "open" && o.kind === "issue",
+  );
   // Before its first offer, the corporation receives all its shares.
   const free = (endowed ? held : total) - offered;
-  const qty = Number(shares || Math.min(Math.floor(params.maxOffer * total), free));
+  const most = Math.floor(params.maxOffer * total);
+  const suggested = Math.max(0, kind === "sale" ? Math.min(most, free) : most);
+  const qty = Number(shares || suggested);
   const unit = price.trim() === "" ? (reference ?? 0) : Number(price.replace(",", "."));
   const roundedUnit = Math.round(unit * 100) / 100;
-  const problem = pick
-    ? offerProblem(qty, roundedUnit, { totalShares: total, freeShares: free, reference }, params)
-    : null;
+  const problem = !pick
+    ? null
+    : kind === "issue" && issuing
+      ? "une offre d'émission est déjà ouverte sur ce titre"
+      : offerProblem(
+          qty,
+          roundedUnit,
+          { kind, totalShares: total, freeShares: free, reference },
+          params,
+        );
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
     if (!pick || problem) return;
     if (
       !window.confirm(
-        `Ouvrir l'offre de ${formatInteger(qty)} titres ${pick.company.name} à ${formatPrice(roundedUnit)} ¢ ? Les souscriptions seront servies à la clôture de la séance.`,
+        kind === "issue"
+          ? `Ouvrir l'émission de ${formatInteger(qty)} titres nouveaux ${pick.company.name} à ${formatPrice(roundedUnit)} ¢ ? À la clôture, les titres souscrits seront créés (augmentation de capital) : les détenteurs actuels seront dilués.`
+          : `Ouvrir l'offre de ${formatInteger(qty)} titres ${pick.company.name} à ${formatPrice(roundedUnit)} ¢ ? Les souscriptions seront servies à la clôture de la séance.`,
       )
     )
       return;
@@ -102,6 +115,7 @@ function OfferForm({ market, book, onDone }: { market: Market; book: Book; onDon
     try {
       await source.createOffer({
         companyId: pick.company.id,
+        kind,
         shares: qty,
         price: roundedUnit,
         note: note.trim() || null,
@@ -139,17 +153,24 @@ function OfferForm({ market, book, onDone }: { market: Market; book: Book; onDon
               ))}
             </select>
           </label>
+          <label className="field">
+            <span className="label">Nature de l'offre</span>
+            <select value={kind} onChange={(e) => setKind(e.target.value as OfferKind)}>
+              {(Object.keys(OFFER_KIND_INFO) as OfferKind[]).map((k) => (
+                <option key={k} value={k}>
+                  {OFFER_KIND_INFO[k].label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <p className="bourse__note">{OFFER_KIND_INFO[kind].help}</p>
           <div className="accounts__row">
             <label className="field">
-              <span className="label">Titres offerts</span>
+              <span className="label">{kind === "issue" ? "Titres émis" : "Titres offerts"}</span>
               <input
                 inputMode="numeric"
                 value={shares}
-                placeholder={
-                  pick
-                    ? String(Math.max(0, Math.min(Math.floor(params.maxOffer * total), free)))
-                    : ""
-                }
+                placeholder={pick ? String(suggested) : ""}
                 onChange={(e) => setShares(e.target.value.replace(/\D/g, ""))}
               />
             </label>
@@ -168,7 +189,8 @@ function OfferForm({ market, book, onDone }: { market: Market; book: Book; onDon
           </div>
           {pick ? (
             <p className="bourse__note">
-              {formatInteger(total)} titres au total, {formatInteger(Math.max(0, free))} libres
+              {formatInteger(total)} titres au total
+              {kind === "sale" ? `, ${formatInteger(Math.max(0, free))} libres` : ""}
               {endowed ? "" : " (la corporation les reçoit à sa première offre)"} · cours KNX{" "}
               {reference !== null ? `${formatPrice(reference)} ¢` : "—"} · offre de{" "}
               {formatShare(params.maxOffer)} des titres au plus, à ± {formatShare(params.offerBand)}{" "}
@@ -216,9 +238,35 @@ function SessionAdmin({ market }: { market: Market }) {
       source.marketOffers(),
       source.shareIssues(),
       source.investorAccounts(),
+      source.cashMovements(),
+      source.dividendPolicies(),
+      source.dividends(),
+      source.dividendPayments(),
     ]).then(
-      ([sessions, orders, trades, offers, issues, accounts]) =>
-        setBook({ sessions, orders, trades, offers, issues, accounts }),
+      ([
+        sessions,
+        orders,
+        trades,
+        offers,
+        issues,
+        accounts,
+        movements,
+        policies,
+        dividends,
+        payments,
+      ]) =>
+        setBook({
+          sessions,
+          orders,
+          trades,
+          offers,
+          issues,
+          accounts,
+          movements,
+          policies,
+          dividends,
+          payments,
+        }),
       (err: unknown) => setError(errorText(err)),
     );
   }, [source]);
@@ -288,7 +336,7 @@ function SessionAdmin({ market }: { market: Market }) {
         : "";
     if (
       !window.confirm(
-        `Clôturer la séance au relevé du ${market.latestDate} ? Les offres seront servies et une enchère tiendra lieu de fixing pour chaque titre, en crédits réels ; c'est définitif.${early}`,
+        `Clôturer la séance au relevé du ${market.latestDate} ? Les dividendes annoncés seront versés, les offres servies (les émissions créent leurs titres) et une enchère tiendra lieu de fixing pour chaque titre, en crédits réels ; c'est définitif.${early}`,
       )
     )
       return;
@@ -305,7 +353,9 @@ function SessionAdmin({ market }: { market: Market }) {
         })),
         { commission: params.commission, carry_fee: params.carryFee },
       );
-      setMessage("Séance close : offres servies, enchères tenues, séance suivante ouverte.");
+      setMessage(
+        "Séance close : dividendes versés, offres servies, enchères tenues, séance suivante ouverte.",
+      );
       refresh();
     } catch (err) {
       setError(`Clôture refusée : ${errorText(err)}`);
@@ -358,7 +408,9 @@ function SessionAdmin({ market }: { market: Market }) {
       <section className="bourse__section" aria-labelledby="offres">
         <div className="section-head">
           <h2 id="offres">Offres des corporations</h2>
-          <p>une corporation vend une partie de ses titres pendant la séance</p>
+          <p>
+            une corporation vend une partie de ses titres, ou en émet de nouveaux, pendant la séance
+          </p>
         </div>
         {!book ? (
           <p className="bourse__note">Chargement…</p>
@@ -378,8 +430,9 @@ function SessionAdmin({ market }: { market: Market }) {
                       <li key={o.id} className="accounts__pending">
                         <ImperialDate date={o.createdAt.slice(0, 10)} />
                         <span>
-                          <strong>{nameOf(o.companyId)}</strong> · {formatInteger(o.sharesOffered)}{" "}
-                          titres à {formatPrice(o.price)} ¢ · {formatInteger(asked)} demandés
+                          <strong>{nameOf(o.companyId)}</strong> · {OFFER_KIND_INFO[o.kind].short}{" "}
+                          de {formatInteger(o.sharesOffered)} titres à {formatPrice(o.price)} ¢ ·{" "}
+                          {formatInteger(asked)} demandés
                           {asked > o.sharesOffered ? (
                             <span className="bourse__off">
                               {" "}
@@ -413,6 +466,8 @@ function SessionAdmin({ market }: { market: Market }) {
           </div>
         )}
       </section>
+
+      <DividendSection market={market} book={book} open={open} onDone={refresh} />
 
       <section className="bourse__section" aria-labelledby="cloture">
         <div className="section-head">
@@ -531,6 +586,9 @@ function SessionAdmin({ market }: { market: Market }) {
               const offersClosed = (book?.offers ?? []).filter(
                 (o) => o.sessionId === s.id && o.status === "closed",
               );
+              const paid = (book?.dividends ?? []).filter(
+                (d) => d.sessionId === s.id && d.status === "paid",
+              );
               return (
                 <li key={s.id}>
                   <ImperialDate date={s.closedOn ?? s.openedOn} />
@@ -545,6 +603,13 @@ function SessionAdmin({ market }: { market: Market }) {
                         {formatInteger(offersClosed.reduce((sum, o) => sum + o.proceeds, 0))} ¢
                       </span>
                     ) : null}
+                    {paid.length > 0 ? (
+                      <span className="bourse__muted">
+                        {" "}
+                        · {paid.length} dividende{paid.length > 1 ? "s" : ""},{" "}
+                        {formatInteger(paid.reduce((sum, d) => sum + d.total, 0))} ¢ versés
+                      </span>
+                    ) : null}
                   </span>
                 </li>
               );
@@ -552,11 +617,13 @@ function SessionAdmin({ market }: { market: Market }) {
           </ol>
         )}
       </section>
+
+      <PolicySection market={market} book={book} onDone={refresh} />
     </>
   );
 }
 
-/** The operator's side of the weekly market: offers, auction preview, close. */
+/** The operator's side of the weekly market: offers, dividends, auction preview, close. */
 export function SessionAdminPage() {
   const { state, session, source } = useData();
 
@@ -566,9 +633,10 @@ export function SessionAdminPage() {
         <div>
           <h1>Séance de la Bourse</h1>
           <p>
-            Une séance par heptade. Les corporations y vendent une partie de leurs titres ; les
-            investisseurs échangent entre eux. À la clôture, une enchère par titre fixe le prix, en
-            crédits réels. Voir aussi les <Link to="/bourse/comptes">comptes</Link> et les{" "}
+            Une séance par heptade. Les corporations y vendent une partie de leurs titres, en
+            émettent de nouveaux et annoncent leurs dividendes ; les investisseurs échangent entre
+            eux. À la clôture, une enchère par titre fixe le prix, en crédits réels. Voir aussi les{" "}
+            <Link to="/bourse/comptes">comptes</Link> et les{" "}
             <Link to="/bourse/reglages">réglages</Link>.
           </p>
         </div>
