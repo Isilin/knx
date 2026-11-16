@@ -178,6 +178,12 @@ export const LEVERS: {
     help: "Part des titres d'une corporation que les joueurs peuvent détenir face à la Banque impériale, teneur de marché.",
   },
   {
+    key: "carryFee",
+    label: "Report des ordres",
+    read: (p) => `jusqu'à 4 séances · frais de ${formatShare(p.carryFee)} du montant par report`,
+    help: "Un ordre non servi faute d'atteindre sa limite passe à la séance suivante tant qu'il lui en reste, contre ces frais ; sans crédits pour les couvrir, il expire.",
+  },
+  {
     key: "introductionPrice",
     label: "Cours d'introduction proposé",
     read: (p) => `${formatInteger(p.introductionPrice)} ¢`,

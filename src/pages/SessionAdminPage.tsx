@@ -110,6 +110,7 @@ function SessionAdmin({ market }: { market: Market }) {
         premium_sensitivity: params.premiumSensitivity,
         premium_half_life: params.premiumHalfLife,
         premium_band: params.premiumBand,
+        carry_fee: params.carryFee,
       });
       setMessage("Séance close : ordres servis, séance suivante ouverte.");
       refresh();

@@ -242,6 +242,48 @@ function WithdrawalForm({ available, onDone }: { available: number; onDone: () =
   );
 }
 
+/** The player chooses to appear in the public ranking: performance only is shown. */
+function RankingToggle({ account }: { account: InvestorAccount }) {
+  const { source, refreshSession } = useData();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const toggle = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await source.setPublicRanking(!account.publicRanking);
+      refreshSession();
+    } catch (err) {
+      setError(errorText(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <div className="investor__box">
+      <h3 className="label">Classement public</h3>
+      <p>
+        {account.publicRanking
+          ? "Vous figurez au classement de la page Bourse, sous le nom de votre personnage. Seule votre performance y est affichée, mais vos montants deviennent lisibles par tous."
+          : "Le classement de la page Bourse compare la performance des investisseurs volontaires. Vous n'y figurez pas."}
+      </p>
+      <button
+        type="button"
+        className="button button--quiet"
+        disabled={busy}
+        onClick={() => void toggle()}
+      >
+        {account.publicRanking ? "Quitter le classement" : "Apparaître au classement"}
+      </button>
+      {error ? (
+        <p className="note note--error" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function AccountView({ account }: { account: InvestorAccount }) {
   const { source, state } = useData();
   const [book, setBook] = useState<{
@@ -351,6 +393,7 @@ function AccountView({ account }: { account: InvestorAccount }) {
             </p>
           </div>
           <WithdrawalForm available={cash.available} onDone={refresh} />
+          <RankingToggle account={account} />
           {changing ? (
             <PasswordChange account={account} forced={false} onDone={() => setChanging(false)} />
           ) : (

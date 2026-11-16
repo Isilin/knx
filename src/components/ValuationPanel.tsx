@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import {
   BALANCE_ITEM_INFO,
@@ -16,7 +16,9 @@ import {
   formatShare,
 } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, ratingCode } from "../domain/rating.ts";
+import { useData } from "../data/DataProvider.tsx";
 import { OPERATION_INFO } from "../domain/securities.ts";
+import { fixingHistory, type MarketSession } from "../domain/trading.ts";
 import { priceHistory, type ValuationParams, type ValuationPoint } from "../domain/valuation.ts";
 import type { IsoDate } from "../domain/types.ts";
 import { listingLabel, operationDetail, operationMarkers } from "./bourseText.ts";
@@ -239,6 +241,25 @@ export function ValuationPanel({
     [lives, company, values, market, params],
   );
   // A price curve needs two published prices; until then the value curve stands in.
+  const { source } = useData();
+  const [sessions, setSessions] = useState<MarketSession[]>([]);
+  useEffect(() => {
+    if (!listing) return;
+    let live = true;
+    source.marketSessions().then(
+      (list) => {
+        if (live) setSessions(list);
+      },
+      () => {},
+    );
+    return () => {
+      live = false;
+    };
+  }, [source, listing]);
+  const fixings = useMemo(
+    () => (listing ? fixingHistory(sessions, company.id, listing.shares) : []),
+    [sessions, company.id, listing],
+  );
   const canPrice = listing !== null && prices.filter((p) => p.value !== null).length > 1;
   const [mode, setMode] = useState<"value" | "price">("price");
   const showPrice = canPrice && mode === "price";
@@ -378,6 +399,19 @@ export function ValuationPanel({
                     kind: "trend",
                     points: prices.filter(inPeriod),
                   },
+                  ...(fixings.length > 0
+                    ? [
+                        {
+                          id: "fixing",
+                          label: "Fixing de séance",
+                          color: "var(--ivoire)",
+                          kind: "step" as const,
+                          points: fixings
+                            .map((f) => ({ date: f.date, value: f.adjusted }))
+                            .filter(inPeriod),
+                        },
+                      ]
+                    : []),
                 ]
               : [
                   {
@@ -422,6 +456,30 @@ export function ValuationPanel({
           )}
         </div>
         <div>
+          {fixings.length > 0 ? (
+            <>
+              <h3 className="label">Séances</h3>
+              <ol className="valuation__ops">
+                {[...fixings]
+                  .reverse()
+                  .slice(0, 8)
+                  .map((f) => (
+                    <li key={f.date}>
+                      <ImperialDate date={f.date} />
+                      <span>
+                        fixing <strong>{formatPrice(f.price)} ¢</strong> · prime{" "}
+                        <Change ratio={f.premium} estimated /> · cours KNX{" "}
+                        {formatPrice(f.reference)} ¢
+                        <span className="valuation__op-note">
+                          {" "}
+                          · {formatInteger(f.demand)} achetés, {formatInteger(f.supply)} vendus
+                        </span>
+                      </span>
+                    </li>
+                  ))}
+              </ol>
+            </>
+          ) : null}
           <h3 className="label">Opérations sur titres</h3>
           {operations.length === 0 ? (
             <p className="valuation__note">

@@ -13,6 +13,8 @@ import {
   SIDE_LABELS,
   suggestedLimit,
   tradable,
+  carryFee,
+  MAX_SESSIONS,
   type MarketOrder,
   type MarketSession,
   type MarketTrade,
@@ -44,6 +46,7 @@ function OrderForm({
   const [side, setSide] = useState<OrderSide>("buy");
   const [quantity, setQuantity] = useState("");
   const [limit, setLimit] = useState("");
+  const [life, setLife] = useState(1);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
 
@@ -74,7 +77,13 @@ function OrderForm({
     setBusy(true);
     setMessage(null);
     try {
-      await source.placeOrder({ companyId: company.id, side, quantity: qty, limit: lim });
+      await source.placeOrder({
+        companyId: company.id,
+        side,
+        quantity: qty,
+        limit: lim,
+        sessions: life,
+      });
       setQuantity("");
       setLimit("");
       setMessage({
@@ -140,6 +149,16 @@ function OrderForm({
               </span>
             </label>
           </div>
+          <label className="field">
+            <span className="label">Validité</span>
+            <select value={life} onChange={(e) => setLife(Number(e.target.value))}>
+              {Array.from({ length: MAX_SESSIONS }, (_, k) => k + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n === 1 ? "Cette séance seulement" : `${n} séances`}
+                </option>
+              ))}
+            </select>
+          </label>
           {company && qty > 0 && lim > 0 ? (
             <p className="trading__preview">
               {side === "buy" ? (
@@ -155,6 +174,14 @@ function OrderForm({
                   titre, moins {formatPercent(params.commission).replace("+", "")} de commission.
                 </>
               )}
+              {life > 1 ? (
+                <>
+                  {" "}
+                  Non servi, l'ordre passe à la séance suivante contre{" "}
+                  {formatInteger(carryFee(qty, lim, params))} ¢ de frais de report, jusqu'à {life}{" "}
+                  séances.
+                </>
+              ) : null}
             </p>
           ) : null}
           {company && problem && quantity ? <p className="note note--warn">{problem}</p> : null}
@@ -332,6 +359,16 @@ export function TradingPanel({
                         · {formatInteger(o.reserved)} ¢ retenus
                       </span>
                     ) : null}
+                    {o.sessionsLeft > 1 ? (
+                      <span className="trading__muted"> · encore {o.sessionsLeft} séances</span>
+                    ) : null}
+                    {o.feesPaid > 0 ? (
+                      <span className="trading__muted">
+                        {" "}
+                        · reports {formatInteger(o.feesPaid)} ¢
+                      </span>
+                    ) : null}
+                    {o.reason ? <span className="trading__muted"> — {o.reason}</span> : null}
                   </span>
                   <button type="button" className="linklike" onClick={() => void cancel(o)}>
                     annuler

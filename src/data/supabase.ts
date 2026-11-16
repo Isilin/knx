@@ -66,7 +66,7 @@ const MISSING_INVESTOR_TABLES =
   "tables des comptes investisseurs absentes : exécuter la migration 20261121000000_comptes_investisseurs.sql.";
 
 const ACCOUNT_COLUMNS =
-  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of";
+  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of, public_ranking";
 
 interface AccountRow {
   user_id: string;
@@ -78,6 +78,8 @@ interface AccountRow {
   created_at: string;
   /** Absent before the migration of the market sessions. */
   insider_of?: (number | string)[] | null;
+  /** Absent before the migration of the ranking. */
+  public_ranking?: boolean | null;
 }
 
 interface MovementRow {
@@ -100,6 +102,7 @@ const accountOf = (r: AccountRow): InvestorAccount => ({
   closedAt: r.closed_at,
   createdAt: r.created_at,
   insiderOf: (r.insider_of ?? []).map(String),
+  publicRanking: r.public_ranking === true,
 });
 
 const movementOf = (r: MovementRow): CashMovement => ({
@@ -166,6 +169,8 @@ interface OrderRow {
   reason: string | null;
   created_at: string;
   closed_at: string | null;
+  sessions_left?: number | null;
+  fees_paid?: number | null;
 }
 
 const orderOf = (r: OrderRow): MarketOrder => ({
@@ -183,6 +188,8 @@ const orderOf = (r: OrderRow): MarketOrder => ({
   reason: r.reason,
   createdAt: r.created_at,
   closedAt: r.closed_at,
+  sessionsLeft: Number(r.sessions_left ?? 1),
+  feesPaid: Number(r.fees_paid ?? 0),
 });
 
 interface TradeRow {
@@ -644,7 +651,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { data, error } = await client
         .from("market_orders")
         .select(
-          "id, session_id, account_id, company_id, side, quantity, limit_price, reserved, status, filled_quantity, fill_price, reason, created_at, closed_at",
+          "id, session_id, account_id, company_id, side, quantity, limit_price, reserved, status, filled_quantity, fill_price, reason, created_at, closed_at, sessions_left, fees_paid",
         )
         .order("created_at", { ascending: false });
       if (error) {
@@ -666,14 +673,44 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       }
       return (data as TradeRow[]).map(tradeOf);
     },
-    async placeOrder({ companyId, side, quantity, limit }) {
+    async placeOrder({ companyId, side, quantity, limit, sessions }) {
       const { error } = await client.rpc("place_order", {
         p_company: Number(companyId),
         p_side: side,
         p_quantity: quantity,
         p_limit: limit,
+        p_sessions: sessions,
       });
       if (error) throw marketWriteMessage(error);
+    },
+    async setPublicRanking(value) {
+      const { error } = await client.rpc("set_public_ranking", { p_value: value });
+      if (error) throw marketWriteMessage(error);
+    },
+    async publicRanking() {
+      const { data, error } = await client.rpc("public_ranking");
+      if (error) {
+        if (error.code === "PGRST202") return [];
+        throw new Error(`Lecture du classement impossible : ${error.message}`);
+      }
+      return (
+        data as {
+          rank_key: string;
+          display_name: string;
+          invested: number;
+          cash: number;
+          positions: { company_id: number | string; quantity: number }[];
+        }[]
+      ).map((r) => ({
+        key: r.rank_key,
+        displayName: r.display_name,
+        invested: Number(r.invested),
+        cash: Number(r.cash),
+        positions: (r.positions ?? []).map((p) => ({
+          companyId: String(p.company_id),
+          quantity: Number(p.quantity),
+        })),
+      }));
     },
     async cancelOrder(id) {
       const { error } = await client.rpc("cancel_order", { p_id: Number(id) });

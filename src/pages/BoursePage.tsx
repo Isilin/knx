@@ -8,7 +8,7 @@ import type { CompanySeries } from "../domain/market.ts";
 import { formatCompact, formatInteger, formatPrice } from "../domain/numbers.ts";
 import type { Market } from "../domain/market.ts";
 import { OPERATION_INFO } from "../domain/securities.ts";
-import type { MarketSession } from "../domain/trading.ts";
+import { rankInvestors, type MarketSession, type RankingEntry } from "../domain/trading.ts";
 import { DEFAULT_VALUATION, VALUATION_METHOD } from "../domain/valuation.ts";
 import "./BoursePage.css";
 
@@ -191,6 +191,39 @@ function LastSession({ market }: { market: Market }) {
   );
 }
 
+/** Investors who chose to be ranked, by performance: wealth at today's KNX prices against what they put in. */
+function Ranking({ market }: { market: Market }) {
+  const { source } = useData();
+  const [entries, setEntries] = useState<RankingEntry[] | null>(null);
+  useEffect(() => {
+    source.publicRanking().then(setEntries, () => setEntries([]));
+  }, [source]);
+  const ranked = useMemo(() => rankInvestors(entries ?? [], market), [entries, market]);
+  if (!entries || entries.length === 0) return null;
+  return (
+    <section className="bourse__section" aria-labelledby="classement">
+      <div className="section-head">
+        <h2 id="classement">Classement des investisseurs</h2>
+        <p>investisseurs volontaires, titres au cours KNX du jour</p>
+      </div>
+      <ol className="bourse__journal">
+        {ranked.map((r, index) => (
+          <li key={r.key}>
+            <span className="bourse__muted">{index + 1}</span>
+            <span>
+              <strong>{r.displayName}</strong> <Change ratio={r.performance} estimated />
+            </span>
+          </li>
+        ))}
+      </ol>
+      <p className="bourse__note">
+        Performance : ce que vaut le compte (crédits et titres au cours KNX) face aux crédits
+        déposés, retraits déduits. Chaque investisseur choisit d'y figurer depuis son espace.
+      </p>
+    </section>
+  );
+}
+
 export function BoursePage() {
   const market = useMarket();
   const { session } = useData();
@@ -303,6 +336,8 @@ export function BoursePage() {
       </section>
 
       <LastSession market={market} />
+
+      <Ranking market={market} />
 
       <section className="bourse__section" aria-labelledby="methode">
         <div className="section-head">

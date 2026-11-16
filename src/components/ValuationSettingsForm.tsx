@@ -218,6 +218,14 @@ const SIMPLE: {
     percent: true,
     help: "Part des titres qu'un joueur détient au plus.",
   },
+  {
+    key: "carryFee",
+    label: "Frais de report",
+    unit: "%",
+    step: "0.05",
+    percent: true,
+    help: "Part du montant d'un ordre non servi, prélevée à chaque séance où il est reporté.",
+  },
 ];
 
 const CATEGORIES = RATING_METHOD.categories.map(([c]) => c);
@@ -411,6 +419,13 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
             <div className="levers__pairs">
               {SIMPLE.slice(24, 26).map((f) => field(f.key, f.label, f.unit, f.step))}
             </div>
+            {field(
+              SIMPLE[26].key,
+              SIMPLE[26].label,
+              SIMPLE[26].unit,
+              SIMPLE[26].step,
+              SIMPLE[26].help,
+            )}
           </fieldset>
           <fieldset>
             <legend className="label">Introduction</legend>
