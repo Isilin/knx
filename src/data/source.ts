@@ -1,6 +1,7 @@
 import type { ResolvedRows } from "../domain/identity.ts";
-import type { CashMovement, InvestorAccount } from "../domain/investors.ts";
+import type { CashMovement, FreezeReason, InvestorAccount } from "../domain/investors.ts";
 import type {
+  AccountTransfer,
   Dividend,
   DividendPayment,
   DividendPolicy,
@@ -13,6 +14,7 @@ import type {
   OrderSide,
   RankingEntry,
   ShareIssue,
+  TransferReason,
 } from "../domain/trading.ts";
 import type { MembershipDraft } from "../domain/memberships.ts";
 import type {
@@ -215,6 +217,41 @@ export interface DataSource {
     note: string | null;
   }): Promise<void>;
   cancelDividend(id: string, reason: string | null): Promise<void>;
+  /**
+   * Freezes an account (operators only): its orders, subscriptions and withdrawal requests are
+   * cancelled, and nothing happens on it at its holder's initiative until the freeze is lifted.
+   */
+  freezeAccount(accountId: string, reason: FreezeReason, note: string | null): Promise<void>;
+  unfreezeAccount(accountId: string, outcome: string | null): Promise<void>;
+  /** Transmissions from frozen accounts: the signed-in account's; every one for an operator. */
+  accountTransfers(): Promise<AccountTransfer[]>;
+  /** Hands shares of one corporation and/or credits from a frozen account to another account. */
+  transferHoldings(draft: {
+    fromAccount: string;
+    toAccount: string;
+    companyId: string | null;
+    quantity: number | null;
+    amount: number | null;
+    reason: TransferReason;
+    note: string | null;
+  }): Promise<void>;
+  /** KNX places a sell order for a frozen account, served at the close like any other. */
+  sellForAccount(draft: {
+    accountId: string;
+    companyId: string;
+    quantity: number;
+    limit: number;
+    sessions: number;
+  }): Promise<void>;
+  /** The corporation buys back its shares from a frozen account, paid from its KNX account. */
+  buybackShares(draft: {
+    accountId: string;
+    companyId: string;
+    quantity: number;
+    price: number;
+  }): Promise<void>;
+  /** Closes an empty account: no shares, no credits, nothing waiting. */
+  closeAccount(accountId: string, outcome: string | null): Promise<void>;
   /** Sends a sign-in link; resolves once the email is on its way. */
   requestSignIn(email: string): Promise<void>;
   /** Signs in with an operator password; resolves once the session exists. */

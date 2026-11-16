@@ -4,9 +4,11 @@ import {
   investorEmail,
   isLogin,
   type CashMovement,
+  type FreezeReason,
   type InvestorAccount,
 } from "../domain/investors.ts";
 import type {
+  AccountTransfer,
   Dividend,
   DividendPayment,
   DividendPolicy,
@@ -74,8 +76,11 @@ function isMissingTable(error: { code?: string }): boolean {
 const MISSING_INVESTOR_TABLES =
   "tables des comptes investisseurs absentes : exécuter la migration 20261121000000_comptes_investisseurs.sql.";
 
-const ACCOUNT_COLUMNS =
-  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of, public_ranking, company_profile_id";
+/**
+ * Every column: those a later migration adds (insiders, ranking, model C, freezes) read as absent
+ * until it runs, instead of failing the whole read.
+ */
+const ACCOUNT_COLUMNS = "*";
 
 interface AccountRow {
   user_id: string;
@@ -91,6 +96,10 @@ interface AccountRow {
   public_ranking?: boolean | null;
   /** Absent before the migration of model C. */
   company_profile_id?: number | string | null;
+  /** Absent before the migration of the successions. */
+  frozen_at?: string | null;
+  freeze_reason?: FreezeReason | null;
+  freeze_note?: string | null;
 }
 
 interface MovementRow {
@@ -102,6 +111,7 @@ interface MovementRow {
   note: string | null;
   requested_at: string;
   settled_at: string | null;
+  transfer_id?: number | null;
 }
 
 const accountOf = (r: AccountRow): InvestorAccount => ({
@@ -115,6 +125,10 @@ const accountOf = (r: AccountRow): InvestorAccount => ({
   insiderOf: (r.insider_of ?? []).map(String),
   publicRanking: r.public_ranking === true,
   companyProfileId: r.company_profile_id == null ? null : String(r.company_profile_id),
+  frozen:
+    r.frozen_at && r.freeze_reason
+      ? { reason: r.freeze_reason, note: r.freeze_note ?? null, since: r.frozen_at }
+      : null,
 });
 
 const movementOf = (r: MovementRow): CashMovement => ({
@@ -126,6 +140,7 @@ const movementOf = (r: MovementRow): CashMovement => ({
   note: r.note,
   requestedAt: r.requested_at,
   settledAt: r.settled_at,
+  transferId: r.transfer_id == null ? null : String(r.transfer_id),
 });
 
 interface SessionRow {
@@ -221,6 +236,7 @@ interface TradeRow {
   amount: number;
   commission: number;
   created_at: string;
+  buyback?: boolean | null;
 }
 
 const tradeOf = (r: TradeRow): MarketTrade => ({
@@ -236,6 +252,7 @@ const tradeOf = (r: TradeRow): MarketTrade => ({
   amount: Number(r.amount),
   commission: Number(r.commission),
   createdAt: r.created_at,
+  buyback: r.buyback === true,
 });
 
 interface OfferRow {
@@ -302,6 +319,30 @@ const policyOf = (r: PolicyRow): DividendPolicy => ({
   note: r.note,
 });
 
+interface TransferRow {
+  id: number;
+  from_account: string;
+  to_account: string;
+  company_id: number | null;
+  quantity: number | null;
+  amount: number | null;
+  reason: AccountTransfer["reason"];
+  note: string | null;
+  created_at: string;
+}
+
+const transferOf = (r: TransferRow): AccountTransfer => ({
+  id: String(r.id),
+  fromAccount: r.from_account,
+  toAccount: r.to_account,
+  companyId: r.company_id == null ? null : String(r.company_id),
+  quantity: r.quantity == null ? null : Number(r.quantity),
+  amount: r.amount == null ? null : Number(r.amount),
+  reason: r.reason,
+  note: r.note,
+  createdAt: r.created_at,
+});
+
 interface DividendRow {
   id: number;
   company_id: number;
@@ -355,6 +396,16 @@ const MISSING_MARKET_TABLES =
 
 const MISSING_DIVIDEND_TABLES =
   "dividendes et émissions absents : exécuter la migration 20261125000000_modele_c_dividendes_capital.sql.";
+
+const MISSING_SUCCESSION_TABLES =
+  "gel et successions absents : exécuter la migration 20261126000000_modele_c_successions.sql.";
+
+/** Errors of the freeze and succession functions. */
+function successionWriteMessage(error: { message: string; code?: string }): Error {
+  if (error.code === "PGRST202" || isMissingTable(error))
+    return new Error(MISSING_SUCCESSION_TABLES);
+  return writeMessage(error);
+}
 
 /** A table or column of the dividends migration is missing (42703: undefined column). */
 function isMissingDividends(error: { code?: string }): boolean {
@@ -729,7 +780,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     async cashMovements() {
       const { data, error } = await client
         .from("cash_movements")
-        .select("id, account_id, kind, amount, status, note, requested_at, settled_at")
+        .select("*")
         .order("requested_at", { ascending: false });
       if (error)
         throw isMissingTable(error) ? new Error(MISSING_INVESTOR_TABLES) : writeMessage(error);
@@ -814,9 +865,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     async marketTrades() {
       const { data, error } = await client
         .from("market_trades")
-        .select(
-          "id, session_id, order_id, offer_id, account_id, company_id, side, quantity, price, amount, commission, created_at",
-        )
+        .select("*")
         .order("created_at", { ascending: false });
       if (error) {
         if (isMissingTable(error)) return [];
@@ -993,6 +1042,72 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         p_reason: reason,
       });
       if (error) throw dividendWriteMessage(error);
+    },
+    async freezeAccount(accountId, reason, note) {
+      const { error } = await client.rpc("freeze_account", {
+        p_account: accountId,
+        p_reason: reason,
+        p_note: note,
+      });
+      if (error) throw successionWriteMessage(error);
+    },
+    async unfreezeAccount(accountId, outcome) {
+      const { error } = await client.rpc("unfreeze_account", {
+        p_account: accountId,
+        p_outcome: outcome,
+      });
+      if (error) throw successionWriteMessage(error);
+    },
+    async accountTransfers() {
+      const { data, error } = await client
+        .from("account_transfers")
+        .select(
+          "id, from_account, to_account, company_id, quantity, amount, reason, note, created_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des transmissions impossible : ${error.message}`);
+      }
+      return (data as TransferRow[]).map(transferOf);
+    },
+    async transferHoldings({ fromAccount, toAccount, companyId, quantity, amount, reason, note }) {
+      const { error } = await client.rpc("transfer_holdings", {
+        p_from: fromAccount,
+        p_to: toAccount,
+        p_company: companyId === null ? null : Number(companyId),
+        p_quantity: quantity,
+        p_amount: amount,
+        p_reason: reason,
+        p_note: note,
+      });
+      if (error) throw successionWriteMessage(error);
+    },
+    async sellForAccount({ accountId, companyId, quantity, limit, sessions }) {
+      const { error } = await client.rpc("sell_for_account", {
+        p_account: accountId,
+        p_company: Number(companyId),
+        p_quantity: quantity,
+        p_limit: limit,
+        p_sessions: sessions,
+      });
+      if (error) throw successionWriteMessage(error);
+    },
+    async buybackShares({ accountId, companyId, quantity, price }) {
+      const { error } = await client.rpc("buyback_shares", {
+        p_account: accountId,
+        p_company: Number(companyId),
+        p_quantity: quantity,
+        p_price: price,
+      });
+      if (error) throw successionWriteMessage(error);
+    },
+    async closeAccount(accountId, outcome) {
+      const { error } = await client.rpc("close_account", {
+        p_account: accountId,
+        p_outcome: outcome,
+      });
+      if (error) throw successionWriteMessage(error);
     },
     async requestSignIn(email: string) {
       const { error } = await client.auth.signInWithOtp({

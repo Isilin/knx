@@ -66,6 +66,13 @@ function createLazySupabaseSource(url: string, key: string): DataSource {
     dividendPayments: async () => (await get()).dividendPayments(),
     declareDividend: async (draft) => (await get()).declareDividend(draft),
     cancelDividend: async (id, reason) => (await get()).cancelDividend(id, reason),
+    freezeAccount: async (id, reason, note) => (await get()).freezeAccount(id, reason, note),
+    unfreezeAccount: async (id, outcome) => (await get()).unfreezeAccount(id, outcome),
+    accountTransfers: async () => (await get()).accountTransfers(),
+    transferHoldings: async (draft) => (await get()).transferHoldings(draft),
+    sellForAccount: async (draft) => (await get()).sellForAccount(draft),
+    buybackShares: async (draft) => (await get()).buybackShares(draft),
+    closeAccount: async (id, outcome) => (await get()).closeAccount(id, outcome),
     requestSignIn: async (email) => (await get()).requestSignIn(email),
     signInWithPassword: async (email, password) =>
       (await get()).signInWithPassword(email, password),

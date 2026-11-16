@@ -63,18 +63,21 @@ export interface MarketTrade {
   amount: number;
   commission: number;
   createdAt: string;
+  /** A corporation buying back its shares from a frozen account, outside the auction. */
+  buyback?: boolean;
 }
 
 /**
  * Shares given to an account outside a trade: a corporation's endowment, a division's adjustment,
- * the new shares of a capital increase (to the corporation, which sells them at once).
+ * the new shares of a capital increase (to the corporation, which sells them at once), a
+ * transmission from a frozen account (taken from one account, given to another).
  */
 export interface ShareIssue {
   id: string;
   companyId: string;
   accountId: string;
   quantity: number;
-  reason: "endowment" | "split" | "reverse_split" | "capital_increase";
+  reason: "endowment" | "split" | "reverse_split" | "capital_increase" | "transfer";
   createdAt: string;
 }
 
@@ -211,8 +214,14 @@ export function holdings(
   ].sort((a, b) => a.at.localeCompare(b.at));
   for (const e of events) {
     if (e.issue) {
-      // A division changes the count, not the cost.
-      of(e.issue.companyId).quantity += e.issue.quantity;
+      const h = of(e.issue.companyId);
+      // Shares handed over leave with their share of the cost, like a sale; a division changes
+      // the count, not the cost; shares received cost nothing.
+      if (e.issue.reason === "transfer" && e.issue.quantity < 0) {
+        const average = h.quantity > 0 ? h.cost / h.quantity : 0;
+        h.cost -= average * -e.issue.quantity;
+      }
+      h.quantity += e.issue.quantity;
       continue;
     }
     const t = e.trade;
@@ -621,5 +630,50 @@ export function dividendProblem(
   if (context.total === 0) return "dividende trop faible : aucun détenteur ne recevrait un crédit";
   if (context.total > context.available)
     return `ce dividende coûte ${context.total} crédits ; la corporation n'en a que ${context.available} de disponibles`;
+  return null;
+}
+
+/** Why shares or credits leave a frozen account for another. */
+export type TransferReason = "succession" | "confiscation" | "other";
+
+export const TRANSFER_REASON_INFO: Record<TransferReason, { label: string; help: string }> = {
+  succession: { label: "Succession", help: "À un héritier désigné en RP." },
+  confiscation: {
+    label: "Confiscation",
+    help: "À l'Empire (ou au compte que la décision désigne) : saisie de la DAI, succession sans héritier.",
+  },
+  other: { label: "Autre", help: "Une décision RP particulière, décrite dans la note." },
+};
+
+/** Shares of one corporation and/or credits handed over from a frozen account. */
+export interface AccountTransfer {
+  id: string;
+  fromAccount: string;
+  toAccount: string;
+  companyId: string | null;
+  quantity: number | null;
+  amount: number | null;
+  reason: TransferReason;
+  note: string | null;
+  createdAt: string;
+}
+
+/** Why a transmission cannot be made, in the operator's words; null when it can. */
+export function transferProblem(
+  draft: { toAccount: string | null; quantity: number | null; amount: number | null },
+  free: { shares: number; cash: number },
+): string | null {
+  if (!draft.toAccount) return "choisissez le compte qui reçoit";
+  if (draft.quantity === null && draft.amount === null) return "rien à transmettre";
+  if (draft.quantity !== null) {
+    if (!Number.isInteger(draft.quantity) || draft.quantity < 1)
+      return "nombre de titres entier, d'au moins 1";
+    if (draft.quantity > free.shares)
+      return `le compte gelé n'a que ${free.shares} titres libres de cette corporation`;
+  }
+  if (draft.amount !== null) {
+    if (!Number.isInteger(draft.amount) || draft.amount < 1) return "montant entier, d'au moins 1";
+    if (draft.amount > free.cash) return `le compte gelé n'a que ${free.cash} crédits disponibles`;
+  }
   return null;
 }
