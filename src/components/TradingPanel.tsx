@@ -6,7 +6,6 @@ import type { Market } from "../domain/market.ts";
 import { formatInteger, formatPercent, formatPrice } from "../domain/numbers.ts";
 import {
   holdings,
-  lastPremiums,
   orderProblem,
   ORDER_STATUS_LABELS,
   reservationFor,
@@ -15,10 +14,12 @@ import {
   tradable,
   carryFee,
   MAX_SESSIONS,
+  type MarketOffer,
   type MarketOrder,
   type MarketSession,
   type MarketTrade,
   type OrderSide,
+  type ShareIssue,
 } from "../domain/trading.ts";
 import { Change, ImperialDate } from "./figures.tsx";
 import "./TradingPanel.css";
@@ -28,20 +29,17 @@ const errorText = (error: unknown) => (error instanceof Error ? error.message : 
 function OrderForm({
   market,
   account,
-  sessions,
   free,
   onDone,
 }: {
   market: Market;
   account: InvestorAccount;
-  sessions: readonly MarketSession[];
   free: { cash: number; shares: Map<string, number> };
   onDone: () => void;
 }) {
   const { source } = useData();
   const params = market.valuation.params;
   const companies = useMemo(() => tradable(market, account), [market, account]);
-  const premiums = useMemo(() => lastPremiums(sessions), [sessions]);
   const [companyId, setCompanyId] = useState("");
   const [side, setSide] = useState<OrderSide>("buy");
   const [quantity, setQuantity] = useState("");
@@ -52,10 +50,7 @@ function OrderForm({
 
   const company = companies.find((c) => c.id === companyId) ?? null;
   const reference = company?.valuation?.listing?.price ?? null;
-  const suggested =
-    reference !== null
-      ? suggestedLimit(side, reference, premiums.get(company?.id ?? "") ?? 0, params)
-      : null;
+  const suggested = reference !== null ? suggestedLimit(side, reference) : null;
   const qty = Number(quantity);
   const lim = limit.trim() === "" ? (suggested ?? 0) : Number(limit.replace(",", "."));
   const problem = company
@@ -166,12 +161,14 @@ function OrderForm({
                   Crédits retenus jusqu'à la clôture :{" "}
                   <strong>{formatInteger(reservationFor(qty, lim, params))} ¢</strong> (commission
                   de {formatPercent(params.commission).replace("+", "")} comprise). Vous paierez le
-                  prix d'achat de la séance, au plus {formatPrice(lim)} ¢ par titre.
+                  prix de l'enchère de la séance, au plus {formatPrice(lim)} ¢ par titre, si un
+                  vendeur vous rencontre.
                 </>
               ) : (
                 <>
-                  Vous recevrez le prix de vente de la séance, au moins {formatPrice(lim)} ¢ par
-                  titre, moins {formatPercent(params.commission).replace("+", "")} de commission.
+                  Vous recevrez le prix de l'enchère de la séance, au moins {formatPrice(lim)} ¢ par
+                  titre, moins {formatPercent(params.commission).replace("+", "")} de commission, si
+                  un acheteur vous rencontre.
                 </>
               )}
               {life > 1 ? (
@@ -211,6 +208,175 @@ function OrderForm({
   );
 }
 
+/** A corporation's own account: its shares and its offers. It sells through offers only. */
+export function CorporatePanel({
+  market,
+  account,
+  offers,
+  trades,
+  issues,
+}: {
+  market: Market;
+  account: InvestorAccount;
+  offers: readonly MarketOffer[];
+  trades: readonly MarketTrade[];
+  issues: readonly ShareIssue[];
+}) {
+  const company = market.companies.find((c) => c.profileId === account.companyProfileId) ?? null;
+  const held = holdings(trades, [], issues).find((h) => h.companyId === company?.id);
+  const own = offers.filter((o) => o.accountId === account.id);
+  return (
+    <section className="trading" aria-labelledby="corporation">
+      <div className="section-head">
+        <h2 id="corporation">{company ? company.name : "Corporation"}</h2>
+        <p>
+          compte de corporation : les titres se vendent par des offres, ouvertes par KNX à la
+          demande du DG
+        </p>
+      </div>
+      <dl className="investor__facts">
+        <div>
+          <dt className="label">Titres détenus</dt>
+          <dd className="investor__figure">{formatInteger(held?.quantity ?? 0)}</dd>
+          <dd className="investor__detail">
+            sur {formatInteger(company?.valuation?.listing?.shares ?? 0)} ; reçus à la première
+            offre
+          </dd>
+        </div>
+        <div>
+          <dt className="label">Levé par les offres</dt>
+          <dd className="investor__figure">
+            {formatInteger(own.reduce((sum, o) => sum + o.proceeds, 0))}
+            <span className="amount__unit"> ¢</span>
+          </dd>
+          <dd className="investor__detail">commission déduite</dd>
+        </div>
+      </dl>
+      {own.length === 0 ? (
+        <p className="trading__muted">Aucune offre pour l'instant.</p>
+      ) : (
+        <ol className="trading__orders">
+          {own.map((o) => (
+            <li key={o.id}>
+              <ImperialDate date={o.createdAt.slice(0, 10)} />
+              <span>
+                {formatInteger(o.sharesOffered)} titres à {formatPrice(o.price)} ¢ ·{" "}
+                {o.status === "open"
+                  ? "en souscription"
+                  : o.status === "cancelled"
+                    ? "retirée"
+                    : `${formatInteger(o.allocated)} vendus, ${formatInteger(o.proceeds)} ¢ levés`}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
+    </section>
+  );
+}
+
+/** Open offers of the corporations: the investor subscribes at the offer's price. */
+function Offers({
+  market,
+  account,
+  offers,
+  cash,
+  onDone,
+}: {
+  market: Market;
+  account: InvestorAccount;
+  offers: readonly MarketOffer[];
+  cash: number;
+  onDone: () => void;
+}) {
+  const { source } = useData();
+  const params = market.valuation.params;
+  const [amounts, setAmounts] = useState<Record<string, string>>({});
+  const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+  const open = offers.filter((o) => o.status === "open");
+  if (open.length === 0) return null;
+
+  const subscribe = async (offer: MarketOffer, quantity: number) => {
+    setMessage(null);
+    try {
+      await source.subscribe(offer.id, quantity);
+      setAmounts((a) => ({ ...a, [offer.id]: "" }));
+      setMessage({
+        tone: "ok",
+        text: "Souscription enregistrée : servie à la clôture de la séance.",
+      });
+      onDone();
+    } catch (err) {
+      setMessage({ tone: "error", text: `Souscription refusée : ${errorText(err)}` });
+    }
+  };
+
+  return (
+    <div className="trading__offers">
+      <h3 className="label">Offres ouvertes</h3>
+      <ol className="trading__orders">
+        {open.map((o) => {
+          const company = market.byId.get(o.companyId);
+          const insider = company ? account.insiderOf.includes(company.profileId) : false;
+          const qty = Number(amounts[o.id] ?? "");
+          const cost = qty > 0 ? reservationFor(qty, o.price, params) : 0;
+          return (
+            <li key={o.id}>
+              <span>
+                <strong>{company?.name ?? "corporation inconnue"}</strong> vend{" "}
+                {formatInteger(o.sharesOffered)} titres à {formatPrice(o.price)} ¢
+                {company?.valuation?.listing?.price != null ? (
+                  <span className="trading__muted">
+                    {" "}
+                    · cours KNX {formatPrice(company.valuation.listing.price)} ¢
+                  </span>
+                ) : null}
+                {o.note ? <span className="trading__muted"> — {o.note}</span> : null}
+              </span>
+              {insider ? (
+                <span className="trading__muted">fermé aux initiés</span>
+              ) : (
+                <span className="trading__subscribe">
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    aria-label={`Titres souscrits à l'offre de ${company?.name ?? ""}`}
+                    placeholder="titres"
+                    value={amounts[o.id] ?? ""}
+                    onChange={(e) =>
+                      setAmounts((a) => ({ ...a, [o.id]: e.target.value.replace(/\D/g, "") }))
+                    }
+                  />
+                  <button
+                    type="button"
+                    className="button button--quiet"
+                    disabled={!(qty > 0) || qty > o.sharesOffered || cost > cash}
+                    onClick={() => void subscribe(o, qty)}
+                  >
+                    Souscrire{qty > 0 ? ` · ${formatInteger(cost)} ¢` : ""}
+                  </button>
+                </span>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      <p className="trading__muted">
+        Chaque souscription retient son montant, commission comprise. À la clôture, chacun est servi
+        en entier, ou au prorata si l'offre est dépassée ; le reste des crédits est libéré.
+      </p>
+      {message ? (
+        <p
+          className={`note note--${message.tone}`}
+          role={message.tone === "error" ? "alert" : undefined}
+        >
+          {message.text}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 /** A player's shares, orders and trades on the weekly market. */
 export function TradingPanel({
   market,
@@ -218,6 +384,8 @@ export function TradingPanel({
   sessions,
   orders,
   trades,
+  offers,
+  issues,
   cash,
   onChange,
 }: {
@@ -226,13 +394,15 @@ export function TradingPanel({
   sessions: readonly MarketSession[];
   orders: readonly MarketOrder[];
   trades: readonly MarketTrade[];
+  offers: readonly MarketOffer[];
+  issues: readonly ShareIssue[];
   /** Credits free for a new buy order. */
   cash: number;
   onChange: () => void;
 }) {
   const { source } = useData();
   const [error, setError] = useState<string | null>(null);
-  const held = useMemo(() => holdings(trades, orders), [trades, orders]);
+  const held = useMemo(() => holdings(trades, orders, issues), [trades, orders, issues]);
   const free = useMemo(
     () => ({ cash, shares: new Map(held.map((h) => [h.companyId, h.quantity - h.reserved])) }),
     [cash, held],
@@ -350,9 +520,9 @@ export function TradingPanel({
               {pending.map((o) => (
                 <li key={o.id}>
                   <span>
-                    <strong>{SIDE_LABELS[o.side]}</strong> {formatInteger(o.quantity)} ×{" "}
-                    {nameOf(o.companyId)} · {o.side === "buy" ? "au plus" : "au moins"}{" "}
-                    {formatPrice(o.limitPrice)} ¢
+                    <strong>{o.offerId ? "Souscription" : SIDE_LABELS[o.side]}</strong>{" "}
+                    {formatInteger(o.quantity)} × {nameOf(o.companyId)} ·{" "}
+                    {o.side === "buy" ? "au plus" : "au moins"} {formatPrice(o.limitPrice)} ¢
                     {o.side === "buy" ? (
                       <span className="trading__muted">
                         {" "}
@@ -387,8 +557,9 @@ export function TradingPanel({
                 <li key={o.id}>
                   <ImperialDate date={(o.closedAt ?? o.createdAt).slice(0, 10)} />
                   <span>
-                    <strong>{SIDE_LABELS[o.side]}</strong> {formatInteger(o.quantity)} ×{" "}
-                    {nameOf(o.companyId)} · {ORDER_STATUS_LABELS[o.status]}
+                    <strong>{o.offerId ? "Souscription" : SIDE_LABELS[o.side]}</strong>{" "}
+                    {formatInteger(o.quantity)} × {nameOf(o.companyId)} ·{" "}
+                    {ORDER_STATUS_LABELS[o.status]}
                     {o.filledQuantity > 0 && o.fillPrice !== null
                       ? ` · ${formatInteger(o.filledQuantity)} à ${formatPrice(o.fillPrice)} ¢`
                       : null}
@@ -399,13 +570,10 @@ export function TradingPanel({
             </ol>
           )}
         </div>
-        <OrderForm
-          market={market}
-          account={account}
-          sessions={sessions}
-          free={free}
-          onDone={onChange}
-        />
+        <div className="trading__side">
+          <Offers market={market} account={account} offers={offers} cash={cash} onDone={onChange} />
+          <OrderForm market={market} account={account} free={free} onDone={onChange} />
+        </div>
       </div>
     </section>
   );

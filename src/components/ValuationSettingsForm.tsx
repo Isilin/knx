@@ -173,50 +173,20 @@ const SIMPLE: {
     help: "Prélevée sur chaque exécution, à l'achat comme à la vente.",
   },
   {
-    key: "spread",
-    label: "Écart achat-vente",
+    key: "maxOffer",
+    label: "Part maximale d'une offre",
     unit: "%",
-    step: "0.5",
+    step: "1",
     percent: true,
-    help: "Moitié au-dessus du fixing pour l'acheteur, moitié en dessous pour le vendeur.",
+    help: "Part des titres d'une corporation qu'une offre peut vendre au plus.",
   },
   {
-    key: "premiumSensitivity",
-    label: "Sensibilité de la prime",
-    unit: "×",
-    step: "0.1",
-    help: "Mouvement de la prime pour une demande nette égale à tous les titres.",
-  },
-  {
-    key: "premiumHalfLife",
-    label: "Demi-vie de la prime",
-    unit: "séances",
-    step: "0.5",
-    help: "La prime s'efface de moitié en autant de séances.",
-  },
-  {
-    key: "premiumBand",
-    label: "Bande de la prime",
+    key: "offerBand",
+    label: "Bande du prix d'offre",
     unit: "± %",
     step: "1",
     percent: true,
-    help: "Écart maximal du fixing au cours KNX.",
-  },
-  {
-    key: "holdCap",
-    label: "Plafond des joueurs",
-    unit: "%",
-    step: "1",
-    percent: true,
-    help: "Part des titres d'une corporation que les joueurs détiennent ensemble au plus.",
-  },
-  {
-    key: "playerCap",
-    label: "Plafond par joueur",
-    unit: "%",
-    step: "0.5",
-    percent: true,
-    help: "Part des titres qu'un joueur détient au plus.",
+    help: "Écart maximal du prix d'une offre au cours KNX.",
   },
   {
     key: "carryFee",
@@ -412,20 +382,11 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
           </fieldset>
           <fieldset>
             <legend className="label">Marché</legend>
+            {SIMPLE.slice(19, 20).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
             <div className="levers__pairs">
-              {SIMPLE.slice(19, 21).map((f) => field(f.key, f.label, f.unit, f.step))}
+              {SIMPLE.slice(20, 22).map((f) => field(f.key, f.label, f.unit, f.step))}
             </div>
-            {SIMPLE.slice(21, 24).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
-            <div className="levers__pairs">
-              {SIMPLE.slice(24, 26).map((f) => field(f.key, f.label, f.unit, f.step))}
-            </div>
-            {field(
-              SIMPLE[26].key,
-              SIMPLE[26].label,
-              SIMPLE[26].unit,
-              SIMPLE[26].step,
-              SIMPLE[26].help,
-            )}
+            {SIMPLE.slice(22, 23).map((f) => field(f.key, f.label, f.unit, f.step, f.help))}
           </fieldset>
           <fieldset>
             <legend className="label">Introduction</legend>

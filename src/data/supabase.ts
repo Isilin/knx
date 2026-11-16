@@ -6,7 +6,13 @@ import {
   type CashMovement,
   type InvestorAccount,
 } from "../domain/investors.ts";
-import type { MarketOrder, MarketSession, MarketTrade } from "../domain/trading.ts";
+import type {
+  MarketOffer,
+  MarketOrder,
+  MarketSession,
+  MarketTrade,
+  ShareIssue,
+} from "../domain/trading.ts";
 import { VALUATION_METHOD } from "../domain/valuation.ts";
 import type {
   ApiKey,
@@ -66,7 +72,7 @@ const MISSING_INVESTOR_TABLES =
   "tables des comptes investisseurs absentes : exécuter la migration 20261121000000_comptes_investisseurs.sql.";
 
 const ACCOUNT_COLUMNS =
-  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of, public_ranking";
+  "user_id, login, display_name, must_change_password, note, closed_at, created_at, insider_of, public_ranking, company_profile_id";
 
 interface AccountRow {
   user_id: string;
@@ -80,6 +86,8 @@ interface AccountRow {
   insider_of?: (number | string)[] | null;
   /** Absent before the migration of the ranking. */
   public_ranking?: boolean | null;
+  /** Absent before the migration of model C. */
+  company_profile_id?: number | string | null;
 }
 
 interface MovementRow {
@@ -103,6 +111,7 @@ const accountOf = (r: AccountRow): InvestorAccount => ({
   createdAt: r.created_at,
   insiderOf: (r.insider_of ?? []).map(String),
   publicRanking: r.public_ranking === true,
+  companyProfileId: r.company_profile_id == null ? null : String(r.company_profile_id),
 });
 
 const movementOf = (r: MovementRow): CashMovement => ({
@@ -132,6 +141,7 @@ interface SessionRow {
     sell: number;
     demand: number;
     supply: number;
+    volume?: number;
   }[];
 }
 
@@ -151,6 +161,7 @@ const sessionOf = (r: SessionRow): MarketSession => ({
     sell: Number(p.sell),
     demand: Number(p.demand),
     supply: Number(p.supply),
+    volume: Number(p.volume ?? 0),
   })),
 });
 
@@ -171,6 +182,7 @@ interface OrderRow {
   closed_at: string | null;
   sessions_left?: number | null;
   fees_paid?: number | null;
+  offer_id?: number | null;
 }
 
 const orderOf = (r: OrderRow): MarketOrder => ({
@@ -190,12 +202,14 @@ const orderOf = (r: OrderRow): MarketOrder => ({
   closedAt: r.closed_at,
   sessionsLeft: Number(r.sessions_left ?? 1),
   feesPaid: Number(r.fees_paid ?? 0),
+  offerId: r.offer_id == null ? null : String(r.offer_id),
 });
 
 interface TradeRow {
   id: number;
   session_id: number;
-  order_id: number;
+  order_id: number | null;
+  offer_id?: number | null;
   account_id: string;
   company_id: number;
   side: MarketTrade["side"];
@@ -209,7 +223,8 @@ interface TradeRow {
 const tradeOf = (r: TradeRow): MarketTrade => ({
   id: String(r.id),
   sessionId: String(r.session_id),
-  orderId: String(r.order_id),
+  orderId: r.order_id == null ? null : String(r.order_id),
+  offerId: r.offer_id == null ? null : String(r.offer_id),
   accountId: r.account_id,
   companyId: String(r.company_id),
   side: r.side,
@@ -217,6 +232,52 @@ const tradeOf = (r: TradeRow): MarketTrade => ({
   price: Number(r.price),
   amount: Number(r.amount),
   commission: Number(r.commission),
+  createdAt: r.created_at,
+});
+
+interface OfferRow {
+  id: number;
+  company_id: number;
+  account_id: string;
+  session_id: number;
+  shares_offered: number;
+  price: number | string;
+  status: MarketOffer["status"];
+  allocated: number;
+  proceeds: number;
+  note: string | null;
+  created_at: string;
+}
+
+const offerOf = (r: OfferRow): MarketOffer => ({
+  id: String(r.id),
+  companyId: String(r.company_id),
+  accountId: r.account_id,
+  sessionId: String(r.session_id),
+  sharesOffered: Number(r.shares_offered),
+  price: Number(r.price),
+  status: r.status,
+  allocated: Number(r.allocated),
+  proceeds: Number(r.proceeds),
+  note: r.note,
+  createdAt: r.created_at,
+});
+
+interface IssueRow {
+  id: number;
+  company_id: number;
+  account_id: string;
+  quantity: number;
+  reason: ShareIssue["reason"];
+  created_at: string;
+}
+
+const issueOf = (r: IssueRow): ShareIssue => ({
+  id: String(r.id),
+  companyId: String(r.company_id),
+  accountId: r.account_id,
+  quantity: Number(r.quantity),
+  reason: r.reason,
   createdAt: r.created_at,
 });
 
@@ -607,8 +668,14 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         throw isMissingTable(error) ? new Error(MISSING_INVESTOR_TABLES) : writeMessage(error);
       return (data as AccountRow[]).map(accountOf);
     },
-    async createInvestorAccount({ login, displayName, password }) {
-      await callAccounts({ action: "create", login, displayName, password });
+    async createInvestorAccount({ login, displayName, password, profileId }) {
+      await callAccounts({
+        action: "create",
+        login,
+        displayName,
+        password,
+        ...(profileId ? { profileId } : {}),
+      });
     },
     async resetInvestorPassword(login, password) {
       await callAccounts({ action: "reset", login, password });
@@ -651,7 +718,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { data, error } = await client
         .from("market_orders")
         .select(
-          "id, session_id, account_id, company_id, side, quantity, limit_price, reserved, status, filled_quantity, fill_price, reason, created_at, closed_at, sessions_left, fees_paid",
+          "id, session_id, account_id, company_id, side, quantity, limit_price, reserved, status, filled_quantity, fill_price, reason, created_at, closed_at, sessions_left, fees_paid, offer_id",
         )
         .order("created_at", { ascending: false });
       if (error) {
@@ -664,7 +731,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { data, error } = await client
         .from("market_trades")
         .select(
-          "id, session_id, order_id, account_id, company_id, side, quantity, price, amount, commission, created_at",
+          "id, session_id, order_id, offer_id, account_id, company_id, side, quantity, price, amount, commission, created_at",
         )
         .order("created_at", { ascending: false });
       if (error) {
@@ -720,22 +787,60 @@ export function createSupabaseSource(url: string, key: string): DataSource {
       const { error } = await client.rpc("open_session", { p_date: date });
       if (error) throw marketWriteMessage(error);
     },
-    async closeSession(sessionId, reportDate, prices, params) {
+    async closeSession(sessionId, reportDate, references, params) {
       const { error } = await client.rpc("close_session", {
         p_session: Number(sessionId),
         p_report: reportDate,
-        p_prices: prices.map((p) => ({
+        p_prices: references.map((p) => ({
           company_id: Number(p.companyId),
           shares: p.shares,
           reference: p.reference,
-          premium: p.premium,
-          price: p.price,
-          buy: p.buy,
-          sell: p.sell,
-          demand: p.demand,
-          supply: p.supply,
         })),
         p_params: params,
+      });
+      if (error) throw marketWriteMessage(error);
+    },
+    async marketOffers() {
+      const { data, error } = await client
+        .from("market_offers")
+        .select(
+          "id, company_id, account_id, session_id, shares_offered, price, status, allocated, proceeds, note, created_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des offres impossible : ${error.message}`);
+      }
+      return (data as OfferRow[]).map(offerOf);
+    },
+    async shareIssues() {
+      const { data, error } = await client
+        .from("share_issues")
+        .select("id, company_id, account_id, quantity, reason, created_at")
+        .order("created_at");
+      if (error) {
+        if (isMissingTable(error)) return [];
+        throw new Error(`Lecture des titres émis impossible : ${error.message}`);
+      }
+      return (data as IssueRow[]).map(issueOf);
+    },
+    async createOffer({ companyId, shares, price, note }) {
+      const { error } = await client.rpc("create_offer", {
+        p_company: Number(companyId),
+        p_shares: shares,
+        p_price: price,
+        p_note: note,
+      });
+      if (error) throw marketWriteMessage(error);
+    },
+    async cancelOffer(id) {
+      const { error } = await client.rpc("cancel_offer", { p_id: Number(id) });
+      if (error) throw marketWriteMessage(error);
+    },
+    async subscribe(offerId, quantity) {
+      const { error } = await client.rpc("subscribe", {
+        p_offer: Number(offerId),
+        p_quantity: quantity,
       });
       if (error) throw marketWriteMessage(error);
     },

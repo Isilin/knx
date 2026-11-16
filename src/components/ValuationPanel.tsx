@@ -467,12 +467,12 @@ export function ValuationPanel({
                     <li key={f.date}>
                       <ImperialDate date={f.date} />
                       <span>
-                        fixing <strong>{formatPrice(f.price)} ¢</strong> · prime{" "}
-                        <Change ratio={f.premium} estimated /> · cours KNX{" "}
-                        {formatPrice(f.reference)} ¢
+                        fixing <strong>{formatPrice(f.price)} ¢</strong> ·{" "}
+                        <Change ratio={f.premium} estimated /> du cours KNX (
+                        {formatPrice(f.reference)} ¢)
                         <span className="valuation__op-note">
                           {" "}
-                          · {formatInteger(f.demand)} achetés, {formatInteger(f.supply)} vendus
+                          · {formatInteger(f.volume)} titres échangés
                         </span>
                       </span>
                     </li>

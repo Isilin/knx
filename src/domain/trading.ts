@@ -4,15 +4,15 @@ import type { IsoDate } from "./types.ts";
 import type { ValuationParams } from "./valuation.ts";
 
 /**
- * The weekly market of the Bourse: players place limit orders during a session (an heptade);
- * at its close, KNX fixes one price per listed corporation and the Banque impériale, as market
- * maker, takes the other side of every order that fits, within the caps:
+ * The weekly market of the Bourse (model C). Every share belongs to an account: at its first
+ * offer, a corporation receives all its shares and sells part of them to the investors, who
+ * subscribe during a session. Afterwards, shares change hands between investors only: at the
+ * close of each session (an heptade), one auction per corporation fixes the price that meets
+ * the most shares between buy and sell limit orders; ties go to the least imbalance, then to the
+ * price nearest the KNX price, then to the lower. The exchange keeps a commission on both sides.
  *
- *   premium = previous premium × decay + sensitivity × (demand − supply) ÷ shares   (bounded)
- *   price   = KNX price per share × (1 + premium)
- *   buyers pay price × (1 + spread ÷ 2), sellers get price × (1 − spread ÷ 2), plus commission
- *
- * Prices are in credits to the hundredth; amounts settle in whole credits.
+ * The database runs the close; this module mirrors it for the previews and the tests. Prices are
+ * in credits to the hundredth; amounts settle in whole credits.
  */
 
 export type OrderSide = "buy" | "sell";
@@ -41,17 +41,21 @@ export interface MarketOrder {
   sessionsLeft: number;
   /** Carry fees paid so far. */
   feesPaid: number;
+  /** A subscription to this offer; null on the secondary market. */
+  offerId: string | null;
 }
 
 export interface MarketTrade {
   id: string;
   sessionId: string;
-  orderId: string;
+  /** Null on the corporation's side of an offer. */
+  orderId: string | null;
+  offerId: string | null;
   accountId: string;
   companyId: string;
   side: OrderSide;
   quantity: number;
-  /** Price per share paid (buy) or received (sell), before commission. */
+  /** Price per share, before commission. */
   price: number;
   /** Quantity × price, in whole credits. */
   amount: number;
@@ -59,25 +63,56 @@ export interface MarketTrade {
   createdAt: string;
 }
 
-/** What the close of a session fixed for one corporation. */
+/** Shares given to an account outside a trade: a corporation's endowment, a division's adjustment. */
+export interface ShareIssue {
+  id: string;
+  companyId: string;
+  accountId: string;
+  quantity: number;
+  reason: "endowment" | "split" | "reverse_split";
+  createdAt: string;
+}
+
+/** A corporation selling part of its shares at a set price, during one session. */
+export interface MarketOffer {
+  id: string;
+  companyId: string;
+  /** The corporation's account, which receives the proceeds. */
+  accountId: string;
+  sessionId: string;
+  sharesOffered: number;
+  price: number;
+  status: "open" | "closed" | "cancelled";
+  allocated: number;
+  /** Credits the corporation received, commission deducted. */
+  proceeds: number;
+  note: string | null;
+  createdAt: string;
+}
+
+/** What the close of a session fixed for one corporation that traded. */
 export interface SessionPrice {
   companyId: string;
   shares: number;
   /** KNX price per share at the report the session closed on. */
   reference: number;
+  /** Fixing price ÷ KNX price − 1. */
   premium: number;
   price: number;
   buy: number;
   sell: number;
+  /** Shares asked and offered at the fixing price. */
   demand: number;
   supply: number;
+  /** Shares that changed hands. */
+  volume: number;
 }
 
 export interface MarketSession {
   id: string;
   openedOn: IsoDate;
   closedOn: IsoDate | null;
-  /** Report whose KNX values the fixing read. */
+  /** Report whose KNX values the close read. */
   reportDate: IsoDate | null;
   status: "open" | "closed";
   prices: SessionPrice[];
@@ -96,43 +131,10 @@ export const SIDE_LABELS: Record<OrderSide, string> = { buy: "Achat", sell: "Ven
 
 /** Largest quantity of one order, as the database checks it. */
 export const MAX_QUANTITY = 1_000_000_000;
+/** Longest life of an order, in sessions. */
+export const MAX_SESSIONS = 4;
 
 const cents = (value: number) => Math.round(value * 100) / 100;
-/** Rounded up (buy) or down (sell) to the hundredth: the house always keeps its spread. */
-const centsUp = (value: number) => Math.ceil(value * 100 - 1e-9) / 100;
-const centsDown = (value: number) => Math.floor(value * 100 + 1e-9) / 100;
-
-/** Share of a premium left after one session. */
-export function premiumDecay(params: ValuationParams): number {
-  return 0.5 ** (1 / params.premiumHalfLife);
-}
-
-/** The premium after a session with this demand and supply. */
-export function nextPremium(
-  previous: number,
-  demand: number,
-  supply: number,
-  shares: number,
-  params: ValuationParams,
-): number {
-  const pressure = shares > 0 ? (params.premiumSensitivity * (demand - supply)) / shares : 0;
-  const premium = previous * premiumDecay(params) + pressure;
-  return Math.max(-params.premiumBand, Math.min(params.premiumBand, premium));
-}
-
-/** Fixing price and the prices each side trades at. */
-export function sidePrices(
-  reference: number,
-  premium: number,
-  params: ValuationParams,
-): { price: number; buy: number; sell: number } {
-  const price = reference * (1 + premium);
-  return {
-    price: cents(price),
-    buy: centsUp(price * (1 + params.spread / 2)),
-    sell: Math.max(0.01, centsDown(price * (1 - params.spread / 2))),
-  };
-}
 
 /** Credits a trade moves: the amount and the commission on it. */
 export function tradeAmounts(
@@ -150,18 +152,14 @@ export function reservationFor(quantity: number, limit: number, params: Valuatio
   return amount + commission;
 }
 
-/**
- * A limit KNX suggests: a little above (buy) or below (sell) the price the side would trade at
- * with the premium of the last session, so an ordinary order fills.
- */
-export function suggestedLimit(
-  side: OrderSide,
-  reference: number,
-  previousPremium: number,
-  params: ValuationParams,
-): number {
-  const { buy, sell } = sidePrices(reference, previousPremium * premiumDecay(params), params);
-  return side === "buy" ? cents(buy * 1.05) : Math.max(0.01, cents(sell * 0.95));
+/** Fee charged when an unfilled order moves to the next session: at least one credit. */
+export function carryFee(quantity: number, limit: number, params: ValuationParams): number {
+  return Math.max(1, Math.ceil(quantity * limit * params.carryFee));
+}
+
+/** A limit KNX suggests: 5 % above (buy) or below (sell) the KNX price, to the hundredth. */
+export function suggestedLimit(side: OrderSide, reference: number): number {
+  return side === "buy" ? cents(reference * 1.05) : Math.max(0.01, cents(reference * 0.95));
 }
 
 export interface Holding {
@@ -169,14 +167,15 @@ export interface Holding {
   quantity: number;
   /** Shares held for open sell orders. */
   reserved: number;
-  /** What the shares held cost, commissions included (average cost). */
+  /** What the shares held cost, commissions included (average cost); 0 for an endowment. */
   cost: number;
 }
 
-/** Shares an account holds, from its trades, and those its open sell orders hold. */
+/** Shares an account holds (issues and trades), and those its open sell orders hold. */
 export function holdings(
   trades: readonly MarketTrade[],
   orders: readonly MarketOrder[],
+  issues: readonly ShareIssue[] = [],
 ): Holding[] {
   const by = new Map<string, Holding>();
   const of = (companyId: string) => {
@@ -184,7 +183,18 @@ export function holdings(
     if (!h) by.set(companyId, (h = { companyId, quantity: 0, reserved: 0, cost: 0 }));
     return h;
   };
-  for (const t of [...trades].sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
+  const events = [
+    ...issues.map((i) => ({ at: i.createdAt, issue: i, trade: null })),
+    ...trades.map((t) => ({ at: t.createdAt, issue: null, trade: t })),
+  ].sort((a, b) => a.at.localeCompare(b.at));
+  for (const e of events) {
+    if (e.issue) {
+      // A division changes the count, not the cost.
+      of(e.issue.companyId).quantity += e.issue.quantity;
+      continue;
+    }
+    const t = e.trade;
+    if (!t) continue;
     const h = of(t.companyId);
     if (t.side === "buy") {
       h.cost += t.amount + t.commission;
@@ -200,7 +210,7 @@ export function holdings(
   return [...by.values()].filter((h) => h.quantity > 0 || h.reserved > 0);
 }
 
-/** Cash of an account once its trades and open orders count. */
+/** Cash of an account once its trades, open orders and carry fees count. */
 export function accountCash(
   movements: readonly CashMovement[],
   trades: readonly MarketTrade[],
@@ -217,50 +227,77 @@ export function accountCash(
   return { balance, pending: cash.pending, reserved, available: balance - cash.pending - reserved };
 }
 
-/** A listed corporation as the close of a session reads it. */
-export interface FixingInput {
-  companyId: string;
-  shares: number;
-  /** KNX price per share at the closing report. */
-  reference: number;
-  /** Premium fixed at the previous session; 0 at the first. */
-  previousPremium: number;
+/** The auction of one corporation: the price, the shares it meets, demand and supply there. */
+export interface Clearing {
+  price: number;
+  volume: number;
+  demand: number;
+  supply: number;
 }
 
-/** Prices the close of a session fixes, from the open orders. */
-export function fixingPlan(
-  inputs: readonly FixingInput[],
-  orders: readonly MarketOrder[],
-  params: ValuationParams,
-): SessionPrice[] {
-  return inputs.map((input) => {
+/**
+ * The fixing price among the limits of the open orders: the most shares met, then the least
+ * imbalance, then the nearest to the KNX price, then the lower. Null when nothing meets.
+ */
+export function clearingPrice(
+  orders: readonly Pick<MarketOrder, "side" | "quantity" | "limitPrice">[],
+  reference: number | null,
+): Clearing | null {
+  let best: Clearing | null = null;
+  const candidates = [...new Set(orders.map((o) => o.limitPrice))];
+  for (const price of candidates) {
     let demand = 0;
     let supply = 0;
     for (const o of orders) {
-      if (o.status !== "open" || o.companyId !== input.companyId) continue;
-      if (o.side === "buy") demand += o.quantity;
-      else supply += o.quantity;
+      if (o.side === "buy" && o.limitPrice >= price) demand += o.quantity;
+      if (o.side === "sell" && o.limitPrice <= price) supply += o.quantity;
     }
-    const premium = nextPremium(input.previousPremium, demand, supply, input.shares, params);
-    return {
-      companyId: input.companyId,
-      shares: input.shares,
-      reference: cents(input.reference),
-      premium,
-      ...sidePrices(input.reference, premium, params),
-      demand,
-      supply,
-    };
-  });
+    const volume = Math.min(demand, supply);
+    if (volume === 0) continue;
+    const gap = Math.abs(demand - supply);
+    const distance = (p: number) => Math.abs(p - (reference ?? p));
+    if (
+      !best ||
+      volume > best.volume ||
+      (volume === best.volume &&
+        (gap < Math.abs(best.demand - best.supply) ||
+          (gap === Math.abs(best.demand - best.supply) &&
+            (distance(price) < distance(best.price) ||
+              (distance(price) === distance(best.price) && price < best.price)))))
+    )
+      best = { price, volume, demand, supply };
+  }
+  return best;
 }
 
-/** Premium of each corporation at the latest closed session. */
-export function lastPremiums(sessions: readonly MarketSession[]): Map<string, number> {
+/**
+ * Shares each subscription receives from an offer: all of them when the offer suffices, pro rata
+ * (rounded down) otherwise, the shares left by the rounding going one each to the earliest.
+ */
+export function allocateOffer(
+  subscriptions: readonly Pick<MarketOrder, "id" | "quantity" | "createdAt">[],
+  offered: number,
+): Map<string, number> {
+  const ordered = [...subscriptions].sort(
+    (a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id),
+  );
+  const total = ordered.reduce((sum, s) => sum + s.quantity, 0);
   const out = new Map<string, number>();
-  const closed = sessions
-    .filter((s) => s.status === "closed")
-    .sort((a, b) => (a.closedOn ?? "").localeCompare(b.closedOn ?? ""));
-  for (const s of closed) for (const p of s.prices) out.set(p.companyId, p.premium);
+  let left = Math.min(total, offered);
+  for (const s of ordered) {
+    const share = total <= offered ? s.quantity : Math.floor((s.quantity * offered) / total);
+    const q = Math.min(share, left);
+    out.set(s.id, q);
+    left -= q;
+  }
+  for (const s of ordered) {
+    if (left <= 0) break;
+    const q = out.get(s.id) ?? 0;
+    if (q < s.quantity) {
+      out.set(s.id, q + 1);
+      left -= 1;
+    }
+  }
   return out;
 }
 
@@ -274,6 +311,7 @@ export interface FixingPoint {
   adjusted: number;
   demand: number;
   supply: number;
+  volume: number;
 }
 
 /** Fixing prices of a corporation, oldest first, adjusted to its share count today. */
@@ -292,20 +330,13 @@ export function fixingHistory(
       reference: p.reference,
       premium: p.premium,
       price: p.price,
-      adjusted: sharesToday > 0 ? (p.price * p.shares) / sharesToday : p.price,
+      adjusted: sharesToday > 0 && p.shares > 0 ? (p.price * p.shares) / sharesToday : p.price,
       demand: p.demand,
       supply: p.supply,
+      volume: p.volume,
     });
   }
   return out.sort((a, b) => a.date.localeCompare(b.date));
-}
-
-/** Longest life of an order, in sessions. */
-export const MAX_SESSIONS = 4;
-
-/** Fee charged when an unfilled order moves to the next session: at least one credit. */
-export function carryFee(quantity: number, limit: number, params: ValuationParams): number {
-  return Math.max(1, Math.ceil(quantity * limit * params.carryFee));
 }
 
 /** What a public ranking entry carries: the site values the shares at today's KNX price. */
@@ -378,4 +409,26 @@ export function tradable(market: Market, account: InvestorAccount): CompanySerie
         !account.insiderOf.includes(c.profileId),
     )
     .sort((a, b) => a.name.localeCompare(b.name, "fr"));
+}
+
+/** Why an offer cannot be opened, in the operator's words; null when it can. */
+export function offerProblem(
+  shares: number,
+  price: number,
+  context: { totalShares: number; freeShares: number; reference: number | null },
+  params: ValuationParams,
+): string | null {
+  if (!Number.isInteger(shares) || shares < 1) return "nombre de titres entier, d'au moins 1";
+  const most = Math.floor(params.maxOffer * context.totalShares);
+  if (shares > most) return `au plus ${most} titres par offre`;
+  if (shares > context.freeShares)
+    return `la corporation ne détient que ${context.freeShares} titres libres`;
+  if (!(price > 0) || cents(price) !== price) return "prix positif, au centième près";
+  if (context.reference !== null) {
+    const low = context.reference * (1 - params.offerBand);
+    const high = context.reference * (1 + params.offerBand);
+    if (price < low - 1e-9 || price > high + 1e-9)
+      return `prix entre ${cents(low)} et ${cents(high)} ¢ (bande autour du cours KNX)`;
+  }
+  return null;
 }

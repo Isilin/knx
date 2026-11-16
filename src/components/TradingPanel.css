@@ -148,3 +148,24 @@
     display: none;
   }
 }
+
+.trading__side {
+  display: grid;
+  gap: var(--s-6);
+  min-width: 0;
+}
+
+.trading__offers {
+  display: grid;
+  gap: var(--s-3);
+}
+
+.trading__subscribe {
+  display: flex;
+  gap: var(--s-2);
+  align-items: center;
+}
+
+.trading__subscribe .input {
+  width: 6.5em;
+}

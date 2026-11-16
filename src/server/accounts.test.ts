@@ -131,3 +131,20 @@ describe("POST /api/v1/comptes", () => {
     );
   });
 });
+
+describe("corporation accounts", () => {
+  it("ties the account to its page, and refuses an unknown page", async () => {
+    const rows: { company_profile_id: number | null }[] = [];
+    const deps = fake({
+      insertAccount: async (row) => {
+        rows.push(row);
+        return null;
+      },
+    });
+    const ok = await handleAccounts(post({ ...create, profileId: "42" }), deps);
+    expect(ok.status).toBe(201);
+    expect(rows[0].company_profile_id).toBe(42);
+    const bad = await handleAccounts(post({ ...create, login: "04218", profileId: "abc" }), fake());
+    expect(bad.status).toBe(422);
+  });
+});

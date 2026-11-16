@@ -32,7 +32,7 @@ export interface SecurityOperation {
 export const OPERATION_INFO: Record<OperationKind, { label: string; help: string }> = {
   introduction: {
     label: "Introduction en bourse",
-    help: "La direction ouvre son capital : KNX publie dès ce jour un cours par titre, sa valeur divisée par le nombre de titres.",
+    help: "La direction ouvre son capital : KNX publie dès ce jour un cours par titre, sa valeur divisée par le nombre de titres. La corporation vend ensuite une partie de ses titres par une offre, depuis la page Séance.",
   },
   split: {
     label: "Division",
