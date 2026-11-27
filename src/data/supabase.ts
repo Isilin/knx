@@ -433,6 +433,8 @@ function investorWriteMessage(error: { message: string; code?: string }): Error 
 
 const MISSING_PRICE_TABLES =
   "tables du cours théorique absentes : exécuter la migration 20261120000000_cours_theorique.sql.";
+const MISSING_WAGE_TABLE =
+  "table des salaires absente : exécuter la migration 20261127000000_salaires.sql.";
 
 /** Path of an uploaded logo inside the bucket, from its public URL. */
 function logoPath(url: string | null): string | null {
@@ -485,7 +487,7 @@ export function createSupabaseSource(url: string, key: string): DataSource {
   return {
     kind: "supabase",
     async load() {
-      const [dataset, settings, operations, balances] = await Promise.all([
+      const [dataset, settings, operations, balances, wages] = await Promise.all([
         client.rpc("market_dataset"),
         client
           .from("valuation_settings")
@@ -500,6 +502,11 @@ export function createSupabaseSource(url: string, key: string): DataSource {
         client
           .from("company_balance_sheets")
           .select("id, company_id, stated_on, land, building, fittings, stock, source, note")
+          .order("stated_on")
+          .order("id"),
+        client
+          .from("company_wage_figures")
+          .select("id, company_id, stated_on, wage, source, note")
           .order("stated_on")
           .order("id"),
       ]);
@@ -540,6 +547,14 @@ export function createSupabaseSource(url: string, key: string): DataSource {
           building: r.building,
           fittings: r.fittings,
           stock: r.stock,
+          source: r.source,
+          note: r.note,
+        })),
+        wageFigures: optional(wages, "des salaires").map((r) => ({
+          id: String(r.id),
+          companyId: String(r.company_id),
+          date: r.stated_on,
+          wage: r.wage,
           source: r.source,
           note: r.note,
         })),
@@ -737,6 +752,18 @@ export function createSupabaseSource(url: string, key: string): DataSource {
     },
     async deleteBalanceSheet(id) {
       const { error } = await client.from("company_balance_sheets").delete().eq("id", id);
+      if (error) throw writeMessage(error);
+    },
+    async saveWageFigure({ id, companyId, date, wage, source, note }) {
+      const values = { company_id: Number(companyId), stated_on: date, wage, source, note };
+      const { error } =
+        id === null
+          ? await client.from("company_wage_figures").insert(values)
+          : await client.from("company_wage_figures").update(values).eq("id", id);
+      if (error) throw isMissingTable(error) ? new Error(MISSING_WAGE_TABLE) : writeMessage(error);
+    },
+    async deleteWageFigure(id) {
+      const { error } = await client.from("company_wage_figures").delete().eq("id", id);
       if (error) throw writeMessage(error);
     },
     async session(): Promise<Session> {

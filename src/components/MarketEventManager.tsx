@@ -86,7 +86,7 @@ function EventForm({ event, onClose }: { event: MarketEvent | null; onClose: () 
       </label>
       <p className="market-event-form__hint">
         L'évènement s'affiche dans l'historique de chaque corporation cotée à sa date, et sur les
-        graphiques. Les flux hors CA mesurés pendant sa durée lui sont rattachés.
+        graphiques. Les flux hors CA et salaires mesurés pendant sa durée lui sont rattachés.
       </p>
       {error ? (
         <p className="note note--error" role="alert">

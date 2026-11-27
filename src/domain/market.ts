@@ -9,6 +9,14 @@ import { assessRisk, type CompanyRisk } from "./risk.ts";
 import { summarizeSectors, type SectorSummary } from "./sectorStats.ts";
 import type { SectorId } from "./sectors.ts";
 import type { BalanceSheet } from "./balance.ts";
+import {
+  paidStaff,
+  sortFigures,
+  wageOn,
+  wagesBetween,
+  type WageFigure,
+  type WageRate,
+} from "./wages.ts";
 import { inOrder, type SecurityOperation } from "./securities.ts";
 import {
   LifeValuation,
@@ -49,9 +57,14 @@ export interface CompanyPoint {
   /** realDaily ÷ previous chiffre − 1: how the period compares with the lifetime average. */
   performance: number | null;
   /**
-   * Capital change since the previous report that revenue does not explain: Δcapital − revenue
-   * earned. Negative = money left (wages, withdrawals, purchases); positive = money came in.
-   * Estimated.
+   * Wages paid since the previous report: the paid headcount (DG left out) at the wage in force.
+   * Null when a headcount is unknown. Estimated.
+   */
+  wages: number | null;
+  /**
+   * Capital change since the previous report that neither revenue nor wages explain:
+   * Δcapital − revenue earned + wages (wages left in when unknown). Negative = money left
+   * (withdrawals, purchases); positive = money came in. Estimated.
    */
   otherFlow: number | null;
   /** ± rounding uncertainty on `otherFlow`, inherited from the revenue estimate. */
@@ -147,6 +160,10 @@ export interface CompanySeries {
   watch: RatingWatch | null;
   /** KNX theoretical value and, once introduced, share price. */
   valuation: CompanyValuation | null;
+  /** Wages audited or declared for this life, oldest first. */
+  wageFigures: WageFigure[];
+  /** Daily wages on the latest report; null when the headcount is unknown. Estimated. */
+  payroll: { paid: number; rate: WageRate; daily: number } | null;
   /** Best rank ever held, and the date it was first reached. */
   bestRank: { rank: number; date: IsoDate };
   /** Highest published chiffre and its date. */
@@ -199,6 +216,8 @@ export interface Market {
   operations: Map<string, SecurityOperation[]>;
   /** Balance sheets, by corporation id, oldest first. */
   balances: Map<string, BalanceSheet[]>;
+  /** Audited or declared wages, by corporation id, oldest first. */
+  wageFigures: Map<string, WageFigure[]>;
 }
 
 const ARTICLES = new Set(["la", "le", "les", "las", "l", "the", "de"]);
@@ -246,6 +265,7 @@ function buildPoints(
   ranks: readonly Map<string, number>[],
   id: string,
   creation: CreationEstimate | null,
+  wageOf: (date: IsoDate) => number,
 ): CompanyPoint[] {
   const points: CompanyPoint[] = [];
   snapshots.forEach((snapshot, index) => {
@@ -271,16 +291,18 @@ function buildPoints(
       realDailyNoise = ((days ?? 0) + (prev.days ?? 0)) / 2 / gap;
       performance = realDaily / prev.chiffre - 1;
     }
+    const wages =
+      prev && gap ? wagesBetween(prev.employees, row.employees, gap, wageOf(snapshot.date)) : null;
     let otherFlow: number | null = null;
     let otherFlowNoise: number | null = null;
     if (prev && gap && row.capital !== null && prev.capital !== null) {
       // A company published at 0 on both reports earned nothing in between.
       const silent = prev.chiffre === 0 && row.chiffre === 0;
       if (realDaily !== null && realDailyNoise !== null) {
-        otherFlow = row.capital - prev.capital - realDaily * gap;
+        otherFlow = row.capital - prev.capital - realDaily * gap + (wages ?? 0);
         otherFlowNoise = realDailyNoise * gap;
       } else if (silent) {
-        otherFlow = row.capital - prev.capital;
+        otherFlow = row.capital - prev.capital + (wages ?? 0);
         otherFlowNoise = 0;
       }
     }
@@ -296,6 +318,7 @@ function buildPoints(
       realDaily,
       realDailyNoise,
       performance,
+      wages,
       otherFlow,
       otherFlowNoise,
     });
@@ -383,6 +406,11 @@ export function buildMarket(dataset: Dataset): Market {
   const ids = new Set<string>();
   for (const s of snapshots) for (const r of s.rows) if (shown(r.companyId)) ids.add(r.companyId);
 
+  // Settings in force: the reference wages enter the points, the rest the theoretical value.
+  const versions = sortSettings(dataset.valuationSettings ?? []);
+  const { params } = settingsInForce(versions);
+  const wageFigures = groupBy(sortFigures(dataset.wageFigures ?? []), (f) => f.companyId);
+
   const allLives: CompanySeries[] = [];
   for (const id of ids) {
     const meta = metaById.get(id);
@@ -393,8 +421,18 @@ export function buildMarket(dataset: Dataset): Market {
       return row ? [{ date: s.date, chiffre: row.chiffre }] : [];
     });
     const creation = estimateCreation(chiffres, meta.creationOverride);
-    const points = buildPoints(snapshots, ranks, id, creation);
+    const sector = profile?.sector ?? null;
+    const figures = wageFigures.get(id) ?? [];
+    const points = buildPoints(
+      snapshots,
+      ranks,
+      id,
+      creation,
+      (date) => wageOn(figures, sector, params, date).wage,
+    );
     const last = points[points.length - 1];
+    const paid = paidStaff(last.employees);
+    const rate = wageOn(figures, sector, params, last.date);
     const prev = points.length > 1 ? points[points.length - 2] : null;
     const inLatest = last.date === latest.date;
     const status: CompanyStatus =
@@ -417,7 +455,7 @@ export function buildMarket(dataset: Dataset): Market {
       formerNames: meta.formerNames,
       consortium: membershipOn(memberships, last.date)?.consortium ?? null,
       memberships,
-      sector: profile?.sector ?? null,
+      sector,
       district: profile?.district ?? null,
       logoUrl: profile?.logoUrl ?? null,
       closedOn: meta.closedOn,
@@ -450,6 +488,8 @@ export function buildMarket(dataset: Dataset): Market {
       rating: null,
       watch: null,
       valuation: null,
+      wageFigures: figures,
+      payroll: paid === null ? null : { paid, rate, daily: paid * rate.wage },
       bestRank,
       record,
     });
@@ -553,8 +593,6 @@ export function buildMarket(dataset: Dataset): Market {
   }
 
   // Theoretical value with the settings in force; shares belong to one life.
-  const versions = sortSettings(dataset.valuationSettings ?? []);
-  const { params } = settingsInForce(versions);
   const operations = new Map<string, SecurityOperation[]>();
   for (const op of inOrder(dataset.securityOperations ?? []))
     operations.set(op.companyId, [...(operations.get(op.companyId) ?? []), op]);
@@ -622,6 +660,7 @@ export function buildMarket(dataset: Dataset): Market {
     valuation: { params, versions },
     operations,
     balances,
+    wageFigures,
   };
 }
 

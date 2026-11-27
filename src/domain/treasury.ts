@@ -3,8 +3,8 @@ import type { IsoDate } from "./types.ts";
 
 /**
  * How a company's capital went from one report to another over a period:
- *   capital at start + revenue earned + flows outside revenue = capital at end.
- * Capital is published; revenue and the remainder are estimated by KNX.
+ *   capital at start + revenue earned − wages + other flows = capital at end.
+ * Capital is published; revenue, wages and the remainder are estimated by KNX.
  */
 export interface TreasuryBridge {
   start: { date: IsoDate; capital: number };
@@ -13,7 +13,12 @@ export interface TreasuryBridge {
   earned: number;
   /** ± rounding uncertainty on `earned` (and therefore on `otherFlow`). */
   noise: number;
-  /** Capital change that revenue does not explain; negative = money left. Estimated. */
+  /** Wages paid over the period; null when a headcount is unknown. Estimated. */
+  wages: number | null;
+  /**
+   * Capital change that neither revenue nor wages explain (wages left in when unknown);
+   * negative = money left. Estimated.
+   */
   otherFlow: number;
 }
 
@@ -47,29 +52,35 @@ export function treasuryBridge(
   const capitalEnd = last.capital ?? 0;
   // Revenue is never negative; a small negative difference is rounding noise.
   const earned = Math.max(0, (last.cumulative ?? 0) - (first.cumulative ?? 0));
+  const paid = run.slice(1).map((p) => p.wages);
+  const wages = paid.every((w) => w !== null) ? paid.reduce((s, w) => s + (w ?? 0), 0) : null;
   return {
     start: { date: first.date, capital: capitalStart },
     end: { date: last.date, capital: capitalEnd },
     earned,
     noise: ((first.days ?? 0) + (last.days ?? 0)) / 2,
-    otherFlow: capitalEnd - capitalStart - earned,
+    wages,
+    otherFlow: capitalEnd - capitalStart - earned + (wages ?? 0),
   };
 }
 
 export interface TreasuryFlow {
   date: IsoDate;
   previousDate: IsoDate;
-  /** Capital change outside revenue between the two reports. Estimated. */
+  /** Capital change outside revenue and wages between the two reports. Estimated. */
   flow: number;
   noise: number;
   /**
    * Flow as a share of the money available before it: previous capital plus revenue earned in
-   * between (= capital after − flow). An outflow never exceeds −100 %.
+   * between, less the wages paid (= capital after − flow). An outflow never exceeds −100 %.
    */
   share: number | null;
 }
 
-/** Largest flows outside revenue on or after `from`, by size, ignoring those lost in rounding. */
+/**
+ * Largest flows outside revenue and wages on or after `from`, by size, ignoring those lost in
+ * rounding: withdrawals, purchases, injections.
+ */
 export function largestFlows(
   points: readonly CompanyPoint[],
   from: IsoDate | null,

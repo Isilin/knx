@@ -92,7 +92,7 @@ export function watchRating(
       reasons.push({
         kind: "outflow",
         date: flow.date,
-        text: `Sortie hors CA de ${formatPercent(flow.share ?? 0)} du disponible.`,
+        text: `Sortie hors CA et salaires de ${formatPercent(flow.share ?? 0)} du disponible.`,
       });
 
   const exposed = company.points.filter(

@@ -279,7 +279,7 @@ function lifeEntries(
       }),
     );
 
-  // The largest flows outside revenue, when they moved at least a quarter of the capital.
+  // The largest flows outside revenue and wages, when they moved at least a quarter of the capital.
   const flows = largestFlows(company.points, null, Infinity);
   const outflow = flows.find((f) => f.flow < 0 && (f.share ?? 0) <= -0.25);
   const inflow = flows.find((f) => f.flow > 0 && (f.share ?? 0) >= 0.25);
@@ -291,7 +291,7 @@ function lifeEntries(
         key: key(`flow-${f.date}`),
         companyId,
         date: f.date,
-        title: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
+        title: `${f.flow < 0 ? "Sortie" : "Entrée"} hors CA et salaires estimée : ${formatCompact(Math.abs(f.flow))} ¢ (${formatPercent(f.share ?? 0)} du disponible)`,
         note:
           during.length > 0
             ? `Coïncide avec ${during.map((e) => `« ${e.title} »`).join(", ")}.`

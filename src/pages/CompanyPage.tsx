@@ -22,6 +22,7 @@ import { SectorPanel } from "../components/SectorPanel.tsx";
 import { TimeChart } from "../components/TimeChart.tsx";
 import { TreasuryBridge } from "../components/TreasuryBridge.tsx";
 import { ValuationPanel } from "../components/ValuationPanel.tsx";
+import { WageFigures } from "../components/WageFigures.tsx";
 import { useData, useMarket } from "../data/DataProvider.tsx";
 import { creationReliability } from "../domain/age.ts";
 import { daysBetween } from "../domain/dates.ts";
@@ -34,6 +35,7 @@ import { RISK_LEVEL_LABELS } from "../domain/risk.ts";
 import { sectorShareHistory } from "../domain/sectorStats.ts";
 import { sectorLabel } from "../domain/sectors.ts";
 import { largestFlows, treasuryBridge } from "../domain/treasury.ts";
+import { describeWage, wageOn, wageOriginLabel } from "../domain/wages.ts";
 import { useTween } from "../hooks/useTween.ts";
 import "./CompanyPage.css";
 
@@ -114,7 +116,7 @@ function Gauge({ label, value, help }: { label: string; value: number | null; he
 export function CompanyPage() {
   const { slug = "" } = useParams();
   const market = useMarket();
-  const { session } = useData();
+  const { session, state } = useData();
   const navigate = useNavigate();
   const [period, setPeriod] = useState<PeriodId>("12");
   // Remembered per address, so moving to another corporation closes the form.
@@ -178,6 +180,15 @@ export function CompanyPage() {
   const bridge = useMemo(
     () => (company ? treasuryBridge(company.points, start) : null),
     [company, start],
+  );
+  const bridgeWage = useMemo(
+    () =>
+      company && bridge
+        ? describeWage(
+            wageOn(company.wageFigures, company.sector, market.valuation.params, bridge.end.date),
+          )
+        : undefined,
+    [company, bridge, market],
   );
   const flows = useMemo(
     () => (company ? largestFlows(company.points, start) : []),
@@ -364,13 +375,18 @@ export function CompanyPage() {
       </header>
 
       {isAdmin && editingSlug === company.slug ? (
-        <CompanyEditor
-          company={company}
-          previousLife={previousLife}
-          consortiums={market.consortiums}
-          latestDate={market.latestDate}
-          onClose={() => setEditingSlug(null)}
-        />
+        <>
+          <CompanyEditor
+            company={company}
+            previousLife={previousLife}
+            consortiums={market.consortiums}
+            latestDate={market.latestDate}
+            onClose={() => setEditingSlug(null)}
+          />
+          {state.status === "ready" ? (
+            <WageFigures company={company} market={market} dataset={state.dataset} />
+          ) : null}
+        </>
       ) : null}
 
       <dl className="kpis">
@@ -699,11 +715,14 @@ export function CompanyPage() {
           </div>
           {bridge ? (
             <>
-              <TreasuryBridge bridge={bridge} />
+              <TreasuryBridge bridge={bridge} wageNote={bridgeWage} />
               <p className="company__note">
                 Le capital est publié par le jeu ; le CA généré se déduit des chiffres publiés et de
-                l'âge estimé. Le reste, le flux hors CA, est ce que les recettes n'expliquent pas :
-                négatif quand de l'argent est sorti, positif quand il en est entré.
+                l'âge estimé. Les salaires, prélevés chaque nuit, sont l'effectif payé (le DG ne
+                l'est pas) au salaire de référence du secteur, ou au salaire audité par l'Agence. Le
+                reste, les autres flux, est ce que ni les recettes ni les salaires n'expliquent :
+                négatif quand de l'argent est sorti (retraits, achats), positif quand il en est
+                entré.
               </p>
             </>
           ) : (
@@ -713,11 +732,22 @@ export function CompanyPage() {
                 : "Capital relevé depuis août 2025 seulement : aucun relevé pour cette corporation."}
             </p>
           )}
+          {company.payroll ? (
+            <p className="company__payroll">
+              <span className="label">Masse salariale estimée</span>{" "}
+              <Estimated value={company.payroll.daily} /> par jour
+              <small>
+                {company.payroll.paid} salarié{company.payroll.paid > 1 ? "s" : ""} payé
+                {company.payroll.paid > 1 ? "s" : ""} × {formatInteger(company.payroll.rate.wage)} ¢
+                ({wageOriginLabel(company.payroll.rate.origin)})
+              </small>
+            </p>
+          ) : null}
         </section>
         <section aria-labelledby="flux">
           <div className="section-head">
-            <h2 id="flux">Principaux flux hors CA</h2>
-            <p>sur la période, entre deux relevés</p>
+            <h2 id="flux">Principaux autres flux</h2>
+            <p>hors CA et salaires, sur la période, entre deux relevés</p>
           </div>
           {flows.length > 0 ? (
             <ol className="flows">
@@ -752,7 +782,9 @@ export function CompanyPage() {
               ))}
             </ol>
           ) : (
-            <p className="company__empty">Aucun flux hors CA mesurable sur la période.</p>
+            <p className="company__empty">
+              Aucun flux hors CA et salaires mesurable sur la période.
+            </p>
           )}
         </section>
       </div>
@@ -892,9 +924,16 @@ export function CompanyPage() {
                 <th
                   scope="col"
                   className="num secondary"
-                  title="Variation du capital que les recettes n'expliquent pas, estimée par KNX"
+                  title="Salaires versés depuis le relevé précédent : effectif payé (DG exclu) × salaire en vigueur, estimés par KNX"
                 >
-                  Hors CA est.
+                  Salaires est.
+                </th>
+                <th
+                  scope="col"
+                  className="num secondary"
+                  title="Variation du capital que ni les recettes ni les salaires n'expliquent, estimée par KNX"
+                >
+                  Autres flux est.
                 </th>
                 <th scope="col" className="num secondary">
                   Empl.
@@ -919,6 +958,9 @@ export function CompanyPage() {
                   </td>
                   <td className="num secondary">
                     <Amount value={p.capital} unit={false} />
+                  </td>
+                  <td className="num secondary">
+                    <Estimated value={p.wages === null ? null : -p.wages} unit={false} signed />
                   </td>
                   <td className="num secondary">
                     <Estimated value={p.otherFlow} noise={p.otherFlowNoise} unit={false} signed />

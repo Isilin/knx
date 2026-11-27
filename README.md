@@ -60,7 +60,8 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   La cote affiche la note (colonne et filtre), la page Marché sa répartition et les dernières
   notations. Une note passe « sous surveillance » quand, depuis sa publication, la recalculer sur
   le dernier relevé changerait sa catégorie, ou après un changement de DG, une fermeture, une sortie
-  hors CA d'un quart du disponible, un capital au-delà de 30 M¢ ou un évènement de marché ; elle est
+  hors CA et salaires d'un quart du disponible, un capital au-delà de 30 M¢ ou un évènement de
+  marché ; elle est
   « à revoir » au-delà d'un trimestre (`WATCH_RULES`, `src/domain/agency.ts`). La page Relevés liste
   les notations à revoir.
 - **Secteurs.** La cote complète se filtre par secteur (puces, ou le secteur sous chaque nom) ;
@@ -72,6 +73,15 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   le temps ; cette part n'est tracée qu'aux relevés où les corporations classées font au moins
   90 % des recettes du marché, les secteurs des corporations fermées n'étant pas tous connus
   (`src/domain/sectorStats.ts`).
+- **Salaires.** Le jeu prélève les salaires dans la trésorerie chaque nuit ; le DG n'est pas payé.
+  KNX les estime : effectif payé (employés − 1) × salaire en vigueur, sur la moyenne des deux
+  relevés. Le salaire est celui de référence du secteur (réglages de la valeur KNX, barème tiré du
+  relevé de tous les salaires du 17 avril 2026), sauf pour une vie dont l'Agence a audité le
+  salaire moyen, ou dont la direction l'a déclaré (« Modifier la fiche » → Salaires, table
+  `company_wage_figures`) : un chiffre vaut depuis sa date jusqu'au suivant, le premier couvre
+  aussi les jours d'avant. Le pont de trésorerie de la fiche sépare ainsi les salaires des autres
+  flux (retraits, achats, apports), que listent les « principaux autres flux », la frise et la
+  veille des notations (`src/domain/wages.ts`).
 - **Page Secteurs** (`/secteurs`), sur le dernier relevé : les secteurs côte à côte sur une mesure
   au choix (recettes, corporations, effectif, capital, recette par employé et recettes rapportées
   au capital, ces deux dernières en médiane des corporations actives) ; la concentration de chaque

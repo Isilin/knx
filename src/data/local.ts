@@ -118,6 +118,9 @@ export function createLocalSource(): DataSource {
     saveBalanceSheet: ({ id, ...draft }) =>
       record({ type: "saveBalance", sheet: { ...draft, id: id ?? newId() } }),
     deleteBalanceSheet: (id) => record({ type: "deleteBalance", id }),
+    saveWageFigure: ({ id, ...draft }) =>
+      record({ type: "saveWage", figure: { ...draft, id: id ?? newId() } }),
+    deleteWageFigure: (id) => record({ type: "deleteWage", id }),
     async session(): Promise<Session> {
       return { state: "signed-in", email: "mode local", isAdmin: true, investor: null };
     },

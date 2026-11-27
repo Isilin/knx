@@ -18,6 +18,7 @@ import {
 } from "./types.ts";
 import { BALANCE_ITEMS, isAssetSource, type BalanceSheet } from "./balance.ts";
 import { MAX_EVENT_SPAN } from "./marketEvents.ts";
+import { MAX_WAGE, type WageFigure } from "./wages.ts";
 import {
   carriesShares,
   checkOperations,
@@ -105,6 +106,12 @@ export type BalanceSheetDraft = Omit<BalanceSheet, "id"> & {
   id: string | null;
 };
 
+/** A wage figure about to be recorded. */
+export type WageFigureDraft = Omit<WageFigure, "id"> & {
+  /** null records a new figure. */
+  id: string | null;
+};
+
 /** Largest amount a balance sheet item takes. */
 const MAX_ASSET = 1_000_000_000_000;
 
@@ -140,6 +147,22 @@ export function planBalance<T extends BalanceSheetDraft>(dataset: Dataset, draft
   }
   if (BALANCE_ITEMS.every((item) => draft[item] === null))
     throw new Error("aucun montant : renseigner au moins un poste");
+  return { ...draft, note: draft.note?.trim() || null };
+}
+
+/**
+ * Checks a wage figure against the corporation's life, in the operator's words, and returns it
+ * trimmed: the mean daily wage of the paid employees, in whole credits.
+ */
+export function planWage<T extends WageFigureDraft>(dataset: Dataset, draft: T): T {
+  const { first, closedOn } = lifeSpan(dataset, draft.companyId);
+  if (draft.date < first)
+    throw new Error(`date antérieure au premier relevé de la corporation (${first})`);
+  if (closedOn !== null && draft.date >= closedOn)
+    throw new Error("la corporation est fermée à cette date");
+  if (!isAssetSource(draft.source)) throw new Error("source inconnue");
+  if (!(Number.isInteger(draft.wage) && draft.wage >= 0 && draft.wage <= MAX_WAGE))
+    throw new Error(`salaire en crédits entiers, entre 0 et ${MAX_WAGE}`);
   return { ...draft, note: draft.note?.trim() || null };
 }
 
@@ -223,7 +246,9 @@ export type LocalOp =
   | { type: "saveOperation"; operation: SecurityOperation }
   | { type: "deleteOperation"; id: string }
   | { type: "saveBalance"; sheet: BalanceSheet }
-  | { type: "deleteBalance"; id: string };
+  | { type: "deleteBalance"; id: string }
+  | { type: "saveWage"; figure: WageFigure }
+  | { type: "deleteWage"; id: string };
 
 const blank = (id: string, name: string, profileId: string): CompanyMeta => ({
   id,
@@ -402,6 +427,16 @@ export function normalizeDataset(raw: unknown): Dataset {
         stock: b.stock == null ? null : Number(b.stock),
         source: b.source,
         note: b.note ?? null,
+      })),
+    wageFigures: (Array.isArray(data.wageFigures) ? data.wageFigures : [])
+      .filter((f) => isAssetSource(f.source))
+      .map((f): WageFigure => ({
+        id: String(f.id),
+        companyId: String(f.companyId),
+        date: f.date,
+        wage: Number(f.wage),
+        source: f.source,
+        note: f.note ?? null,
       })),
   };
 }
@@ -751,6 +786,22 @@ export function applyOp(dataset: Dataset, op: LocalOp): Dataset {
       return {
         ...dataset,
         balanceSheets: (dataset.balanceSheets ?? []).filter((b) => b.id !== op.id),
+      };
+    case "saveWage": {
+      const figure = planWage(dataset, op.figure);
+      const list = dataset.wageFigures ?? [];
+      const exists = list.some((f) => f.id === figure.id);
+      return {
+        ...dataset,
+        wageFigures: exists
+          ? list.map((f) => (f.id === figure.id ? figure : f))
+          : [...list, figure],
+      };
+    }
+    case "deleteWage":
+      return {
+        ...dataset,
+        wageFigures: (dataset.wageFigures ?? []).filter((f) => f.id !== op.id),
       };
     case "deleteOperation":
       checkRemoval(dataset, op.id);
