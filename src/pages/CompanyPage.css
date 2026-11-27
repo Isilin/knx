@@ -258,6 +258,24 @@
   font-size: var(--fs-sm);
 }
 
+/* One line under the bridge: the daily wages, and what they rest on. */
+.company__payroll {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--s-1) var(--s-2);
+  margin-top: var(--s-4);
+  padding-top: var(--s-3);
+  border-top: 1px solid var(--filet);
+  font-size: var(--fs-sm);
+}
+
+.company__payroll small {
+  flex-basis: 100%;
+  color: var(--gris-2);
+  font-size: var(--fs-cap);
+}
+
 .flows li {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(9.5rem, auto);

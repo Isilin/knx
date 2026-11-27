@@ -9,6 +9,7 @@ import {
 import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanySeries } from "./market.ts";
 import type { CompanyRating, RatingCategory, RatingConfidence } from "./rating.ts";
+import { SECTORS, type SectorId } from "./sectors.ts";
 import {
   listingSteps,
   stepOn,
@@ -95,6 +96,13 @@ export interface ValuationParams {
   offerBand: number;
   /** Share of an order's amount charged each time it is carried to the next session. */
   carryFee: number;
+  /**
+   * Reference wage of a paid employee, in credits a day, by sector: what KNX assumes a
+   * corporation pays when the Agence has no audited figure for it. The DG is not paid.
+   */
+  sectorWages: Record<SectorId, number>;
+  /** Reference wage of a corporation filed under no sector. */
+  defaultWage: number;
 }
 
 export const DEFAULT_VALUATION: ValuationParams = {
@@ -130,6 +138,21 @@ export const DEFAULT_VALUATION: ValuationParams = {
   maxOffer: 0.49,
   offerBand: 0.2,
   carryFee: 0.002,
+  // Mean wage of the paid employees of each sector, symbolic wages included, rounded to the
+  // hundred: the survey of every corporation's wages of 17 April 2026 (48 corporations, 128
+  // paid employees).
+  sectorWages: {
+    "agence-immobiliere": 4700,
+    banque: 4400,
+    "bar-restaurant": 4500,
+    "boutique-armes": 4400,
+    "boutique-equipement": 4800,
+    "boutique-specialisee": 6000,
+    "usine-production": 4300,
+    technopole: 5300,
+    "atelier-personnalisation": 8900,
+  },
+  defaultWage: 5400,
 };
 
 /** Bounds of each lever, checked before publishing settings. */
@@ -152,6 +175,7 @@ export const PARAM_BOUNDS = {
   maxOffer: [0.01, 0.99],
   offerBand: [0, 0.9],
   carryFee: [0, 0.05],
+  wage: [0, 100_000],
 } as const;
 
 /** A published version of the settings. The latest one is in force. */
@@ -175,6 +199,7 @@ const RATING_CATEGORIES: readonly RatingCategory[] = [
   "epsilon",
 ];
 const CONFIDENCES: readonly RatingConfidence[] = ["high", "standard", "low"];
+const SECTOR_IDS: readonly SectorId[] = SECTORS.map((s) => s.id);
 
 /** Settings as stored or typed: every lever a finite number, missing ones from the defaults. */
 export function cleanParams(raw: unknown): ValuationParams {
@@ -218,6 +243,8 @@ export function cleanParams(raw: unknown): ValuationParams {
     maxOffer: num(r.maxOffer, d.maxOffer),
     offerBand: num(r.offerBand, d.offerBand),
     carryFee: num(r.carryFee, d.carryFee),
+    sectorWages: record(r.sectorWages, SECTOR_IDS, d.sectorWages),
+    defaultWage: num(r.defaultWage, d.defaultWage),
   };
 }
 
@@ -262,6 +289,12 @@ export function checkParams(params: ValuationParams): void {
   within("Part maximale d'une offre", params.maxOffer, b.maxOffer);
   within("Bande du prix d'offre", params.offerBand, b.offerBand);
   within("Frais de report", params.carryFee, b.carryFee);
+  const credits = (label: string, value: number) => {
+    within(label, value, b.wage);
+    if (!Number.isInteger(value)) throw new Error(`${label} : un nombre entier de crédits`);
+  };
+  for (const s of SECTORS) credits(`Salaire de référence, ${s.short}`, params.sectorWages[s.id]);
+  credits("Salaire de référence, tous secteurs", params.defaultWage);
 }
 
 /** The settings in force: the latest published version, or the defaults. */

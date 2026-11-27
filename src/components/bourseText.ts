@@ -1,5 +1,6 @@
 import { formatFactor, formatInteger, formatShare } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, RATING_METHOD } from "../domain/rating.ts";
+import { SECTORS } from "../domain/sectors.ts";
 import { OPERATION_INFO, type SecurityOperation } from "../domain/securities.ts";
 import type { CompanyValuation, ValuationParams } from "../domain/valuation.ts";
 import type { ChartMarker } from "./TimeChart.tsx";
@@ -195,6 +196,16 @@ export const LEVERS: {
     label: "Gel des comptes",
     read: () => "succession ou saisie de la DAI",
     help: "À la mort d'un personnage ou sur saisie de la DAI, KNX gèle son compte : ordres et retraits annulés, les dividendes continuent d'arriver. Le compte se dénoue au cas par cas : transmission aux héritiers ou à l'Empire, vente au marché, rachat par la corporation.",
+  },
+  {
+    key: "wages",
+    label: "Salaires de référence",
+    read: (p) =>
+      [
+        ...SECTORS.map((s) => `${s.short} ${formatInteger(p.sectorWages[s.id])} ¢`),
+        `tous secteurs ${formatInteger(p.defaultWage)} ¢`,
+      ].join(" · "),
+    help: "Salaire supposé d'un salarié payé, par jour, quand l'Agence n'a pas audité celui de la corporation ; le DG n'est pas payé. Ils séparent, dans la trésorerie, les salaires des autres flux.",
   },
   {
     key: "introductionPrice",

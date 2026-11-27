@@ -3,6 +3,7 @@ import type { CompanyRating, District } from "./rating.ts";
 import type { SectorId } from "./sectors.ts";
 import type { SecurityOperation } from "./securities.ts";
 import type { ValuationSettings } from "./valuation.ts";
+import type { WageFigure } from "./wages.ts";
 
 /** ISO calendar date, `YYYY-MM-DD`, always interpreted in UTC. */
 export type IsoDate = string;
@@ -161,6 +162,8 @@ export interface Dataset {
   securityOperations?: SecurityOperation[];
   /** Premises and stock declared by the directions or audited by the Agence. */
   balanceSheets?: BalanceSheet[];
+  /** Mean wages of the paid employees, declared by the directions or audited by the Agence. */
+  wageFigures?: WageFigure[];
 }
 
 /** A report ready to publish: each row resolved to a corporation, or to a new one. */

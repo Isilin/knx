@@ -27,6 +27,7 @@ import type {
   RatingDraft,
   SecurityOperationDraft,
   ValuationSettingsDraft,
+  WageFigureDraft,
 } from "../domain/mutations.ts";
 import type {
   Dataset,
@@ -49,6 +50,7 @@ export type {
   ResolvedRows,
   SecurityOperationDraft,
   ValuationSettingsDraft,
+  WageFigureDraft,
 };
 
 export type Session =
@@ -124,6 +126,9 @@ export interface DataSource {
   /** Records a balance sheet, already checked with `planBalance`. */
   saveBalanceSheet(draft: BalanceSheetDraft): Promise<void>;
   deleteBalanceSheet(id: string): Promise<void>;
+  /** Records a wage figure, already checked with `planWage`. */
+  saveWageFigure(draft: WageFigureDraft): Promise<void>;
+  deleteWageFigure(id: string): Promise<void>;
   session(): Promise<Session>;
   /** Signs a player in with their five-digit login. */
   signInInvestor(login: string, password: string): Promise<void>;

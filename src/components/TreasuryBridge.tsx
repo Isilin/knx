@@ -11,14 +11,32 @@ interface Step {
   to: number;
   value: ReactNode;
   estimated: boolean;
+  /** Tooltip of the label: how the step is worked out. */
+  title?: string;
 }
 
 /**
  * Horizontal bridge of a company's capital over a period: published capital at both ends, and in
- * between the estimated revenue and the remainder that revenue does not explain.
+ * between the estimated revenue, the estimated wages and the remainder neither explains.
+ * `wageNote` says which wage the estimate used.
  */
-export function TreasuryBridge({ bridge }: { bridge: Bridge }) {
+export function TreasuryBridge({ bridge, wageNote }: { bridge: Bridge; wageNote?: string }) {
   const afterRevenue = bridge.start.capital + bridge.earned;
+  const afterWages = afterRevenue - (bridge.wages ?? 0);
+  const wages: Step[] =
+    bridge.wages === null
+      ? []
+      : [
+          {
+            key: "wages",
+            label: "Salaires estimés",
+            from: afterRevenue,
+            to: afterWages,
+            value: <Estimated value={-bridge.wages} signed />,
+            estimated: true,
+            title: `Effectif payé (DG exclu) × salaire en vigueur${wageNote ? ` : ${wageNote}` : ""}`,
+          },
+        ];
   const steps: Step[] = [
     {
       key: "start",
@@ -40,13 +58,18 @@ export function TreasuryBridge({ bridge }: { bridge: Bridge }) {
       value: <Estimated value={bridge.earned} noise={bridge.noise} signed />,
       estimated: true,
     },
+    ...wages,
     {
       key: "other",
-      label: "Flux hors CA",
-      from: afterRevenue,
+      label: bridge.wages === null ? "Flux hors CA" : "Autres flux",
+      from: afterWages,
       to: bridge.end.capital,
       value: <Estimated value={bridge.otherFlow} noise={bridge.noise} signed />,
       estimated: true,
+      title:
+        bridge.wages === null
+          ? "Ce que les recettes n'expliquent pas : salaires, retraits, achats, apports"
+          : "Ce que ni les recettes ni les salaires n'expliquent : retraits, achats, apports",
     },
     {
       key: "end",
@@ -76,7 +99,9 @@ export function TreasuryBridge({ bridge }: { bridge: Bridge }) {
         const link = i < steps.length - 1 ? at(s.to) : null;
         return (
           <li key={s.key} className="bridge__step">
-            <span className="bridge__label">{s.label}</span>
+            <span className="bridge__label" title={s.title}>
+              {s.label}
+            </span>
             <span className="bridge__track" aria-hidden="true">
               <span
                 className={`bridge__bar${s.estimated ? " bridge__bar--estimated" : ""}`}

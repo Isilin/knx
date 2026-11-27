@@ -6,6 +6,7 @@ import { lifeValuation, type Market } from "../domain/market.ts";
 import { cleanSettings } from "../domain/mutations.ts";
 import { formatCompact, formatInteger, formatPercent } from "../domain/numbers.ts";
 import { CATEGORY_INFO, CONFIDENCE_INFO, RATING_METHOD } from "../domain/rating.ts";
+import { SECTORS } from "../domain/sectors.ts";
 import { checkParams, DEFAULT_VALUATION, type ValuationParams } from "../domain/valuation.ts";
 import { changedLevers } from "./bourseText.ts";
 import { Change } from "./figures.tsx";
@@ -15,7 +16,10 @@ import "./ValuationSettingsForm.css";
 type Draft = Record<string, string>;
 
 const SIMPLE: {
-  key: Exclude<keyof ValuationParams, "categoryMultipliers" | "confidenceBands">;
+  key: Exclude<
+    keyof ValuationParams,
+    "categoryMultipliers" | "confidenceBands" | "sectorWages" | "defaultWage"
+  >;
   label: string;
   unit: string;
   step: string;
@@ -208,6 +212,8 @@ function toDraft(p: ValuationParams): Draft {
   for (const f of SIMPLE) draft[f.key] = show(p[f.key], f.percent);
   for (const c of CATEGORIES) draft[`m-${c}`] = show(p.categoryMultipliers[c]);
   for (const c of CONFIDENCES) draft[`b-${c}`] = show(p.confidenceBands[c], true);
+  for (const s of SECTORS) draft[`w-${s.id}`] = show(p.sectorWages[s.id]);
+  draft.defaultWage = show(p.defaultWage);
   return draft;
 }
 
@@ -223,14 +229,19 @@ function fromDraft(draft: Draft): ValuationParams | null {
     ...DEFAULT_VALUATION,
     categoryMultipliers: { ...DEFAULT_VALUATION.categoryMultipliers },
     confidenceBands: { ...DEFAULT_VALUATION.confidenceBands },
+    sectorWages: { ...DEFAULT_VALUATION.sectorWages },
   };
   for (const f of SIMPLE) params[f.key] = read(f.key, f.percent);
   for (const c of CATEGORIES) params.categoryMultipliers[c] = read(`m-${c}`);
   for (const c of CONFIDENCES) params.confidenceBands[c] = read(`b-${c}`, true);
+  for (const s of SECTORS) params.sectorWages[s.id] = read(`w-${s.id}`);
+  params.defaultWage = read("defaultWage");
   const all = [
     ...SIMPLE.map((f) => params[f.key]),
     ...Object.values(params.categoryMultipliers),
     ...Object.values(params.confidenceBands),
+    ...Object.values(params.sectorWages),
+    params.defaultWage,
   ];
   return all.every(Number.isFinite) ? params : null;
 }
@@ -427,6 +438,17 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
             SIMPLE[10].step,
             SIMPLE[10].help,
           )}
+        </fieldset>
+        <fieldset>
+          <legend className="label">Salaires de référence</legend>
+          <span className="levers__sub">
+            Salaire d'un salarié payé, par jour, selon le secteur ; le DG n'est pas payé, et un
+            salaire audité l'emporte
+          </span>
+          <div className="levers__pairs">
+            {SECTORS.map((s) => field(`w-${s.id}`, s.short, "¢", "100"))}
+            {field("defaultWage", "Tous secteurs", "¢", "100")}
+          </div>
         </fieldset>
       </div>
 
