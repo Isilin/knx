@@ -2,7 +2,8 @@ import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanyScores, CompanyStatus } from "./market.ts";
 import { regimeOf, type Regime } from "./regimes.ts";
 import { rateBetween } from "./revenue.ts";
-import { treasuryBridge } from "./treasury.ts";
+import { keptShare, treasuryBridge } from "./treasury.ts";
+import type { WageFigure } from "./wages.ts";
 import type { IsoDate } from "./types.ts";
 
 /**
@@ -28,8 +29,10 @@ export type RiskIndexId =
  *   for anything, so retention says nothing about profitability and is left out.
  * - `not-declining`: the capital did not fall over the window; no runway to count down.
  * - `exposed`: the capital is at or above the piracy threshold.
+ * - `wages-unfit`: at the reference wage, the wages would exceed the revenue: the reference does
+ *   not fit the house, and retention waits for its wages to be audited.
  */
-export type RiskFlag = "dormant" | "capped" | "not-declining" | "exposed";
+export type RiskFlag = "dormant" | "capped" | "not-declining" | "exposed" | "wages-unfit";
 
 export interface RiskIndex {
   id: RiskIndexId;
@@ -81,8 +84,12 @@ export const RISK_METHOD = {
   trend: [0.2, 0, -0.2, -0.4, -0.6, -0.8],
   /** Days of capital left under which levels 2…7 start. */
   runway: [360, 180, 90, 60, 30, 15],
-  /** Share of revenue kept as capital under which levels 2…7 start. */
-  retention: [0.25, 0.1, 0, -0.25, -0.5, -1],
+  /**
+   * Share of revenue kept as capital or paid as wages under which levels 2…7 start: the cuts
+   * of keeping revenue as capital alone, moved up by the median weight of wages in revenue
+   * (20 % on 28 November 2026), so a house with a typical payroll keeps its level.
+   */
+  retention: [0.45, 0.3, 0.2, -0.05, -0.3, -0.8],
   /** Days of revenue in reserve under which levels 2…7 start. */
   reserve: [90, 60, 30, 15, 7, 3],
   /** Level by headcount, DG included: 0, 1, 2, 3, 4, then 5 and more. */
@@ -146,7 +153,7 @@ export const RISK_INDICES: readonly {
   {
     id: "retention",
     label: "Rétention",
-    help: "Part des recettes de la fenêtre restée en capital ; négative quand le capital fond.",
+    help: "Part des recettes de la fenêtre restée en capital ou versée en salaires ; négative quand le capital fond au-delà des salaires.",
     estimated: true,
   },
   {
@@ -240,14 +247,23 @@ function runway(points: readonly CompanyPoint[], from: IsoDate, latest: CompanyP
   return { id: "runway", level: riskBelow(days, RISK_METHOD.runway), value: days, flag: null };
 }
 
-function retention(points: readonly CompanyPoint[], from: IsoDate, capital: number | null) {
+function retention(
+  points: readonly CompanyPoint[],
+  from: IsoDate,
+  capital: number | null,
+  ownWage: boolean,
+) {
   const bridge = treasuryBridge(points, from);
   if (!bridge || bridge.earned <= 0)
     return { id: "retention", level: null, value: null, flag: null } satisfies RiskIndex;
-  const kept = (bridge.end.capital - bridge.start.capital) / bridge.earned;
+  const { share: kept, unfit } = keptShare(bridge, ownWage);
   const ceiling = RISK_METHOD.piracyThreshold * RISK_METHOD.ceilingShare;
   if (capital !== null && capital >= ceiling)
     return { id: "retention", level: null, value: kept, flag: "capped" } satisfies RiskIndex;
+  if (unfit)
+    return { id: "retention", level: null, value: null, flag: "wages-unfit" } satisfies RiskIndex;
+  if (kept === null)
+    return { id: "retention", level: null, value: null, flag: null } satisfies RiskIndex;
   return {
     id: "retention",
     level: riskBelow(kept, RISK_METHOD.retention),
@@ -298,6 +314,8 @@ export interface RiskInput {
   scores: CompanyScores;
   /** Real revenue per day over the last 30 days. Estimated. */
   recentRate: number | null;
+  /** Wages audited or declared for the life: without any, KNX pays the reference wage. */
+  wageFigures: readonly WageFigure[];
 }
 
 /**
@@ -312,7 +330,7 @@ export function assessRisk(company: RiskInput, asOf: IsoDate): CompanyRisk | nul
     volatility: volatility(points, toDayNumber(from), toDayNumber(asOf)),
     trend: trend(company.scores),
     runway: runway(points, from, latest),
-    retention: retention(points, from, latest.capital),
+    retention: retention(points, from, latest.capital, company.wageFigures.length > 0),
     reserve: reserve(latest.capital, company.recentRate),
     team: team(latest.employees),
     exposure: exposure(latest.capital),

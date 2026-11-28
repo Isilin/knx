@@ -5,7 +5,8 @@ import { formatDecimal, formatPercent } from "./numbers.ts";
 import { regimeOf } from "./regimes.ts";
 import { rateBetween } from "./revenue.ts";
 import { RISK_METHOD } from "./risk.ts";
-import { treasuryBridge } from "./treasury.ts";
+import { keptShare, treasuryBridge } from "./treasury.ts";
+import type { WageFigure } from "./wages.ts";
 import type { Consortium, IsoDate } from "./types.ts";
 
 /**
@@ -114,7 +115,8 @@ export interface CompanyRating {
 type Curve = readonly (readonly [x: number, score: number])[];
 
 export const RATING_METHOD = {
-  version: "v1",
+  /** v2: profitability counts the wages as kept (28 November 2026). */
+  version: "v2",
   /** Five imperial years (one imperial year is one real month). */
   windowDays: 150,
   axes: { accounting: 0.4, economic: 0.3, imperial: 0.3 } satisfies Record<RatingAxis, number>,
@@ -156,14 +158,19 @@ export const RATING_METHOD = {
   ] as Curve,
   /** Above this capital, a corporation can be hacked: holding it is imprudent. */
   piracyCap: 1,
-  /** Share of revenue kept as capital over the window → score. */
+  /**
+   * Share of revenue kept as capital or paid as wages over the window → score. The points of
+   * keeping revenue as capital alone (v1), moved up by the median weight of wages in revenue
+   * (20 % on 28 November 2026): a house with a typical payroll keeps its score, one that takes
+   * its revenue out loses.
+   */
   profitability: [
-    [-1, 0],
-    [-0.5, 1],
-    [-0.2, 2],
-    [0, 3],
-    [0.15, 4],
-    [0.3, 5],
+    [-0.8, 0],
+    [-0.3, 1],
+    [0, 2],
+    [0.2, 3],
+    [0.35, 4],
+    [0.5, 5],
   ] as Curve,
   wages: { insufficient: 1, decent: 3.5, coherent: 5 } satisfies Record<WagesLevel, number>,
   /** Score by headcount, DG included: 0, 1, 2, … 8 and more. Five is the reference. */
@@ -323,6 +330,8 @@ export interface RatingCompany {
   recentRate: number | null;
   creation: CreationEstimate | null;
   consortium: Consortium | null;
+  /** Wages audited or declared for the life: without any, KNX pays the reference wage. */
+  wageFigures: readonly WageFigure[];
 }
 
 type CriterionDraft = Omit<CriterionScore, "axis">;
@@ -391,11 +400,19 @@ function profitability(company: RatingCompany, asOf: IsoDate): CriterionDraft {
   const bridge = treasuryBridge(company.points, addDays(asOf, -RATING_METHOD.windowDays));
   if (!bridge || bridge.earned <= 0)
     return { ...base, score: null, value: null, note: "trésorerie non ventilable" };
-  const kept = (bridge.end.capital - bridge.start.capital) / bridge.earned;
+  const { share: kept, unfit } = keptShare(bridge, company.wageFigures.length > 0);
+  if (unfit)
+    return {
+      ...base,
+      score: null,
+      value: null,
+      note: "salaires du barème au-delà des recettes : auditer les salaires",
+    };
+  if (kept === null) return { ...base, score: null, value: null, note: "effectif non relevé" };
   return {
     ...base,
     score: round2(interpolate(RATING_METHOD.profitability, kept)),
-    value: `${formatPercent(kept)} des recettes conservées`,
+    value: `${formatPercent(kept)} des recettes gardées ou versées en salaires`,
     note: null,
   };
 }

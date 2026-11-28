@@ -377,11 +377,15 @@ function Quality() {
         </div>
       </div>
       <p className="sectors__note">
-        La rétention du profil de risque : ce que le capital a gagné (ou perdu) rapporté à la
-        recette estimée sur la même fenêtre. Une rétention basse a plusieurs causes, salaires,
-        achats, retraits, ou recettes gonflées par une vente à soi-même : KNX ne tranche pas. Les{" "}
-        {quality.capped} corporations tenues près du seuil de piratage sont écartées, leurs sorties
-        servant à rester sous 30 M¢. {quality.measured} corporations mesurées.
+        La rétention du profil de risque : ce que le capital a gagné (ou perdu), plus les salaires
+        estimés, rapporté à la recette estimée sur la même fenêtre. Une rétention basse a plusieurs
+        causes, achats, retraits, ou recettes gonflées par une vente à soi-même : KNX ne tranche
+        pas. Les {quality.capped} corporations tenues près du seuil de piratage sont écartées, leurs
+        sorties servant à rester sous 30 M¢
+        {quality.unfit > 0
+          ? `, comme les ${quality.unfit} dont les salaires, au barème de leur secteur, dépasseraient les recettes : il faut auditer leurs salaires`
+          : ""}
+        . {quality.measured} corporations mesurées.
       </p>
     </section>
   );

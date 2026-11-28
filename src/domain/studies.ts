@@ -282,7 +282,10 @@ export function districtSectors(market: Market): DistrictMap {
 
 export interface RetentionRow {
   company: CompanySeries;
-  /** Share of the window's revenue found again in the capital; negative when it melted. */
+  /**
+   * Share of the window's revenue found again in the capital or paid as wages; negative when
+   * the capital melted beyond the wages.
+   */
   retention: number;
 }
 
@@ -293,25 +296,33 @@ export interface RevenueQuality {
   lowest: RetentionRow[];
   /** Corporations held near the piracy threshold, whose outflows say nothing. */
   capped: number;
+  /** Corporations whose wages, at the reference wage, would exceed their revenue: to audit. */
+  unfit: number;
   measured: number;
 }
 
 /**
- * How much of what each corporation earns stays in its capital, over the risk window (five
- * imperial years): the « Rétention » index of the risk profile. A low retention has many causes
- * (wages, purchases, withdrawals, or revenue inflated by selling to oneself); KNX does not say
- * which. Corporations held near the piracy threshold are left out: they must take money out.
+ * How much of what each corporation earns stays in its capital or pays its wages, over the risk
+ * window (five imperial years): the « Rétention » index of the risk profile. A low retention
+ * has several causes (purchases, withdrawals, or revenue inflated by selling to oneself); KNX
+ * does not say which. Corporations held near the piracy threshold are left out: they must take
+ * money out; so are those the reference wage does not fit, until their wages are audited.
  */
 export function revenueQuality(market: Market, lowest = 8): RevenueQuality {
   const rows: RetentionRow[] = [];
   let capped = 0;
+  let unfit = 0;
   for (const c of market.companies) {
     const index = c.risk?.indices.find((i) => i.id === "retention");
-    if (!index || index.value === null) continue;
-    if (index.flag === "capped") {
+    if (index?.flag === "wages-unfit") {
+      unfit++;
+      continue;
+    }
+    if (index?.flag === "capped") {
       capped++;
       continue;
     }
+    if (!index || index.value === null) continue;
     rows.push({ company: c, retention: index.value });
   }
   const sectors = [...market.sectors.values()]
@@ -330,6 +341,7 @@ export function revenueQuality(market: Market, lowest = 8): RevenueQuality {
     sectors,
     lowest: [...rows].sort((a, b) => a.retention - b.retention).slice(0, lowest),
     capped,
+    unfit,
     measured: rows.length,
   };
 }

@@ -34,6 +34,16 @@ function reports(capital: (date: IsoDate) => number) {
   });
 }
 
+/** Both pay their four employees 100 ¢ a day, as audited: within their revenue. */
+const wageFigures = ["Coffre", "Voisine"].map((name) => ({
+  id: name,
+  companyId: name,
+  date: CREATED,
+  wage: 100,
+  source: "audited" as const,
+  note: null,
+}));
+
 function dataset(capital: (date: IsoDate) => number, extra: Partial<Dataset> = {}): Dataset {
   return {
     ...datasetByName({
@@ -44,6 +54,7 @@ function dataset(capital: (date: IsoDate) => number, extra: Partial<Dataset> = {
       ],
       snapshots: reports(capital),
     }),
+    wageFigures,
     ...extra,
   };
 }
