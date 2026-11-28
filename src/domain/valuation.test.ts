@@ -23,7 +23,12 @@ interface Profile {
   /** Revenue earned on a date. */
   revenue: (date: IsoDate) => number;
   capital: (date: IsoDate) => number;
+  /** Headcount, DG included; 2 by default (one paid employee). */
+  employees?: number;
 }
+
+/** The reference wage of a corporation filed under no sector, as the test houses are. */
+const WAGE = DEFAULT_VALUATION.defaultWage;
 
 /** Daily reports from `since` to `LATEST`, the published chiffre derived from the revenue. */
 function datasetOf(profiles: Profile[], since: IsoDate = "2026-08-01"): Dataset {
@@ -47,7 +52,7 @@ function datasetOf(profiles: Profile[], since: IsoDate = "2026-08-01"): Dataset 
             rank: null,
             chiffre: Math.round(cumulative / days),
             capital: p.capital(date),
-            employees: 3,
+            employees: p.employees ?? 2,
           },
         ];
       }),
@@ -86,7 +91,7 @@ const company = (dataset: Dataset, name: string): CompanySeries => {
 };
 
 describe("theoretical value", () => {
-  it("adds the goodwill of the robust revenue and the discounted capital, unrated", () => {
+  it("adds the goodwill of the margin after wages and the discounted capital, unrated", () => {
     const c = company(datasetOf([steady]), "Steady");
     const v = c.valuation?.latest;
     expect(c.valuation?.status).toBe("valued");
@@ -94,9 +99,12 @@ describe("theoretical value", () => {
     const age = daysBetween(CREATED, LATEST);
     const maturity = age / (age + DEFAULT_VALUATION.maturityHalf);
     expect(v.revenue).toBeCloseTo(10_000, -2);
+    // One paid employee (the DG is not) at the reference wage.
+    expect(v.payroll).toBeCloseTo(WAGE, 6);
+    expect(v.margin).toBeCloseTo(v.revenue - WAGE, 6);
     expect(v.maturity).toBeCloseTo(maturity, 6);
     expect(v.retainedCapital).toBe(1_000_000);
-    const base = 30 * 10_000 * maturity + 0.5 * 1_000_000;
+    const base = 30 * (10_000 - WAGE) * maturity + 0.5 * 1_000_000;
     expect(v.value / (base * DEFAULT_VALUATION.unratedMultiplier)).toBeCloseTo(1, 2);
     expect(v.rating).toBeNull();
     expect(v.low).toBeCloseTo(v.value * (1 - DEFAULT_VALUATION.unratedBand), 6);
@@ -147,6 +155,51 @@ describe("theoretical value", () => {
     // Mean of 29 days at 1 M and one at 5 M.
     expect(up?.retainedCapital).toBeCloseTo((29 * 1_000_000 + 5_000_000) / 30, 0);
     expect(down?.retainedCapital).toBe(200_000);
+  });
+
+  it("never lets the wages take the margin below zero", () => {
+    // Four paid employees cost more than the 10 000 ¢ earned a day.
+    const crowded: Profile = { ...steady, name: "Crowded", employees: 5 };
+    const v = company(datasetOf([crowded]), "Crowded").valuation?.latest;
+    expect(v?.payroll).toBeCloseTo(4 * WAGE, 6);
+    expect(v?.margin).toBe(0);
+    expect(v?.operating).toBe(0);
+    // What it owns is still worth something.
+    expect(v?.capital).toBe(0.5 * 1_000_000);
+  });
+
+  it("pays the wage the Agence audited rather than the reference", () => {
+    const base = datasetOf([steady]);
+    const audited = company(
+      {
+        ...base,
+        wageFigures: [
+          {
+            id: "w",
+            companyId: "Steady",
+            date: LATEST,
+            wage: 1_000,
+            source: "audited",
+            note: null,
+          },
+        ],
+      },
+      "Steady",
+    ).valuation?.latest;
+    const reference = company(base, "Steady").valuation?.latest;
+    expect(audited?.payroll).toBeCloseTo(1_000, 6);
+    expect(audited && reference && audited.value > reference.value).toBe(true);
+  });
+
+  it("reads the wages from its own settings, so a draft of the levers moves the value", () => {
+    const c = company(datasetOf([steady]), "Steady");
+    const draft = { ...DEFAULT_VALUATION, defaultWage: 2_000 };
+    const v = new LifeValuation(c, [], draft).at(c.points.length - 1);
+    expect(v?.payroll).toBeCloseTo(2_000, 6);
+    expect(new LifeValuation(c, [], draft).wageOn(LATEST)).toEqual({
+      wage: 2_000,
+      origin: { kind: "default" },
+    });
   });
 
   it("values an older house higher at the same revenue", () => {

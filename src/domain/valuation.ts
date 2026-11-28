@@ -10,6 +10,7 @@ import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanySeries } from "./market.ts";
 import type { CompanyRating, RatingCategory, RatingConfidence } from "./rating.ts";
 import { SECTORS, type SectorId } from "./sectors.ts";
+import { sortFigures, wageOn, wagesBetween, type WageRate } from "./wages.ts";
 import {
   listingSteps,
   stepOn,
@@ -22,13 +23,17 @@ import type { IsoDate } from "./types.ts";
 /**
  * KNX theoretical value of a corporation, then its share price once introduced:
  *
- *   business = (revenue days × robust real revenue × maturity + capital weight × retained capital)
+ *   margin   = max(0, robust real revenue − wages)
+ *   business = (revenue days × margin × maturity + capital weight × retained capital)
  *              × multiplier of the Agence's category
  *   value    = business + premises + stock
  *
  * - robust real revenue: KNX's real revenue per day over the window, each day capped at a few
  *   ordinary days of the corporation (a director can sell himself one item at any price, then
  *   take the credits back: a one-day spike must not lift the value for a month);
+ * - wages: the mean daily wages over the same window, the paid headcount at the wage in force
+ *   (the reference of the sector, or the one the Agence audited); paying the team is what the
+ *   business costs. Days without a known headcount (before August 2025) take nothing off;
  * - maturity: age ÷ (age + half-maturity), bounded by one: a young house is worth less;
  * - retained capital: the lower of today's capital and its recent mean (an injection counts once
  *   it stays, a withdrawal at once), discounted because the director can take it out tomorrow;
@@ -42,7 +47,8 @@ import type { IsoDate } from "./types.ts";
  * and a change of settings is published, not slipped into one day of the series.
  */
 
-export const VALUATION_METHOD = "v1";
+/** v2: the business is worth its margin after wages, not its revenue (28 November 2026). */
+export const VALUATION_METHOD = "v2";
 
 export interface ValuationParams {
   /** Days of revenue the business is worth, like a goodwill (fonds de commerce). */
@@ -337,18 +343,58 @@ function revenuePeriods(points: readonly CompanyPoint[]): Period[] {
   return periods;
 }
 
+/**
+ * Periods of known wages of a life, per day: the paid headcount of both reports at the wage in
+ * force. A period whose headcount is unknown (before August 2025) is left out.
+ */
+function wagePeriods(points: readonly CompanyPoint[], wageOf: (date: IsoDate) => number): Period[] {
+  const periods: Period[] = [];
+  for (let k = 1; k < points.length; k++) {
+    const p = points[k];
+    const from = toDayNumber(points[k - 1].date);
+    const to = toDayNumber(p.date);
+    if (to <= from) continue;
+    const paid = wagesBetween(points[k - 1].employees, p.employees, to - from, wageOf(p.date));
+    if (paid !== null) periods.push({ from, to, value: paid / (to - from) });
+  }
+  return periods;
+}
+
 const overlap = (p: Period, from: number, to: number) =>
   Math.max(0, Math.min(p.to, to) - Math.max(p.from, from));
 
-/** Revenue of a life, with each period's capped value worked out once. */
+/** Revenue and wages of a life, with each period's capped revenue worked out once. */
 class RevenueBook {
   private readonly periods: Period[];
+  private readonly wages: Period[];
   private readonly params: ValuationParams;
   private readonly capped = new Map<number, number>();
 
-  constructor(points: readonly CompanyPoint[], params: ValuationParams) {
+  constructor(
+    points: readonly CompanyPoint[],
+    params: ValuationParams,
+    wageOf: (date: IsoDate) => number,
+  ) {
     this.periods = revenuePeriods(points);
+    this.wages = wagePeriods(points, wageOf);
     this.params = params;
+  }
+
+  /**
+   * Mean daily wages over the revenue window ending on `day`, on the days whose headcount is
+   * known; 0 when none is (wages unknown, nothing taken off).
+   */
+  payroll(day: number): number {
+    const start = day - this.params.revenueWindow;
+    let days = 0;
+    let paid = 0;
+    for (const p of this.wages) {
+      if (p.to <= start || p.from >= day) continue;
+      const d = overlap(p, start, day);
+      days += d;
+      paid += d * p.value;
+    }
+    return days > 0 ? paid / days : 0;
   }
 
   /** Median active day over the `spikeLookback` days before `end`; null with too few. */
@@ -406,6 +452,9 @@ class RevenueBook {
 
 // ——— Value ———
 
+/** What the value reads of a life: its reports, and what sets its wages. */
+export type ValuedLife = Pick<CompanySeries, "points" | "sector" | "wageFigures">;
+
 /** An asset of the balance sheet as the value counts it. */
 export interface CountedAsset extends KnownFigure {
   /** Credits counted in the value: amount × item weight × source weight (× fading, stock). */
@@ -431,8 +480,12 @@ export interface ValuationPoint {
   stock: number;
   /** Each item of the balance sheet in force that day; null when never given. */
   assets: Record<BalanceItem, CountedAsset | null>;
-  /** Revenue days × revenue × maturity. */
+  /** Revenue days × margin × maturity. */
   operating: number;
+  /** Mean daily wages over the window (0 when the headcount is unknown). Estimated. */
+  payroll: number;
+  /** Robust revenue less the wages, per day, never below 0. */
+  margin: number;
   /** Capital weight × retained capital. */
   capital: number;
   /** Operating + capital, before the Agence's multiplier. */
@@ -467,7 +520,7 @@ export function ratingInForce(
 
 /** Everything needed to value one life on any of its report dates. */
 export class LifeValuation {
-  readonly life: Pick<CompanySeries, "points">;
+  readonly life: ValuedLife;
   readonly params: ValuationParams;
   private readonly ratings: readonly CompanyRating[];
   private readonly sheets: readonly BalanceSheet[];
@@ -476,7 +529,7 @@ export class LifeValuation {
   private readonly cache = new Map<number, ValuationPoint | null>();
 
   constructor(
-    life: Pick<CompanySeries, "points">,
+    life: ValuedLife,
     ratings: readonly CompanyRating[],
     params: ValuationParams,
     sheets: readonly BalanceSheet[] = [],
@@ -487,7 +540,18 @@ export class LifeValuation {
     this.params = params;
     this.sheets = sheets;
     this.steps = listingSteps(operations);
-    this.book = new RevenueBook(life.points, params);
+    // The wages follow these settings, not those of the market: a draft of the levers moves them.
+    const figures = sortFigures(life.wageFigures);
+    this.book = new RevenueBook(
+      life.points,
+      params,
+      (date) => wageOn(figures, life.sector, params, date).wage,
+    );
+  }
+
+  /** The wage in force on `date` with these settings, and where it comes from. */
+  wageOn(date: IsoDate): WageRate {
+    return wageOn(sortFigures(this.life.wageFigures), this.life.sector, this.params, date);
   }
 
   /** The balance sheet in force on `date`, each item counted at its weight. */
@@ -559,7 +623,10 @@ export class LifeValuation {
       ? params.categoryMultipliers[rating.category]
       : params.unratedMultiplier;
     const band = rating ? params.confidenceBands[rating.confidence] : params.unratedBand;
-    const operating = params.revenueDays * revenue.capped * maturity;
+    const payroll = this.book.payroll(day);
+    // Paying the team is what the business costs: it is worth what is left, never less than 0.
+    const margin = Math.max(0, revenue.capped - payroll);
+    const operating = params.revenueDays * margin * maturity;
     const capital = params.capitalWeight * retainedCapital;
     const base = operating + capital;
     const business = base * multiplier;
@@ -580,6 +647,8 @@ export class LifeValuation {
       stock,
       assets,
       operating,
+      payroll,
+      margin,
       capital,
       base,
       multiplier,

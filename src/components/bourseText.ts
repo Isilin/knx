@@ -205,7 +205,7 @@ export const LEVERS: {
         ...SECTORS.map((s) => `${s.short} ${formatInteger(p.sectorWages[s.id])} ¢`),
         `tous secteurs ${formatInteger(p.defaultWage)} ¢`,
       ].join(" · "),
-    help: "Salaire supposé d'un salarié payé, par jour, quand l'Agence n'a pas audité celui de la corporation ; le DG n'est pas payé. Ils séparent, dans la trésorerie, les salaires des autres flux.",
+    help: "Salaire supposé d'un salarié payé, par jour, quand l'Agence n'a pas audité celui de la corporation ; le DG n'est pas payé. Ils séparent, dans la trésorerie, les salaires des autres flux, et la valeur retire les salaires de la recette.",
   },
   {
     key: "introductionPrice",
