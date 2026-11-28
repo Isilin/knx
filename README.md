@@ -56,7 +56,9 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   KNX remplit les critères qu'il sait lire (croissance, trésorerie, rentabilité, équipe), l'Agence
   apprécie les autres ; la catégorie (Ω, α, ß, Γ, Δ, ε) et l'indice de confiance se calculent en
   direct. Une notation publiée est figée ; pour la corriger, la retirer et noter à nouveau. Barèmes,
-  pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v1`).
+  pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v2` : la
+  rentabilité compte les salaires estimés comme gardés ; tant que les salaires du barème
+  dépasseraient les recettes, elle attend un audit des salaires).
   La cote affiche la note (colonne et filtre), la page Marché sa répartition et les dernières
   notations. Une note passe « sous surveillance » quand, depuis sa publication, la recalculer sur
   le dernier relevé changerait sa catégorie, ou après un changement de DG, une fermeture, une sortie
@@ -102,8 +104,8 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   semaine par semaine, et pour chaque maillon la corrélation des variations selon le décalage ;
   technopôles, banques et agences immobilières hors chaîne), le choc de chaque évènement de marché par secteur (capital avant et après,
   corporations au-delà de 30 M¢, recettes autour), les quartiers × secteurs, et la qualité des
-  recettes (rétention du profil de risque, médiane par secteur, corporations tenues sous le seuil
-  de piratage écartées). Des pistes, pas des verdicts : chaque section dit ses limites.
+  recettes (rétention du profil de risque, salaires compris, médiane par secteur, corporations
+  tenues sous le seuil de piratage ou à salaires à auditer écartées). Des pistes, pas des verdicts : chaque section dit ses limites.
 - Corporations masquées : une corporation qui n'est pas une entreprise de joueurs (MJ Immo, tenue
   par les MJ) se masque depuis la page Relevés. Elle disparaît de la cote, des graphiques, des
   décomptes et des parts de marché, mais ses lignes restent lues et publiées avec chaque relevé ;

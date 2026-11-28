@@ -123,8 +123,17 @@ function Measure({ index }: { index: RiskIndex }) {
             plafonnée
           </Flag>
         );
+      if (flag === "wages-unfit")
+        return (
+          <Flag title="Au salaire de référence du secteur, les salaires dépasseraient les recettes : le barème ne convient pas à cette maison. La rétention attend un audit de ses salaires.">
+            salaires à auditer
+          </Flag>
+        );
       return value === null ? null : (
-        <span className="estimated" title="Estimation KNX : variation du capital ÷ CA généré">
+        <span
+          className="estimated"
+          title="Estimation KNX : (variation du capital + salaires) ÷ CA généré"
+        >
           {formatPercent(value)}
         </span>
       );
@@ -229,7 +238,9 @@ export function RiskPanel({ risk }: { risk: CompanyRisk }) {
               <dd className="risk-index__level">
                 {index.level === null ? (
                   <span className="risk-index__quiet">
-                    {index.flag === "capped" ? "écartée" : "non mesuré"}
+                    {index.flag === "capped" || index.flag === "wages-unfit"
+                      ? "écartée"
+                      : "non mesuré"}
                   </span>
                 ) : (
                   <>

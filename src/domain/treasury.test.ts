@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { datasetByName } from "./testing.ts";
 import { buildMarket } from "./market.ts";
-import { largestFlows, marketTreasury, treasuryBridge } from "./treasury.ts";
+import { keptShare, largestFlows, marketTreasury, treasuryBridge } from "./treasury.ts";
 import { DEFAULT_VALUATION } from "./valuation.ts";
 
 const dataset = datasetByName({
@@ -153,6 +153,20 @@ describe("treasuryBridge", () => {
     const bridge = treasuryBridge(blind.points, null);
     expect(bridge?.wages).toBeNull();
     expect(bridge?.otherFlow).toBe(-15_300);
+  });
+
+  it("reads the share of revenue kept or paid as wages", () => {
+    const bridge = treasuryBridge(kappa.points, "2026-11-03")!;
+    // 110 000 kept and 2 × 2 × 5 400 paid, for 2 200 earned: the reference does not fit Kappa.
+    expect(keptShare(bridge, false)).toEqual({ share: null, unfit: true });
+    // With its own wage audited, the share is measured, wages and all.
+    expect(keptShare(bridge, true).share).toBeCloseTo((110_000 + 2 * 2 * WAGE) / 2_200);
+    const fit = { ...bridge, earned: 100_000 };
+    expect(keptShare(fit, false)).toEqual({
+      share: (110_000 + 2 * 2 * WAGE) / 100_000,
+      unfit: false,
+    });
+    expect(keptShare({ ...bridge, wages: null }, true)).toEqual({ share: null, unfit: false });
   });
 
   it("refuses to bridge across a reset or a company at 0", () => {

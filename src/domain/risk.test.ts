@@ -15,6 +15,8 @@ interface Profile {
   revenue: (day: number) => number;
   capital: (date: IsoDate) => number;
   employees: number;
+  /** Audited daily wage of each paid employee; the reference wage when left out. */
+  wage?: number;
 }
 
 /** Reports every five days up to `LATEST`, the published chiffre derived from the revenue. */
@@ -43,13 +45,27 @@ function reportsOf(profiles: Profile[], since: IsoDate = "2026-05-01") {
 }
 
 function marketOf(profiles: Profile[], since?: IsoDate) {
-  return buildMarket(
-    datasetByName({
+  return buildMarket({
+    ...datasetByName({
       generatedAt: `${LATEST}T00:00:00Z`,
       companies: profiles.map((p) => ({ name: p.name, creationOverride: p.created ?? CREATED })),
       snapshots: reportsOf(profiles, since),
     }),
-  );
+    wageFigures: profiles.flatMap((p) =>
+      p.wage === undefined
+        ? []
+        : [
+            {
+              id: p.name,
+              companyId: p.name,
+              date: p.created ?? CREATED,
+              wage: p.wage,
+              source: "audited" as const,
+              note: null,
+            },
+          ],
+    ),
+  });
 }
 
 const SEPTEMBER = daysBetween(CREATED, "2026-09-01");
@@ -58,7 +74,9 @@ const slide = (start: number, end: number, since: IsoDate) => (date: IsoDate) =>
   start + ((end - start) * daysBetween(since, date)) / daysBetween(since, LATEST);
 
 const market = marketOf([
-  { name: "Steady", revenue: () => 1_000, capital: () => 500_000, employees: 5 },
+  { name: "Steady", revenue: () => 1_000, capital: () => 500_000, employees: 5, wage: 100 },
+  // At the market's reference wage, its four employees would cost more than it earns.
+  { name: "Unaudited", revenue: () => 1_000, capital: () => 500_000, employees: 5 },
   {
     name: "Collapse",
     revenue: (n) => (n < SEPTEMBER ? 5_000 : 300),
@@ -144,6 +162,19 @@ describe("assessRisk", () => {
     expect(index("collapse", "team")?.level).toBe(6);
     expect(risk("collapse")?.profile).toBeGreaterThanOrEqual(5);
     expect(risk("collapse")?.regime).toBe("declin");
+  });
+
+  it("counts the wages as kept", () => {
+    // Capital steady, 4 × 100 ¢ of wages for 1 000 ¢ of revenue a day.
+    expect(index("steady", "retention")?.value).toBeCloseTo(0.4, 1);
+  });
+
+  it("waits for an audit when the reference wages exceed the revenue", () => {
+    expect(index("unaudited", "retention")).toMatchObject({
+      level: null,
+      value: null,
+      flag: "wages-unfit",
+    });
   });
 
   it("leaves retention out at the piracy ceiling", () => {

@@ -10,6 +10,7 @@ import {
 } from "./studies.ts";
 import { datasetByName } from "./testing.ts";
 import type { MarketEvent, ReportRow } from "./types.ts";
+import { DEFAULT_VALUATION } from "./valuation.ts";
 
 const CREATION = "2026-01-01";
 const START = "2026-03-01";
@@ -170,26 +171,34 @@ describe("districtSectors", () => {
 });
 
 describe("revenueQuality", () => {
-  it("reads how much revenue stays in the capital, leaving the ceiling out", () => {
+  it("reads how much revenue stays in the capital or pays the wages, leaving some out", () => {
     const day0 = toDayNumber(START);
+    // Two employees, the DG and one paid at the reference wage of a bank.
+    const wages = DEFAULT_VALUATION.sectorWages.banque / 10_000;
     const m = market({
-      // Keeps everything it earns.
+      // Keeps everything it earns, and pays its employee from what came in before.
       Saver: {
-        rate: () => 1_000,
-        capital: (date) => 1_000_000 + 1_000 * (toDayNumber(date) - day0),
+        rate: () => 10_000,
+        capital: (date) => 1_000_000 + 10_000 * (toDayNumber(date) - day0),
         sector: "banque",
       },
-      // Earns but its capital never moves.
-      Spender: { rate: () => 1_000, capital: () => 1_000_000, sector: "banque" },
+      // Earns but its capital never moves: what the wages leave goes out.
+      Spender: { rate: () => 10_000, capital: () => 1_000_000, sector: "banque" },
       // Held under the piracy threshold.
-      Ceiling: { rate: () => 1_000, capital: () => 29_000_000, sector: "technopole" },
+      Ceiling: { rate: () => 10_000, capital: () => 29_000_000, sector: "technopole" },
+      // Earns less than a bank's reference wage: its wages must be audited.
+      Tiny: { rate: () => 1_000, capital: () => 1_000_000, sector: "banque" },
     });
     const quality = revenueQuality(m);
     expect(quality.capped).toBe(1);
+    expect(quality.unfit).toBe(1);
     expect(quality.measured).toBe(2);
     expect(quality.lowest.map((r) => r.company.name)).toEqual(["Spender", "Saver"]);
-    expect(quality.lowest[0].retention).toBeCloseTo(0, 1);
-    expect(quality.lowest[1].retention).toBeCloseTo(1, 1);
-    expect(quality.sectors.find((s) => s.sector === "banque")?.retention).toBeCloseTo(0.5, 1);
+    expect(quality.lowest[0].retention).toBeCloseTo(wages, 1);
+    expect(quality.lowest[1].retention).toBeCloseTo(1 + wages, 1);
+    expect(quality.sectors.find((s) => s.sector === "banque")?.retention).toBeCloseTo(
+      0.5 + wages,
+      1,
+    );
   });
 });

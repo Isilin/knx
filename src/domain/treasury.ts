@@ -64,6 +64,27 @@ export function treasuryBridge(
   };
 }
 
+/**
+ * Share of the revenue earned over the bridge that stayed in the capital or paid the wages:
+ * (Δcapital + wages) ÷ revenue. Wages are what running the house costs, not money lost; what
+ * the share misses left as withdrawals or purchases. Null without revenue or without wages.
+ *
+ * `unfit`: on the reference wage (`ownWage` false), wages above the revenue mean the reference
+ * does not fit the house (often one that pays symbolic wages); the share is left unmeasured
+ * until its wages are audited, rather than turning its outflows into wages.
+ */
+export function keptShare(
+  bridge: TreasuryBridge,
+  ownWage: boolean,
+): { share: number | null; unfit: boolean } {
+  if (bridge.earned <= 0 || bridge.wages === null) return { share: null, unfit: false };
+  if (!ownWage && bridge.wages > bridge.earned) return { share: null, unfit: true };
+  return {
+    share: (bridge.end.capital - bridge.start.capital + bridge.wages) / bridge.earned,
+    unfit: false,
+  };
+}
+
 export interface TreasuryFlow {
   date: IsoDate;
   previousDate: IsoDate;

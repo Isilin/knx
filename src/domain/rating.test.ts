@@ -34,13 +34,29 @@ interface Profile {
   revenue: (day: number) => number;
   capital: (date: IsoDate) => number;
   employees: number;
+  /** Audited daily wage of each paid employee; the reference wage when left out. */
+  wage?: number;
 }
 
 function marketOf(profiles: Profile[]) {
   const dates: IsoDate[] = [];
   for (let d = LATEST; d >= "2026-04-01"; d = addDays(d, -5)) dates.unshift(d);
-  return buildMarket(
-    datasetByName({
+  const wageFigures = profiles.flatMap((p) =>
+    p.wage === undefined
+      ? []
+      : [
+          {
+            id: p.name,
+            companyId: p.name,
+            date: CREATED,
+            wage: p.wage,
+            source: "audited" as const,
+            note: null,
+          },
+        ],
+  );
+  return buildMarket({
+    ...datasetByName({
       generatedAt: `${LATEST}T00:00:00Z`,
       companies: profiles.map((p) => ({ name: p.name, creationOverride: CREATED })),
       snapshots: dates.map((date) => ({
@@ -60,16 +76,19 @@ function marketOf(profiles: Profile[]) {
         }),
       })),
     }),
-  );
+    wageFigures,
+  });
 }
 
 const market = marketOf([
-  // Growing: revenue up by a third each imperial year; keeps a fifth of what it earns.
+  // Growing: revenue up by a third each imperial year; keeps some of what it earns, and pays
+  // its four employees 500 ¢ a day (audited).
   {
     name: "Essor",
     revenue: (n) => 1_000 * 1.33 ** (n / 30),
     capital: (date) => 200_000 + 0.2 * 1_000 * daysBetween(CREATED, date) * 3,
     employees: 5,
+    wage: 500,
   },
   // Steady revenue, a capital idle for years, a single-handed team.
   { name: "Dormante", revenue: () => 1_000, capital: () => 2_000_000, employees: 1 },
@@ -134,6 +153,18 @@ describe("criteria read by KNX", () => {
   it("leave profitability out at the piracy ceiling", () => {
     expect(criterion("plafond", "profitability")).toMatchObject({ score: null });
     expect(criterion("essor", "profitability").score).toBeGreaterThan(3);
+  });
+
+  it("count the wages as kept, waiting for an audit when the reference exceeds the revenue", () => {
+    expect(criterion("essor", "profitability").value).toMatch(/gardées ou versées en salaires$/);
+    // At the market's reference wage, four employees would cost more than 1 000 ¢ of revenue.
+    const unaudited = marketOf([
+      { name: "Essor", revenue: () => 1_000, capital: () => 200_000, employees: 5 },
+    ]).bySlug.get("essor")!;
+    const profitability = assessRating(unaudited, EMPTY_INPUTS, "cv", LATEST).criteria.find(
+      (c) => c.id === "profitability",
+    );
+    expect(profitability).toMatchObject({ score: null, note: expect.stringMatching(/auditer/) });
   });
 
   it("score the team against five people, DG included", () => {
