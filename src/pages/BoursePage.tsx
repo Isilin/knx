@@ -423,9 +423,12 @@ export function BoursePage() {
         <div className="bourse__method">
           <div className="bourse__formula">
             <p className="bourse__equation">
-              <span>activité</span> = ( <span>jours de recettes</span> × <span>CA réel retenu</span>{" "}
-              × <span>maturité</span> + <span>poids du capital</span> × <span>capital retenu</span>{" "}
-              ) × <span>multiplicateur de l'Agence</span>
+              <span>marge</span> = <span>CA réel retenu</span> − <span>salaires estimés</span>
+            </p>
+            <p className="bourse__equation">
+              <span>activité</span> = ( <span>jours de recettes</span> × <span>marge</span> ×{" "}
+              <span>maturité</span> + <span>poids du capital</span> × <span>capital retenu</span> )
+              × <span>multiplicateur de l'Agence</span>
             </p>
             <p className="bourse__equation">
               <span>valeur</span> = <span>activité</span> + <span>local</span> + <span>stock</span>
@@ -443,6 +446,13 @@ export function BoursePage() {
                 <strong>Les pics écrêtés.</strong> Une direction peut se vendre un objet à n'importe
                 quel prix, puis reprendre les crédits : un jour ne compte jamais plus que quelques
                 jours ordinaires.
+              </li>
+              <li>
+                <strong>La marge après salaires.</strong> Payer l'équipe est ce que coûte l'activité
+                : KNX retire de la recette les salaires estimés (effectif payé, le DG ne l'étant
+                pas, au salaire de référence du secteur ou au salaire audité par l'Agence). La marge
+                ne descend jamais sous zéro ; avant août 2025, l'effectif n'étant pas relevé, rien
+                n'est retiré.
               </li>
               <li>
                 <strong>Le capital prudent.</strong> Une injection ne compte que si elle dure, un

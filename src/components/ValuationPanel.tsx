@@ -29,6 +29,7 @@ import {
 } from "../domain/trading.ts";
 import { priceHistory, type ValuationParams, type ValuationPoint } from "../domain/valuation.ts";
 import type { IsoDate } from "../domain/types.ts";
+import { wageOriginLabel, type WageRate } from "../domain/wages.ts";
 import { listingLabel, operationDetail, operationMarkers } from "./bourseText.ts";
 import { Change, ImperialDate } from "./figures.tsx";
 import { PeriodPicker, type PeriodId } from "./PeriodPicker.tsx";
@@ -57,10 +58,13 @@ const ITEM_WEIGHT: Record<BalanceItem, (p: ValuationParams) => number> = {
 /** The calculation of one day's value, line by line, like a receipt. */
 function Receipt({
   v,
+  wage,
   shares,
   params,
 }: {
   v: ValuationPoint;
+  /** The wage in force that day, and where it comes from. */
+  wage: WageRate;
   shares: number | null;
   params: ValuationParams;
 }) {
@@ -84,6 +88,33 @@ function Receipt({
                 · pics écrêtés : <span className="estimated">−{formatInteger(capped)} ¢/j</span>
               </>
             ) : null}
+          </td>
+        </tr>
+        <tr>
+          <th scope="row">− salaires estimés</th>
+          <td className="num">
+            <span className="estimated">{formatInteger(v.payroll)} ¢/j</span>
+          </td>
+          <td className="receipt__why">
+            {v.payroll > 0 ? (
+              <>
+                moyenne sur la même fenêtre de l'effectif payé (le DG ne l'est pas) à{" "}
+                {formatInteger(wage.wage)} ¢ par jour, {wageOriginLabel(wage.origin)}
+              </>
+            ) : (
+              "aucun salarié payé connu sur la fenêtre"
+            )}
+          </td>
+        </tr>
+        <tr className="receipt__sub">
+          <th scope="row">= marge</th>
+          <td className="num">
+            <span className="estimated">{formatInteger(v.margin)} ¢/j</span>
+          </td>
+          <td className="receipt__why">
+            {v.payroll > v.revenue
+              ? "les salaires dépassent la recette : la marge reste à zéro"
+              : null}
           </td>
         </tr>
         <tr>
@@ -461,6 +492,7 @@ export function ValuationPanel({
           {latest ? (
             <Receipt
               v={latest}
+              wage={current.wageOn(latest.date)}
               params={params}
               shares={listing?.state === "listed" ? listing.shares : null}
             />

@@ -366,8 +366,9 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
       <div className="section-head">
         <h2 id={`${id}-title`}>Leviers</h2>
         <p>
-          réglages de la valeur KNX ; publiés, ils s'appliquent à tout l'historique et paraissent
-          sur la <Link to="/bourse#reglages">page Bourse</Link>
+          réglages de la valeur KNX, salaires de référence compris (ils séparent les salaires dans
+          la trésorerie et les retirent de la recette dans la valeur) ; publiés, ils s'appliquent à
+          tout l'historique et paraissent sur la <Link to="/bourse#reglages">page Bourse</Link>
         </p>
       </div>
 
