@@ -1,5 +1,5 @@
 import { useId, useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { useData } from "../data/DataProvider.tsx";
+import { useData, useMarket } from "../data/DataProvider.tsx";
 import type { CompanySeries } from "../domain/market.ts";
 import { formatDecimal, formatScore2 } from "../domain/numbers.ts";
 import {
@@ -22,6 +22,7 @@ import {
   type RatingOutlook,
   type Transparency,
   type WagesLevel,
+  wagesProposal,
 } from "../domain/rating.ts";
 import type { IsoDate } from "../domain/types.ts";
 import { ImperialDate } from "./figures.tsx";
@@ -156,10 +157,13 @@ export function RatingForm({
   const id = useId();
   const [inputs, setInputs] = useState<RatingInputs>(EMPTY_INPUTS);
   const [district, setDistrict] = useState<District | null>(company.district);
+  const rules = useMarket().valuation.params;
   const assessment = useMemo(
-    () => assessRating(company, inputs, district, asOf),
-    [company, inputs, district, asOf],
+    () => assessRating(company, inputs, district, asOf, rules),
+    [company, inputs, district, asOf, rules],
   );
+  // KNX's own reading of the wages, from an audited wage: the « not assessed » choice keeps it.
+  const proposal = useMemo(() => wagesProposal(company, rules, asOf), [company, rules, asOf]);
   const [outlook, setOutlook] = useState<RatingOutlook>(assessment.outlook);
   const [rationale, setRationale] = useState("");
   const [busy, setBusy] = useState(false);
@@ -259,7 +263,11 @@ export function RatingForm({
             label="Salaires"
             value={inputs.wages}
             options={WAGES}
-            empty="Non évalués"
+            empty={
+              proposal
+                ? `Proposé par KNX : ${WAGES.find((w) => w.id === proposal.level)?.label.toLowerCase()} (${proposal.basis})`
+                : "Non évalués"
+            }
             onChange={(v) => set("wages", v)}
           />
         </Axis>

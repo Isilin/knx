@@ -16,6 +16,7 @@ import {
 import { datasetByName } from "./testing.ts";
 import { buildTimeline } from "./timeline.ts";
 import type { CompanyMeta, IsoDate, ReportRow } from "./types.ts";
+import { DEFAULT_VALUATION } from "./valuation.ts";
 
 const blankMeta = (id: string): CompanyMeta => ({
   id,
@@ -177,12 +178,33 @@ describe("criteria read by KNX", () => {
 describe("criteria assessed by the Agence", () => {
   it("leave out what was not assessed, never scoring it zero", () => {
     const a = assessRating(company("essor"), EMPTY_INPUTS, null, LATEST);
-    for (const id of ["wages", "advertising", "tenders", "location", "society"])
+    for (const id of ["advertising", "tenders", "location", "society"])
       expect(a.criteria.find((c) => c.id === id)?.score).toBeNull();
+    // Without an audited wage, KNX has no reading of the wages either.
+    expect(criterion("dormante", "wages")).toMatchObject({ score: null, note: "non évalués" });
     expect(a.criteria.find((c) => c.id === "legality")).toMatchObject({
       score: 5,
       value: "aucune irrégularité connue",
     });
+  });
+
+  it("propose the wages level from an audited wage, the Agence's level winning", () => {
+    // 500 ¢ audited, under the 2 000 ¢ living wage.
+    expect(criterion("essor", "wages")).toMatchObject({
+      source: "estimate",
+      score: RATING_METHOD.wages.insufficient,
+      value: expect.stringMatching(/^insuffisants .*500 ¢ audité par l'Agence/),
+    });
+    expect(criterion("essor", "wages", { ...EMPTY_INPUTS, wages: "coherent" })).toMatchObject({
+      source: "agency",
+      score: RATING_METHOD.wages.coherent,
+    });
+    // The levers in force set the thresholds.
+    const lenient = assessRating(company("essor"), EMPTY_INPUTS, "cv", LATEST, {
+      ...DEFAULT_VALUATION,
+      livingWage: 400,
+    }).criteria.find((c) => c.id === "wages");
+    expect(lenient?.score).toBe(RATING_METHOD.wages.decent);
   });
 
   it("score tenders on those actually held, with the price advice", () => {

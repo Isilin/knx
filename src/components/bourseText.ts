@@ -208,6 +208,13 @@ export const LEVERS: {
     help: "Salaire supposé d'un salarié payé, par jour, quand l'Agence n'a pas audité celui de la corporation ; le DG n'est pas payé. Ils séparent, dans la trésorerie, les salaires des autres flux, et la valeur retire les salaires de la recette.",
   },
   {
+    key: "wagesCriterion",
+    label: "Critère Salaires",
+    read: (p) =>
+      `insuffisants sous ${formatInteger(p.livingWage)} ¢ · cohérents dès ${formatShare(p.coherentWageShare)} du barème`,
+    help: "Pour une maison dont l'Agence a audité le salaire, KNX propose le niveau du critère Salaires de la notation : sous le minimum vital, insuffisants ; à partir de cette part du salaire de référence de son secteur, et si la masse salariale reste sous la recette, cohérents ; décents entre les deux. L'Agence peut corriger.",
+  },
+  {
     key: "introductionPrice",
     label: "Cours d'introduction proposé",
     read: (p) => `${formatInteger(p.introductionPrice)} ¢`,

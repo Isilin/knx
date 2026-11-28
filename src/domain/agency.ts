@@ -11,6 +11,7 @@ import {
   type CompanyRating,
   type RatingCategory,
   type RatingConfidence,
+  type WageRules,
 } from "./rating.ts";
 import { RISK_METHOD } from "./risk.ts";
 import { largestFlows } from "./treasury.ts";
@@ -55,13 +56,15 @@ export function watchRating(
   events: readonly CompanyEvent[],
   marketEvents: readonly MarketEvent[],
   asOf: IsoDate,
+  /** The wage levers in force, for the wages criterion. */
+  rules: WageRules,
 ): RatingWatch {
   const reasons: WatchReason[] = [];
   const after = (date: IsoDate) => date > rating.date;
 
   let recomputed: RatingWatch["recomputed"] = null;
   if (rating.method === RATING_METHOD.version && company.status !== "delisted") {
-    const now = assessRating(company, rating.inputs, rating.district, asOf);
+    const now = assessRating(company, rating.inputs, rating.district, asOf, rules);
     if (now.category && now.score !== null) {
       recomputed = { category: now.category, confidence: now.confidence, score: now.score };
       if (now.category !== rating.category)

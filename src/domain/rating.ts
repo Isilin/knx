@@ -1,12 +1,21 @@
 import { creationReliability, type CreationEstimate } from "./age.ts";
 import { addDays, daysBetween, toDayNumber } from "./dates.ts";
 import type { CompanyPoint, CompanyScores, CompanyStatus } from "./market.ts";
-import { formatDecimal, formatPercent } from "./numbers.ts";
+import { formatDecimal, formatInteger, formatPercent } from "./numbers.ts";
 import { regimeOf } from "./regimes.ts";
 import { rateBetween } from "./revenue.ts";
 import { RISK_METHOD } from "./risk.ts";
+import type { SectorId } from "./sectors.ts";
 import { keptShare, treasuryBridge } from "./treasury.ts";
-import type { WageFigure } from "./wages.ts";
+import { DEFAULT_VALUATION, type ValuationParams } from "./valuation.ts";
+import {
+  paidStaff,
+  proposeWagesLevel,
+  sortFigures,
+  wageOn,
+  wageOriginLabel,
+  type WageFigure,
+} from "./wages.ts";
 import type { Consortium, IsoDate } from "./types.ts";
 
 /**
@@ -115,8 +124,11 @@ export interface CompanyRating {
 type Curve = readonly (readonly [x: number, score: number])[];
 
 export const RATING_METHOD = {
-  /** v2: profitability counts the wages as kept (28 November 2026). */
-  version: "v2",
+  /**
+   * v2: profitability counts the wages as kept (28 November 2026). v3: KNX proposes the wages
+   * level from an audited wage (28 November 2026).
+   */
+  version: "v3",
   /** Five imperial years (one imperial year is one real month). */
   windowDays: 150,
   axes: { accounting: 0.4, economic: 0.3, imperial: 0.3 } satisfies Record<RatingAxis, number>,
@@ -332,6 +344,7 @@ export interface RatingCompany {
   consortium: Consortium | null;
   /** Wages audited or declared for the life: without any, KNX pays the reference wage. */
   wageFigures: readonly WageFigure[];
+  sector: SectorId | null;
 }
 
 type CriterionDraft = Omit<CriterionScore, "axis">;
@@ -423,6 +436,68 @@ const WAGES_WORDS: Record<WagesLevel, string> = {
   coherent: "cohérents avec l'activité",
 };
 
+/** Levers the wages criterion reads: the reference wages, the living wage, the coherent share. */
+export type WageRules = Pick<
+  ValuationParams,
+  "sectorWages" | "defaultWage" | "livingWage" | "coherentWageShare"
+>;
+
+export interface WagesProposal {
+  level: WagesLevel;
+  /** `3 000 ¢ audité par l'Agence le 3/386.2, barème 4 400 ¢`. */
+  basis: string;
+}
+
+/**
+ * KNX's reading of the wages criterion, only for a life whose own wage the Agence audited or
+ * its direction declared: the sector's reference is the same for every house of the sector and
+ * judges none. Null without such a figure.
+ */
+export function wagesProposal(
+  company: Pick<RatingCompany, "wageFigures" | "sector" | "latest" | "recentRate">,
+  rules: WageRules,
+  asOf: IsoDate,
+): WagesProposal | null {
+  const rate = wageOn(sortFigures(company.wageFigures), company.sector, rules, asOf);
+  if (rate.origin.kind !== "figure") return null;
+  const reference = wageOn([], company.sector, rules, asOf).wage;
+  const payroll = (paidStaff(company.latest.employees) ?? 0) * rate.wage;
+  return {
+    level: proposeWagesLevel(rate.wage, reference, payroll, company.recentRate, rules),
+    basis: `${formatInteger(rate.wage)} ¢ ${wageOriginLabel(rate.origin)}, barème ${formatInteger(reference)} ¢`,
+  };
+}
+
+/**
+ * The wages criterion: the Agence's level when it typed one, else KNX's proposal from an
+ * audited wage, else left out.
+ */
+function wages(
+  company: RatingCompany,
+  inputs: RatingInputs,
+  rules: WageRules,
+  asOf: IsoDate,
+): CriterionDraft {
+  if (inputs.wages)
+    return {
+      id: "wages",
+      source: "agency",
+      score: RATING_METHOD.wages[inputs.wages],
+      value: WAGES_WORDS[inputs.wages],
+      note: null,
+    };
+  const proposal = wagesProposal(company, rules, asOf);
+  if (!proposal)
+    return { id: "wages", source: "agency", score: null, value: null, note: "non évalués" };
+  return {
+    id: "wages",
+    source: "estimate",
+    score: RATING_METHOD.wages[proposal.level],
+    value: `${WAGES_WORDS[proposal.level]} (${proposal.basis})`,
+    note: null,
+  };
+}
+
 const PRESENCE_WORDS: Record<PresenceLevel, string> = {
   none: "absente",
   occasional: "ponctuelle",
@@ -503,18 +578,14 @@ export function assessRating(
   inputs: RatingInputs,
   district: District | null,
   asOf: IsoDate,
+  /** The wage levers in force; the defaults when left out. */
+  rules: WageRules = DEFAULT_VALUATION,
 ): RatingAssessment {
   const parts: CriterionDraft[] = [
     growth(company, asOf),
     treasury(company, inputs),
     profitability(company, asOf),
-    {
-      id: "wages",
-      source: "agency",
-      score: inputs.wages ? RATING_METHOD.wages[inputs.wages] : null,
-      value: inputs.wages ? WAGES_WORDS[inputs.wages] : null,
-      note: inputs.wages ? null : "non évalués",
-    },
+    wages(company, inputs, rules, asOf),
     team(company.latest.employees),
     {
       id: "advertising",

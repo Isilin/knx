@@ -7,6 +7,7 @@ import { checkParams, cleanParams, DEFAULT_VALUATION } from "./valuation.ts";
 import {
   describeWage,
   paidStaff,
+  proposeWagesLevel,
   sortFigures,
   wageOn,
   wagesBetween,
@@ -67,6 +68,26 @@ describe("wageOn", () => {
   });
 });
 
+describe("proposeWagesLevel", () => {
+  const rules = { livingWage: 2_000, coherentWageShare: 0.8 };
+  // A bank's reference: 4 400 ¢, so coherent from 3 520 ¢.
+  const level = (wage: number, payroll: number, revenue: number | null) =>
+    proposeWagesLevel(wage, 4_400, payroll, revenue, rules);
+
+  it("reads a wage under the living wage as insufficient", () => {
+    expect(level(1_999, 0, 100_000)).toBe("insufficient");
+    expect(level(2_000, 0, 100_000)).toBe("decent");
+  });
+
+  it("reads a wage near the sector's reference as coherent, if the revenue pays it", () => {
+    expect(level(3_519, 3_519, 100_000)).toBe("decent");
+    expect(level(3_520, 3_520, 100_000)).toBe("coherent");
+    expect(level(9_000, 27_000, 20_000)).toBe("decent");
+    // Unknown revenue proves nothing.
+    expect(level(9_000, 27_000, null)).toBe("decent");
+  });
+});
+
 describe("wagesBetween", () => {
   it("pays the mean paid headcount of both reports every night", () => {
     // 2 then 4 paid employees (3 and 5 with the DG), over 3 nights.
@@ -99,6 +120,10 @@ describe("reference wages in the settings", () => {
     expect(() => checkParams({ ...DEFAULT_VALUATION, defaultWage: 200_000 })).toThrow(
       /tous secteurs/,
     );
+    expect(() => checkParams({ ...DEFAULT_VALUATION, livingWage: -1 })).toThrow(/Minimum vital/);
+    expect(() => checkParams({ ...DEFAULT_VALUATION, coherentWageShare: 3 })).toThrow(/cohérents/);
+    expect(cleanParams({}).livingWage).toBe(2_000);
+    expect(cleanParams({}).coherentWageShare).toBe(0.8);
   });
 });
 

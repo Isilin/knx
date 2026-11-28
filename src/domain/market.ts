@@ -588,7 +588,7 @@ export function buildMarket(dataset: Dataset): Market {
     const rating = ratings.get(c.id)?.at(-1) ?? null;
     c.rating = rating;
     c.watch = rating
-      ? watchRating(c, rating, events.get(c.id) ?? [], marketEvents, latest.date)
+      ? watchRating(c, rating, events.get(c.id) ?? [], marketEvents, latest.date, params)
       : null;
   }
 
