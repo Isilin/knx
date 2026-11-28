@@ -3,6 +3,7 @@ import { formatImperialDate } from "./imperial.ts";
 import { formatInteger } from "./numbers.ts";
 import { sectorShort, type SectorId } from "./sectors.ts";
 import type { IsoDate } from "./types.ts";
+import type { WagesLevel } from "./rating.ts";
 import type { ValuationParams } from "./valuation.ts";
 
 /**
@@ -101,6 +102,24 @@ export function wageOriginLabel(origin: WageOrigin): string {
     case "default":
       return "barème tous secteurs";
   }
+}
+
+/**
+ * The level of the rating's « Salaires » criterion a known wage reads as: under the living wage,
+ * insufficient; under the coherent share of the sector's reference, decent; from it, coherent
+ * if the payroll stays within the revenue of the last 30 days (unknown revenue proves nothing:
+ * decent).
+ */
+export function proposeWagesLevel(
+  wage: number,
+  reference: number,
+  payrollDaily: number,
+  recentRate: number | null,
+  params: Pick<ValuationParams, "livingWage" | "coherentWageShare">,
+): WagesLevel {
+  if (wage < params.livingWage) return "insufficient";
+  if (wage < params.coherentWageShare * reference) return "decent";
+  return recentRate !== null && payrollDaily <= recentRate ? "coherent" : "decent";
 }
 
 /** The wage and where it comes from, for a tooltip. */

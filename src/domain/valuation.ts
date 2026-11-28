@@ -109,6 +109,13 @@ export interface ValuationParams {
   sectorWages: Record<SectorId, number>;
   /** Reference wage of a corporation filed under no sector. */
   defaultWage: number;
+  /**
+   * Daily wage under which the Agence reads wages as « insuffisants pour vivre au quotidien »:
+   * filling hunger and thirst costs about 1 000 ¢, more than once a day for an active character.
+   */
+  livingWage: number;
+  /** Share of the sector's reference wage from which wages read as « cohérents ». */
+  coherentWageShare: number;
 }
 
 export const DEFAULT_VALUATION: ValuationParams = {
@@ -159,6 +166,8 @@ export const DEFAULT_VALUATION: ValuationParams = {
     "atelier-personnalisation": 8900,
   },
   defaultWage: 5400,
+  livingWage: 2000,
+  coherentWageShare: 0.8,
 };
 
 /** Bounds of each lever, checked before publishing settings. */
@@ -182,6 +191,7 @@ export const PARAM_BOUNDS = {
   offerBand: [0, 0.9],
   carryFee: [0, 0.05],
   wage: [0, 100_000],
+  coherentWageShare: [0, 2],
 } as const;
 
 /** A published version of the settings. The latest one is in force. */
@@ -251,6 +261,8 @@ export function cleanParams(raw: unknown): ValuationParams {
     carryFee: num(r.carryFee, d.carryFee),
     sectorWages: record(r.sectorWages, SECTOR_IDS, d.sectorWages),
     defaultWage: num(r.defaultWage, d.defaultWage),
+    livingWage: num(r.livingWage, d.livingWage),
+    coherentWageShare: num(r.coherentWageShare, d.coherentWageShare),
   };
 }
 
@@ -301,6 +313,8 @@ export function checkParams(params: ValuationParams): void {
   };
   for (const s of SECTORS) credits(`Salaire de référence, ${s.short}`, params.sectorWages[s.id]);
   credits("Salaire de référence, tous secteurs", params.defaultWage);
+  credits("Minimum vital", params.livingWage);
+  within("Seuil des salaires cohérents", params.coherentWageShare, b.coherentWageShare);
 }
 
 /** The settings in force: the latest published version, or the defaults. */

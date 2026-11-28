@@ -56,9 +56,11 @@ relevés saisis dans la page Relevés restent dans le navigateur.
   KNX remplit les critères qu'il sait lire (croissance, trésorerie, rentabilité, équipe), l'Agence
   apprécie les autres ; la catégorie (Ω, α, ß, Γ, Δ, ε) et l'indice de confiance se calculent en
   direct. Une notation publiée est figée ; pour la corriger, la retirer et noter à nouveau. Barèmes,
-  pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v2` : la
+  pondérations et seuils : `RATING_METHOD` dans `src/domain/rating.ts` (méthode `v3` : la
   rentabilité compte les salaires estimés comme gardés ; tant que les salaires du barème
-  dépasseraient les recettes, elle attend un audit des salaires).
+  dépasseraient les recettes, elle attend un audit des salaires ; pour une maison au salaire
+  audité, KNX propose le niveau du critère Salaires, selon le minimum vital et la part du barème
+  du secteur réglés avec la valeur KNX, et l'Agence peut le corriger).
   La cote affiche la note (colonne et filtre), la page Marché sa répartition et les dernières
   notations. Une note passe « sous surveillance » quand, depuis sa publication, la recalculer sur
   le dernier relevé changerait sa catégorie, ou après un changement de DG, une fermeture, une sortie

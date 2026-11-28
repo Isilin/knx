@@ -18,7 +18,12 @@ type Draft = Record<string, string>;
 const SIMPLE: {
   key: Exclude<
     keyof ValuationParams,
-    "categoryMultipliers" | "confidenceBands" | "sectorWages" | "defaultWage"
+    | "categoryMultipliers"
+    | "confidenceBands"
+    | "sectorWages"
+    | "defaultWage"
+    | "livingWage"
+    | "coherentWageShare"
   >;
   label: string;
   unit: string;
@@ -214,6 +219,8 @@ function toDraft(p: ValuationParams): Draft {
   for (const c of CONFIDENCES) draft[`b-${c}`] = show(p.confidenceBands[c], true);
   for (const s of SECTORS) draft[`w-${s.id}`] = show(p.sectorWages[s.id]);
   draft.defaultWage = show(p.defaultWage);
+  draft.livingWage = show(p.livingWage);
+  draft.coherentWageShare = show(p.coherentWageShare, true);
   return draft;
 }
 
@@ -236,7 +243,11 @@ function fromDraft(draft: Draft): ValuationParams | null {
   for (const c of CONFIDENCES) params.confidenceBands[c] = read(`b-${c}`, true);
   for (const s of SECTORS) params.sectorWages[s.id] = read(`w-${s.id}`);
   params.defaultWage = read("defaultWage");
+  params.livingWage = read("livingWage");
+  params.coherentWageShare = read("coherentWageShare", true);
   const all = [
+    params.livingWage,
+    params.coherentWageShare,
     ...SIMPLE.map((f) => params[f.key]),
     ...Object.values(params.categoryMultipliers),
     ...Object.values(params.confidenceBands),
@@ -449,6 +460,25 @@ export function ValuationSettingsForm({ market }: { market: Market }) {
           <div className="levers__pairs">
             {SECTORS.map((s) => field(`w-${s.id}`, s.short, "¢", "100"))}
             {field("defaultWage", "Tous secteurs", "¢", "100")}
+          </div>
+          <span className="levers__sub">
+            Critère Salaires de la notation, pour une maison au salaire audité
+          </span>
+          <div className="levers__pairs">
+            {field(
+              "livingWage",
+              "Minimum vital",
+              "¢",
+              "100",
+              "En dessous : « insuffisants pour vivre au quotidien ».",
+            )}
+            {field(
+              "coherentWageShare",
+              "Salaires cohérents",
+              "% du barème",
+              "5",
+              "À partir de cette part du barème du secteur, et masse salariale sous la recette : « cohérents ».",
+            )}
           </div>
         </fieldset>
       </div>
